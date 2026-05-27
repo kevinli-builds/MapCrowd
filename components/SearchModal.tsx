@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, X, MapPin, Users, ArrowRight, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useDebounce } from '@/lib/hooks'
+import { DEBOUNCE_MS, LIMITS } from '@/lib/constants'
 import { Community, Pin } from '@/lib/types'
 
 interface SearchModalProps {
@@ -19,62 +21,72 @@ export default function SearchModal({
   onClose,
 }: SearchModalProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [query, setQuery] = useState('')
+  const [query, setQuery]           = useState('')
   const [pinResults, setPinResults] = useState<Pin[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading]       = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
+
+  // Debounce the pin search — replaces the inline setTimeout pattern
+  const debouncedQuery = useDebounce(query.trim(), DEBOUNCE_MS.pinSearch)
 
   // Filter communities client-side (instant, no network needed)
   const communityResults = query.trim().length < 1
     ? []
-    : communities.filter((c) =>
-        c.name.toLowerCase().includes(query.toLowerCase()) ||
-        c.slug.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 4)
+    : communities
+        .filter(
+          (c) =>
+            c.name.toLowerCase().includes(query.toLowerCase()) ||
+            c.slug.toLowerCase().includes(query.toLowerCase())
+        )
+        .slice(0, 4)
 
-  // Debounced Supabase pin search
+  // Supabase pin search — fires after debounce settles
   useEffect(() => {
-    if (query.trim().length < 2) { setPinResults([]); return }
-
-    const timer = setTimeout(async () => {
-      setLoading(true)
-      const now = new Date().toISOString()
-      const { data } = await supabase
-        .from('pins')
-        .select('*, community:communities(id,name,color,icon,slug), profile:profiles(username,avatar_url)')
-        .eq('status', 'approved')
-        .or(`expires_at.is.null,expires_at.gt.${now}`)
-        .or(`title.ilike.%${query.trim()}%,description.ilike.%${query.trim()}%`)
-        .order('vote_count', { ascending: false })
-        .limit(5)
-
-      setPinResults(data ?? [])
+    if (debouncedQuery.length < 2) {
+      setPinResults([])
       setLoading(false)
-    }, 200)
+      return
+    }
 
-    return () => clearTimeout(timer)
-  }, [query])
+    let cancelled = false
+    setLoading(true)
+
+    const now = new Date().toISOString()
+    supabase
+      .from('pins')
+      .select('*, community:communities(id,name,color,icon,slug), profile:profiles(username,avatar_url)')
+      .eq('status', 'approved')
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .or(`title.ilike.%${debouncedQuery}%,description.ilike.%${debouncedQuery}%`)
+      .order('vote_count', { ascending: false })
+      .limit(LIMITS.pinSearchResults)
+      .then(({ data }) => {
+        if (cancelled) return
+        setPinResults((data as unknown as Pin[]) ?? [])
+        setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [debouncedQuery])
 
   const totalResults = communityResults.length + pinResults.length
 
   // Reset active index when results change
   useEffect(() => { setActiveIndex(0) }, [query])
 
-  // Auto-focus input
+  // Auto-focus input on mount
   useEffect(() => { inputRef.current?.focus() }, [])
 
-  const handleSelect = useCallback(
-    (index: number) => {
-      if (index < communityResults.length) {
-        onSelectCommunity(communityResults[index].id)
-      } else {
-        const pin = pinResults[index - communityResults.length]
-        if (pin) onSelectPin(pin)
-      }
-      onClose()
-    },
-    [communityResults, pinResults, onSelectCommunity, onSelectPin, onClose]
-  )
+  // Plain function — only called on explicit user interaction, no need for useCallback
+  const handleSelect = (index: number) => {
+    if (index < communityResults.length) {
+      onSelectCommunity(communityResults[index].id)
+    } else {
+      const pin = pinResults[index - communityResults.length]
+      if (pin) onSelectPin(pin)
+    }
+    onClose()
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { onClose(); return }
@@ -108,7 +120,7 @@ export default function SearchModal({
             className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 outline-none"
           />
           {loading && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-gray-600" />}
-          <button onClick={onClose} className="shrink-0 text-gray-600 hover:text-gray-400 transition-colors">
+          <button onClick={onClose} className="shrink-0 text-gray-600 transition-colors hover:text-gray-400">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -165,7 +177,7 @@ export default function SearchModal({
                     <MapPin className="h-3 w-3" /> Pins
                   </p>
                   {pinResults.map((pin, i) => {
-                    const idx = communityResults.length + i
+                    const idx  = communityResults.length + i
                     const comm = pin.community
                     return (
                       <button
@@ -227,15 +239,9 @@ export default function SearchModal({
 
         {/* ── Keyboard hints ─────────────────────────────────────────────── */}
         <div className="flex items-center gap-4 border-t border-gray-800 px-4 py-2.5 text-xs text-gray-700">
-          <span>
-            <kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-500">↑↓</kbd> navigate
-          </span>
-          <span>
-            <kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-500">↵</kbd> select
-          </span>
-          <span>
-            <kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-500">esc</kbd> close
-          </span>
+          <span><kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-500">↑↓</kbd> navigate</span>
+          <span><kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-500">↵</kbd> select</span>
+          <span><kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-500">esc</kbd> close</span>
         </div>
       </div>
     </div>

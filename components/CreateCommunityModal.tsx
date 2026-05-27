@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Globe, Lock, Loader2, X, AlertTriangle, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useDebounce } from '@/lib/hooks'
+import { DEBOUNCE_MS, LIMITS } from '@/lib/constants'
 
 // ── Picker data ──────────────────────────────────────────────────────────────
 
@@ -73,7 +75,6 @@ export default function CreateCommunityModal({
   // Similarity check state
   const [similarCommunities, setSimilarCommunities] = useState<{ id: string; name: string; icon: string }[]>([])
   const [checking, setChecking] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const trimmedName = name.trim()
   const previewName = trimmedName || 'My Community'
@@ -83,32 +84,31 @@ export default function CreateCommunityModal({
     (c) => c.name.toLowerCase() === trimmedName.toLowerCase()
   )
 
-  // Debounced similarity search — only for public communities (private ones
-  // won't clash with the public namespace in a meaningful way)
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
+  // Debounce the name — private communities skip the check (no public namespace clash)
+  const debouncedName = useDebounce(isPrivate ? '' : trimmedName, DEBOUNCE_MS.similarity)
 
-    if (isPrivate || trimmedName.length < 3) {
+  // Similarity search — fires after debounce settles
+  useEffect(() => {
+    if (debouncedName.length < 3) {
       setSimilarCommunities([])
       setChecking(false)
       return
     }
 
+    let cancelled = false
     setChecking(true)
-    debounceRef.current = setTimeout(async () => {
-      const { data } = await supabase
-        .from('communities')
-        .select('id, name, icon')
-        .ilike('name', `%${trimmedName}%`)
-        .limit(5)
-      setSimilarCommunities(data ?? [])
-      setChecking(false)
-    }, 350)
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [trimmedName, isPrivate])
+    supabase
+      .from('communities')
+      .select('id, name, icon')
+      .ilike('name', `%${debouncedName}%`)
+      .limit(LIMITS.similarCommunities)
+      .then(({ data }) => {
+        if (cancelled) return
+        setSimilarCommunities(data ?? [])
+        setChecking(false)
+      })
+    return () => { cancelled = true }
+  }, [debouncedName])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -226,7 +226,7 @@ export default function CreateCommunityModal({
                     : 'border-gray-700 focus:border-indigo-500 focus:ring-indigo-500'
                 }`}
               />
-              {checking && (
+              {(checking || (trimmedName !== debouncedName && !isPrivate && trimmedName.length >= 3)) && (
                 <Loader2 className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-gray-500" />
               )}
             </div>
@@ -360,7 +360,7 @@ export default function CreateCommunityModal({
             </button>
             <button
               type="submit"
-              disabled={!trimmedName || submitting || !!exactMatch || checking}
+              disabled={!trimmedName || submitting || !!exactMatch || checking || (trimmedName !== debouncedName && !isPrivate && trimmedName.length >= 3)}
               className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? (

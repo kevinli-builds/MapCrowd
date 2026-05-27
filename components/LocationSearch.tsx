@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Search, X, Loader2, MapPin } from 'lucide-react'
+import { useDebounce } from '@/lib/hooks'
+import { DEBOUNCE_MS, LIMITS } from '@/lib/constants'
 
 interface NominatimResult {
   place_id: number
@@ -35,48 +37,48 @@ function bboxZoom(bb: string[]): number {
 export default function LocationSearch({ onFlyTo }: LocationSearchProps) {
   const [query, setQuery]       = useState('')
   const [results, setResults]   = useState<NominatimResult[]>([])
-  const [loading, setLoading]   = useState(false)
+  const [fetching, setFetching] = useState(false)
   const [open, setOpen]         = useState(false)
   const [activeIdx, setActiveIdx] = useState(-1)
 
   const inputRef     = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Debounced geocoding search ───────────────────────────────────────────
+  // Debounce the trimmed query — replaces the manual useRef + setTimeout pattern
+  const debouncedQuery = useDebounce(query.trim(), DEBOUNCE_MS.geocode)
+
+  // Show a spinner as soon as the user types, not only after the debounce fires
+  const isPending = query.trim().length >= 2 && query.trim() !== debouncedQuery
+  const showSpinner = isPending || fetching
+
+  // ── Geocoding fetch ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-
-    const trimmed = query.trim()
-    if (trimmed.length < 2) {
+    if (debouncedQuery.length < 2) {
       setResults([])
       setOpen(false)
-      setLoading(false)
+      setFetching(false)
       return
     }
 
-    setLoading(true)
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const url =
-          `https://nominatim.openstreetmap.org/search` +
-          `?q=${encodeURIComponent(trimmed)}&format=json&limit=5&addressdetails=1`
-        const res = await fetch(url)
-        const data: NominatimResult[] = await res.json()
+    let cancelled = false
+    setFetching(true)
+
+    fetch(
+      `https://nominatim.openstreetmap.org/search` +
+      `?q=${encodeURIComponent(debouncedQuery)}&format=json&limit=${LIMITS.userSearchResults}&addressdetails=1`
+    )
+      .then((r) => r.json())
+      .then((data: NominatimResult[]) => {
+        if (cancelled) return
         setResults(data)
         setOpen(true)
         setActiveIdx(-1)
-      } catch {
-        setResults([])
-      } finally {
-        setLoading(false)
-      }
-    }, 500)
+      })
+      .catch(() => { if (!cancelled) setResults([]) })
+      .finally(() => { if (!cancelled) setFetching(false) })
 
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [query])
+    return () => { cancelled = true }
+  }, [debouncedQuery])
 
   // ── Close on outside click ───────────────────────────────────────────────
   useEffect(() => {
@@ -95,7 +97,7 @@ export default function LocationSearch({ onFlyTo }: LocationSearchProps) {
     const lng  = parseFloat(r.lon)
     const zoom = bboxZoom(r.boundingbox)
     onFlyTo(lat, lng, zoom)
-    // show only the primary place name in the input
+    // Show only the primary place name in the input after selection
     setQuery(r.display_name.split(',')[0].trim())
     setOpen(false)
     inputRef.current?.blur()
@@ -147,7 +149,7 @@ export default function LocationSearch({ onFlyTo }: LocationSearchProps) {
           placeholder="Go to a place…"
           className="w-full rounded-xl border border-gray-700 bg-gray-900/90 py-2.5 pl-9 pr-9 text-sm text-white placeholder-gray-500 shadow-lg backdrop-blur-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
-        {loading ? (
+        {showSpinner ? (
           <Loader2 className="absolute right-3 h-4 w-4 animate-spin text-gray-500" />
         ) : query ? (
           <button
@@ -171,7 +173,7 @@ export default function LocationSearch({ onFlyTo }: LocationSearchProps) {
               <li key={r.place_id}>
                 <button
                   onMouseDown={(e) => {
-                    e.preventDefault() // keep focus in input so onBlur doesn't fire first
+                    e.preventDefault() // keep input focused so onBlur doesn't fire first
                     selectResult(r)
                   }}
                   className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors ${

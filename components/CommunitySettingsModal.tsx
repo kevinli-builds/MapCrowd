@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import {
   X, Shield, UserPlus, UserMinus, Search, Loader2,
   CheckCircle2, XCircle, Clock, Settings, Users, Inbox, Lock,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useDebounce } from '@/lib/hooks'
+import { DEBOUNCE_MS, LIMITS } from '@/lib/constants'
 import {
   Community, CommunityMember, CommunityModerator, Profile,
   PinDuration, WhoCanPin, PIN_DURATION_LABELS, WHO_CAN_PIN_LABELS,
@@ -141,7 +143,6 @@ export default function CommunitySettingsModal({
   const [searchingMembers, setSearchingMembers] = useState(false)
   const [invitingId, setInvitingId] = useState<string | null>(null)
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
-  const memberDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchMembers = async () => {
     setLoadingMembers(true)
@@ -160,29 +161,29 @@ export default function CommunitySettingsModal({
     }
   }, [activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounced user search for inviting
+  // Debounced member search
+  const debouncedMemberSearch = useDebounce(memberSearch.trim(), DEBOUNCE_MS.userSearch)
+
   useEffect(() => {
-    if (memberDebounceRef.current) clearTimeout(memberDebounceRef.current)
-    if (!memberSearch.trim()) { setMemberSearchResults([]); return }
+    if (!debouncedMemberSearch) { setMemberSearchResults([]); return }
 
-    memberDebounceRef.current = setTimeout(async () => {
-      setSearchingMembers(true)
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .ilike('username', `%${memberSearch.trim()}%`)
-        .limit(10)
-
-      if (data) {
-        // exclude the owner and already-invited/accepted members
-        const excludedIds = new Set([currentUserId, ...members.map((m) => m.user_id)])
-        setMemberSearchResults(data.filter((p) => !excludedIds.has(p.id)))
-      }
-      setSearchingMembers(false)
-    }, 300)
-
-    return () => { if (memberDebounceRef.current) clearTimeout(memberDebounceRef.current) }
-  }, [memberSearch, members, currentUserId])
+    let cancelled = false
+    setSearchingMembers(true)
+    supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .ilike('username', `%${debouncedMemberSearch}%`)
+      .limit(LIMITS.userSearchResults)
+      .then(({ data }) => {
+        if (cancelled) return
+        if (data) {
+          const excludedIds = new Set([currentUserId, ...members.map((m) => m.user_id)])
+          setMemberSearchResults(data.filter((p) => !excludedIds.has(p.id)))
+        }
+        setSearchingMembers(false)
+      })
+    return () => { cancelled = true }
+  }, [debouncedMemberSearch, members, currentUserId])
 
   const handleInviteMember = async (profile: Pick<Profile, 'id' | 'username' | 'avatar_url'>) => {
     setInvitingId(profile.id)
@@ -218,7 +219,6 @@ export default function CommunitySettingsModal({
   const [searching, setSearching] = useState(false)
   const [addingId, setAddingId] = useState<string | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchMods = async () => {
     setLoadingMods(true)
@@ -234,28 +234,29 @@ export default function CommunitySettingsModal({
     if (activeTab === 'mods' && loadingMods) fetchMods()
   }, [activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounced profile search for mods
+  // Debounced mod search
+  const debouncedModSearch = useDebounce(searchQuery.trim(), DEBOUNCE_MS.userSearch)
+
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!searchQuery.trim()) { setSearchResults([]); return }
+    if (!debouncedModSearch) { setSearchResults([]); return }
 
-    debounceRef.current = setTimeout(async () => {
-      setSearching(true)
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .ilike('username', `%${searchQuery.trim()}%`)
-        .limit(10)
-
-      if (data) {
-        const excludedIds = new Set([currentUserId, ...mods.map((m) => m.user_id)])
-        setSearchResults(data.filter((p) => !excludedIds.has(p.id)))
-      }
-      setSearching(false)
-    }, 300)
-
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [searchQuery, mods, currentUserId])
+    let cancelled = false
+    setSearching(true)
+    supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .ilike('username', `%${debouncedModSearch}%`)
+      .limit(LIMITS.userSearchResults)
+      .then(({ data }) => {
+        if (cancelled) return
+        if (data) {
+          const excludedIds = new Set([currentUserId, ...mods.map((m) => m.user_id)])
+          setSearchResults(data.filter((p) => !excludedIds.has(p.id)))
+        }
+        setSearching(false)
+      })
+    return () => { cancelled = true }
+  }, [debouncedModSearch, mods, currentUserId])
 
   const handleAddMod = async (profile: Pick<Profile, 'id' | 'username' | 'avatar_url'>) => {
     setAddingId(profile.id)
