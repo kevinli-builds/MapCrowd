@@ -1,10 +1,20 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle, Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Community, WHO_CAN_PIN_LABELS } from '@/lib/types'
-import { LIMITS } from '@/lib/constants'
+import { LIMITS, DEBOUNCE_MS } from '@/lib/constants'
+import { useDebounce } from '@/lib/hooks'
+
+// ── Nominatim result shape ────────────────────────────────────────────────────
+
+interface NominatimResult {
+  place_id: number
+  display_name: string
+  lat: string
+  lon: string
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -67,6 +77,58 @@ export default function AddPinModal({
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // ── Location overridable from address search ──────────────────────────────
+  const [pinLat, setPinLat] = useState(lat)
+  const [pinLng, setPinLng] = useState(lng)
+
+  // ── Address / place search ─────────────────────────────────────────────────
+  const [locationQuery, setLocationQuery] = useState('')
+  const [locationResults, setLocationResults] = useState<NominatimResult[]>([])
+  const [locationFetching, setLocationFetching] = useState(false)
+  const [locationOpen, setLocationOpen] = useState(false)
+  const [selectedPlace, setSelectedPlace] = useState<string | null>(null)
+  const locationInputRef = useRef<HTMLInputElement>(null)
+
+  const debouncedLocationQuery = useDebounce(locationQuery.trim(), DEBOUNCE_MS.geocode)
+
+  useEffect(() => {
+    if (!debouncedLocationQuery) {
+      setLocationResults([])
+      setLocationOpen(false)
+      return
+    }
+    let cancelled = false
+    setLocationFetching(true)
+    fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=${LIMITS.geocodeResults}&q=${encodeURIComponent(debouncedLocationQuery)}`,
+      { headers: { 'Accept-Language': 'en' } }
+    )
+      .then((r) => r.json())
+      .then((data: NominatimResult[]) => {
+        if (cancelled) return
+        setLocationResults(data)
+        setLocationOpen(data.length > 0)
+      })
+      .catch(() => { if (!cancelled) setLocationResults([]) })
+      .finally(() => { if (!cancelled) setLocationFetching(false) })
+    return () => { cancelled = true }
+  }, [debouncedLocationQuery])
+
+  const handleLocationSelect = (result: NominatimResult) => {
+    const newLat = parseFloat(result.lat)
+    const newLng = parseFloat(result.lon)
+    setPinLat(newLat)
+    setPinLng(newLng)
+    // Use a short place label — everything before the first comma
+    const shortName = result.display_name.split(',')[0].trim()
+    setSelectedPlace(shortName)
+    setLocationQuery(shortName)
+    setLocationOpen(false)
+    setLocationResults([])
+    // Auto-fill title with the place name if user hasn't typed anything yet
+    if (!title.trim()) setTitle(shortName)
+  }
+
   const selectedCommunity = communities.find((c) => c.id === communityId)
   const isPending = selectedCommunity?.require_approval ?? false
   const hasDuration = selectedCommunity?.default_pin_duration !== 'permanent'
@@ -117,8 +179,8 @@ export default function AddPinModal({
         user_id: userId,
         title: title.trim(),
         description: description.trim() || null,
-        lat,
-        lng,
+        lat: pinLat,
+        lng: pinLng,
         vote_count: 0,
       })
       .select('id')
@@ -208,10 +270,55 @@ export default function AddPinModal({
         {/* Scrollable form body */}
         <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
-            {/* Coordinates */}
-            <p className="font-mono text-xs text-gray-500">
-              📍 {lat.toFixed(4)}, {lng.toFixed(4)}
-            </p>
+            {/* Location search */}
+            <div className="relative">
+              <label className="mb-1.5 block text-sm text-gray-400">Location</label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
+                {locationFetching && (
+                  <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-gray-500" />
+                )}
+                <input
+                  ref={locationInputRef}
+                  type="text"
+                  value={locationQuery}
+                  onChange={(e) => {
+                    setLocationQuery(e.target.value)
+                    if (selectedPlace && e.target.value !== selectedPlace) setSelectedPlace(null)
+                  }}
+                  onFocus={() => locationResults.length > 0 && setLocationOpen(true)}
+                  onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
+                  placeholder="Search address or place name…"
+                  className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2.5 pl-9 pr-9 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Dropdown */}
+              {locationOpen && locationResults.length > 0 && (
+                <ul className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-lg border border-gray-700 bg-gray-900 shadow-xl">
+                  {locationResults.map((result) => (
+                    <li key={result.place_id}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); handleLocationSelect(result) }}
+                        className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-800"
+                      >
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-400" />
+                        <span className="text-gray-300 leading-snug">{result.display_name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Coordinate readout */}
+              <p className="mt-1.5 font-mono text-xs text-gray-600">
+                📍 {pinLat.toFixed(4)}, {pinLng.toFixed(4)}
+                {!selectedPlace && (
+                  <span className="ml-2 not-italic text-gray-700 font-sans">(map click)</span>
+                )}
+              </p>
+            </div>
 
             {/* Community picker */}
             <div>
