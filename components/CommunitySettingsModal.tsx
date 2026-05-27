@@ -834,32 +834,42 @@ export default function CommunitySettingsModal({
                   </p>
                 ) : (
                   <ul className="space-y-1">
-                    {mods.map((mod) => (
-                      <li
-                        key={mod.user_id}
-                        className="flex items-center gap-3 rounded-lg border border-gray-800 px-3 py-2"
-                      >
-                        <Avatar
-                          userId={mod.user_id}
-                          username={mod.profile?.username ?? '??'}
-                          src={mod.profile?.avatar_url ?? null}
-                        />
-                        <span className="flex-1 text-sm font-medium text-gray-200">
-                          {mod.profile?.username ?? 'Unknown user'}
-                        </span>
-                        <button
-                          onClick={() => handleRemoveMod(mod.user_id)}
-                          disabled={removingId === mod.user_id}
-                          className="rounded p-1 text-gray-600 transition-colors hover:text-red-400 disabled:opacity-40"
+                    {mods.map((mod) => {
+                      const isOwnerMod = mod.user_id === community.created_by
+                      return (
+                        <li
+                          key={mod.user_id}
+                          className="flex items-center gap-3 rounded-lg border border-gray-800 px-3 py-2"
                         >
-                          {removingId === mod.user_id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                          <Avatar
+                            userId={mod.user_id}
+                            username={mod.profile?.username ?? '??'}
+                            src={mod.profile?.avatar_url ?? null}
+                          />
+                          <span className="flex-1 text-sm font-medium text-gray-200">
+                            {mod.profile?.username ?? 'Unknown user'}
+                          </span>
+                          {isOwnerMod ? (
+                            <span className="flex items-center gap-1 rounded-full bg-indigo-500/20 px-2.5 py-0.5 text-xs font-semibold text-indigo-300">
+                              <Shield className="h-3 w-3" />
+                              Owner
+                            </span>
                           ) : (
-                            <UserMinus className="h-4 w-4" />
+                            <button
+                              onClick={() => handleRemoveMod(mod.user_id)}
+                              disabled={removingId === mod.user_id}
+                              className="rounded p-1 text-gray-600 transition-colors hover:text-red-400 disabled:opacity-40"
+                            >
+                              {removingId === mod.user_id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <UserMinus className="h-4 w-4" />
+                              )}
+                            </button>
                           )}
-                        </button>
-                      </li>
-                    ))}
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </section>

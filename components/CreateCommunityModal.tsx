@@ -131,13 +131,21 @@ export default function CreateCommunityModal({
       .select()
       .single()
 
-    setSubmitting(false)
-
-    if (err) {
+    if (err || !data) {
+      setSubmitting(false)
       setError('Could not create community — please try again.')
-    } else if (data) {
-      onSuccess(data.id)
+      return
     }
+
+    // Auto-add the creator as a moderator so they appear in the Mods tab
+    await supabase.from('community_moderators').insert({
+      community_id: data.id,
+      user_id: userId,
+      assigned_by: userId,
+    })
+
+    setSubmitting(false)
+    onSuccess(data.id)
   }
 
   return (
