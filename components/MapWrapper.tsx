@@ -23,6 +23,7 @@ interface MapWrapperProps {
   onMapClick: (lat: number, lng: number) => void
   onPinClick: (pin: Pin) => void
   flyToTarget: FlyToTarget | null
+  onCenterChange?: (lat: number, lng: number) => void
 }
 
 export default function MapWrapper(props: MapWrapperProps) {

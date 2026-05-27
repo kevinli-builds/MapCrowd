@@ -30,6 +30,7 @@ interface SidebarProps {
   onShowSubscribed: () => void
   onToggleSubscription: (id: string) => void
   onOpenSettings: (id: string) => void
+  onAddPin: (communityId: string) => void
   onAcceptInvite: (memberId: string) => void
   onDeclineInvite: (memberId: string) => void
   user: User | null
@@ -56,6 +57,7 @@ export default function Sidebar({
   onShowSubscribed,
   onToggleSubscription,
   onOpenSettings,
+  onAddPin,
   onAcceptInvite,
   onDeclineInvite,
   user,
@@ -277,6 +279,18 @@ export default function Sidebar({
                     )}
                   </button>
                 )}
+
+                {/* Add pin to this community */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onAddPin(c.id)
+                  }}
+                  title="Drop a pin here"
+                  className="rounded p-1 text-gray-500 transition-colors hover:text-indigo-400"
+                >
+                  <MapPin className="h-3.5 w-3.5" />
+                </button>
 
                 {/* Community page link */}
                 <Link

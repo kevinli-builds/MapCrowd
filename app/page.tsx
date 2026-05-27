@@ -33,6 +33,8 @@ export default function Home() {
   const [selectedCommunity, setSelectedCommunity] = useState<string | null>(null)
   const [showSubscribedOnly, setShowSubscribedOnly] = useState(false)
   const [pendingLatLng, setPendingLatLng] = useState<[number, number] | null>(null)
+  const [pendingCommunityOverride, setPendingCommunityOverride] = useState<string | null>(null)
+  const [mapCenter, setMapCenter] = useState<[number, number]>([30, 10]) // matches MapInner initial center
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null)
 
   // Moderation, subscriptions & invites
@@ -197,6 +199,12 @@ export default function Home() {
     setSelectedPin(pin)
   }
 
+  const handleAddPinForCommunity = (communityId: string) => {
+    if (!user) { setShowAuthModal(true); return }
+    setPendingCommunityOverride(communityId)
+    setPendingLatLng([mapCenter[0], mapCenter[1]])
+  }
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
   }
@@ -274,6 +282,7 @@ export default function Home() {
         onShowSubscribed={handleShowSubscribed}
         onToggleSubscription={handleToggleSubscription}
         onOpenSettings={(id) => setCommunitySettingsId(id)}
+        onAddPin={handleAddPinForCommunity}
         onOpenSearch={() => setShowSearch(true)}
         pendingInvites={pendingInvites}
         onAcceptInvite={handleAcceptInvite}
@@ -307,6 +316,7 @@ export default function Home() {
           onMapClick={handleMapClick}
           onPinClick={handlePinClick}
           flyToTarget={flyToTarget}
+          onCenterChange={(lat, lng) => setMapCenter([lat, lng])}
         />
 
         {showCreateModal && user && (
@@ -336,12 +346,12 @@ export default function Home() {
             lat={pendingLatLng[0]}
             lng={pendingLatLng[1]}
             communities={communities}
-            initialCommunityId={selectedCommunity}
+            initialCommunityId={pendingCommunityOverride ?? selectedCommunity}
             userId={user.id}
             subscribedIds={subscribedIds}
             moderatedIds={moderatedIds}
-            onClose={() => setPendingLatLng(null)}
-            onSuccess={() => { setPendingLatLng(null); fetchPins() }}
+            onClose={() => { setPendingLatLng(null); setPendingCommunityOverride(null) }}
+            onSuccess={() => { setPendingLatLng(null); setPendingCommunityOverride(null); fetchPins() }}
           />
         )}
 

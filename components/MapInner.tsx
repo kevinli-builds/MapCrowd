@@ -39,6 +39,17 @@ function FlyToController({ target }: { target: FlyToTarget | null }) {
   return null
 }
 
+/** Reports the map center whenever the user finishes panning/zooming. */
+function MapCenterTracker({ onCenterChange }: { onCenterChange: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    moveend(e) {
+      const { lat, lng } = e.target.getCenter()
+      onCenterChange(lat, lng)
+    },
+  })
+  return null
+}
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface MapInnerProps {
@@ -47,6 +58,7 @@ interface MapInnerProps {
   onMapClick: (lat: number, lng: number) => void
   onPinClick: (pin: Pin) => void
   flyToTarget: FlyToTarget | null
+  onCenterChange?: (lat: number, lng: number) => void
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -57,6 +69,7 @@ export default function MapInner({
   onMapClick,
   onPinClick,
   flyToTarget,
+  onCenterChange,
 }: MapInnerProps) {
   const communityById = useMemo(
     () => Object.fromEntries(communities.map((c) => [c.id, c])),
@@ -82,6 +95,7 @@ export default function MapInner({
       <ZoomControl position="bottomright" />
       <ClickHandler onClick={onMapClick} />
       <FlyToController target={flyToTarget} />
+      {onCenterChange && <MapCenterTracker onCenterChange={onCenterChange} />}
 
       {/* Cluster layer — manages its own Leaflet layer imperatively */}
       <PinClusterLayer
