@@ -5,11 +5,22 @@ export interface Community {
   description: string | null
   color: string
   icon: string
+  is_private: boolean               // true = invite-only; hidden from non-members
   created_by: string | null         // auth.users UUID of the creator
   require_approval: boolean         // pins need mod sign-off before going live
   default_pin_duration: PinDuration // auto-expiry applied to all new pins
   who_can_pin: WhoCanPin            // permission level required to drop a pin
   created_at: string
+}
+
+export interface CommunityMember {
+  id: string
+  community_id: string
+  user_id: string
+  invited_by: string | null
+  status: 'pending' | 'accepted'
+  created_at: string
+  profile: Pick<Profile, 'username' | 'avatar_url'> | null
 }
 
 /** How long new pins in a community live before auto-expiring */

@@ -44,14 +44,15 @@ app/
 components/
   Sidebar.tsx               # Left sidebar: community list, search, user auth
   MapWrapper.tsx            # SSR-safe Leaflet wrapper (dynamic import, no SSR)
-  MapInner.tsx              # Actual Leaflet map + marker logic
+  MapInner.tsx              # Actual Leaflet map + marker logic + FlyToController
   PinClusterLayer.tsx       # Marker clustering layer
   PinDetailModal.tsx        # Pin detail drawer: voting, comments, photos
   AddPinModal.tsx           # Drop-a-pin form
   AuthModal.tsx             # Sign in / sign up modal
-  CreateCommunityModal.tsx  # New community form
+  CreateCommunityModal.tsx  # New community form with duplicate/similar name detection
   CommunitySettingsModal.tsx # Owner/mod settings: queue, rules, mods
-  SearchModal.tsx           # Cmd/Ctrl+K command palette search
+  SearchModal.tsx           # Cmd/Ctrl+K command palette search (communities + pins)
+  LocationSearch.tsx        # Top-right map geocoding search (Nominatim, no API key)
   Avatar.tsx                # Shared avatar component (image or initials fallback)
 
 lib/
@@ -106,11 +107,20 @@ Key RPCs:
 ### Supabase client in layouts
 - `app/c/[slug]/layout.tsx` and `app/u/[username]/layout.tsx` create the Supabase client **inside** `generateMetadata()`, not at module level — this prevents build crashes when env vars aren't set yet
 
-### Mobile sidebar
+### Mobile sidebar & z-index
 - Sidebar is a fixed drawer on mobile, permanently visible on `md:` breakpoint
 - State: `showMobileSidebar` in `app/page.tsx`
-- Hamburger button: fixed top-left, `md:hidden`
-- Backdrop: `bg-black/60` div that closes drawer on tap
+- Hamburger button: `fixed left-4 top-4 z-[1001]` — must be above 1000 to clear Leaflet's internal z-indices
+- Sidebar drawer: `z-[1002]`, backdrop: `z-[1001]` — same reason
+- **Critical**: Leaflet internally uses z-indices up to ~1000 for tiles, markers, popups, controls. Any UI element that must appear above the map must use `z-[1001]` or higher. Tailwind's `z-50` (50) is NOT enough.
+
+### LocationSearch (geocoding)
+- Uses **Nominatim** (OpenStreetMap) — free, no API key, rate limit ~1 req/s
+- 500 ms debounce in the browser satisfies the rate limit per-user
+- `bboxZoom()` derives zoom from the result's bounding box so cities/neighbourhoods/countries all land at an appropriate zoom level
+- `FlyToTarget` has a monotonically-increasing `id` field — the `FlyToController` inside `MapContainer` watches `target` by reference, so passing a new object (even with same coords) always triggers a new `flyTo`
+- `LocationSearch` is rendered as `absolute right-4 top-4 z-[1001]` inside `<main className="relative flex-1">` so it stays top-right of the map on both desktop (next to sidebar) and mobile (full width)
+- `onMouseDown` with `e.preventDefault()` is used in the dropdown buttons to prevent the input from losing focus before the click registers
 
 ### Avatar component
 - `className` prop carries size, shape, AND text size (e.g. `"h-8 w-8 rounded-full text-xs"`)
@@ -121,9 +131,17 @@ Key RPCs:
 - `SearchModal` (Cmd/Ctrl+K): communities filtered client-side, pins searched via Supabase ILIKE with 200ms debounce
 - Keyboard nav: ↑↓ arrows, Enter to select, Escape to close
 
+### Community creation
+- Any logged-in user can create a community via the `+` button in the sidebar community list header
+- `CreateCommunityModal` runs a debounced (350 ms) Supabase ILIKE search on the name field
+- Exact name match (case-insensitive) → red error, Create button disabled
+- Similar names → yellow warning, creation still allowed (to support e.g. "Free Bathrooms Portland" vs "Free Bathrooms New York")
+- `toSlug()` appends a 4-char random suffix so slugs stay unique even with identical names
+
 ## Deployment
 - **GitHub**: https://github.com/snowwarrior1-alt/Mapper
-- **Hosting**: Vercel (connected to GitHub repo)
+- **Hosting**: Vercel (connected to GitHub repo, auto-deploys on push to `main`)
+- **Live URL**: https://mapper-gamma.vercel.app/
 - **Database**: Supabase project `tmycdgnofvmbyrmpqohw` (AWS us-west-2)
 
 ### Vercel env vars required
@@ -135,7 +153,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from Supabase dashboard>
 ### Auth
 - Google OAuth enabled via Supabase Auth
 - Callback URL: `https://tmycdgnofvmbyrmpqohw.supabase.co/auth/v1/callback`
-- After deploy: set **Site URL** and **Redirect URLs** in Supabase → Authentication → URL Configuration to your Vercel URL
+- Supabase → Authentication → URL Configuration: Site URL and Redirect URLs set to `https://mapper-gamma.vercel.app/**`
 
 ### Running SQL migrations
 Run in order in Supabase SQL Editor (00 → 05). All use `IF NOT EXISTS` / `ON CONFLICT DO NOTHING` so they're safe to re-run.
@@ -155,7 +173,40 @@ Run in order in Supabase SQL Editor (00 → 05). All use `IF NOT EXISTS` / `ON C
 - Public community pages at `/c/[slug]`
 - Public user profile pages at `/u/[username]`
 - Google OAuth sign-in
-- Mobile-responsive sidebar drawer
+- Mobile-responsive sidebar drawer (hamburger top-left on mobile)
 - Real-time updates (Supabase Realtime channels)
 - Custom 404 page
 - SEO metadata (OpenGraph + Twitter cards) on community and profile pages
+- Any logged-in user can create communities (with duplicate/similar name detection)
+- **Geocoding / map search**: top-right search bar flies the map to any place in the world (Nominatim)
+
+## 🔜 Next session — PRIVATE MAPS
+
+**Reminder for next time**: the user wants to implement **private communities/maps**.
+
+### Use-case
+"I want to create a group map of where all my friends live — but I definitely do not want that to be public."
+
+### What needs to be built
+
+1. **Private community flag**
+   - Add `is_private: boolean` (default `false`) to the `communities` table
+   - Private communities are invisible to non-members in the sidebar, search, and community listing
+   - RLS: non-members cannot SELECT pins or community details for private communities
+
+2. **Membership / invite system** ("friending" / "add to community")
+   - New table: `community_members` (or reuse/extend `community_subscriptions` with a `role` column)
+   - The owner invites users by username or email
+   - Invited users see a notification or accept/decline flow
+   - Only accepted members can view and pin to a private community
+
+3. **Friend graph** (optional but likely needed)
+   - New table: `friendships` with `(requester_id, addressee_id, status: pending|accepted|blocked)`
+   - Friends can be invited to private maps more easily
+   - Could surface a "Friends" tab in the sidebar showing friends' recent pins
+
+### Key design questions to settle at the start of next session
+- Should private communities still use the existing `communities` table (with `is_private` flag) or a separate `private_maps` table?
+- Is the invite model email-based, username-based, or link-based (shareable invite URL)?
+- Should the friend system be a full social graph, or just a lightweight "community member invite" (no global friend list)?
+- What do non-members see when they navigate to a private community's `/c/[slug]` URL — 404, or a "request access" page?

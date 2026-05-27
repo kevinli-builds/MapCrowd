@@ -6,7 +6,7 @@ import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { Community, Pin } from '@/lib/types'
 import type { FlyToTarget } from '@/components/MapInner'
-import Sidebar from '@/components/Sidebar'
+import Sidebar, { PendingInvite } from '@/components/Sidebar'
 import MapWrapper from '@/components/MapWrapper'
 import LocationSearch from '@/components/LocationSearch'
 import AddPinModal from '@/components/AddPinModal'
@@ -34,9 +34,10 @@ export default function Home() {
   const [pendingLatLng, setPendingLatLng] = useState<[number, number] | null>(null)
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null)
 
-  // Moderation & subscriptions
+  // Moderation, subscriptions & invites
   const [subscribedIds, setSubscribedIds] = useState<Set<string>>(new Set())
   const [modCommunityIds, setModCommunityIds] = useState<Set<string>>(new Set())
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([])
 
   // Communities this user owns (derived from communities list)
   const ownedCommunityIds = useMemo(
@@ -103,8 +104,19 @@ export default function Home() {
     if (data) setModCommunityIds(new Set(data.map((m) => m.community_id)))
   }, [user])
 
+  const fetchPendingInvites = useCallback(async () => {
+    if (!user) { setPendingInvites([]); return }
+    const { data } = await supabase
+      .from('community_members')
+      .select('id, community_id, community:communities(name, icon, color)')
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+    if (data) setPendingInvites(data as unknown as PendingInvite[])
+  }, [user])
+
   useEffect(() => { fetchSubscriptions() }, [fetchSubscriptions])
   useEffect(() => { fetchModRoles() }, [fetchModRoles])
+  useEffect(() => { fetchPendingInvites() }, [fetchPendingInvites])
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const fetchCommunities = useCallback(async () => {
@@ -207,6 +219,25 @@ export default function Home() {
     }
   }
 
+  const handleAcceptInvite = async (memberId: string) => {
+    await supabase
+      .from('community_members')
+      .update({ status: 'accepted' })
+      .eq('id', memberId)
+      .eq('user_id', user!.id)
+    setPendingInvites((prev) => prev.filter((i) => i.id !== memberId))
+    fetchCommunities() // make the newly-joined private community appear
+  }
+
+  const handleDeclineInvite = async (memberId: string) => {
+    await supabase
+      .from('community_members')
+      .delete()
+      .eq('id', memberId)
+      .eq('user_id', user!.id)
+    setPendingInvites((prev) => prev.filter((i) => i.id !== memberId))
+  }
+
   const handleFlyTo = (lat: number, lng: number, zoom: number) => {
     flyToCounter.current += 1
     setFlyToTarget({ lat, lng, zoom, id: flyToCounter.current })
@@ -238,6 +269,9 @@ export default function Home() {
         onToggleSubscription={handleToggleSubscription}
         onOpenSettings={(id) => setCommunitySettingsId(id)}
         onOpenSearch={() => setShowSearch(true)}
+        pendingInvites={pendingInvites}
+        onAcceptInvite={handleAcceptInvite}
+        onDeclineInvite={handleDeclineInvite}
         mobileOpen={showMobileSidebar}
         onMobileClose={() => setShowMobileSidebar(false)}
         user={user}

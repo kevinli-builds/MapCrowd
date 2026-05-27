@@ -1,6 +1,6 @@
 'use client'
 
-import { Bookmark, BookmarkCheck, LogOut, MapPin, Plus, Search, Settings, Shield, User2, ArrowUpRight, X } from 'lucide-react'
+import { Bookmark, BookmarkCheck, Check, LogOut, Lock, MapPin, Plus, Search, Settings, Shield, User2, ArrowUpRight, X } from 'lucide-react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
 import { Community, Pin } from '@/lib/types'
@@ -16,6 +16,18 @@ function displayName(user: User): string {
   )
 }
 
+// ── Pending invite shape (subset of community_members joined with community) ──
+
+export interface PendingInvite {
+  id: string          // community_members.id
+  community_id: string
+  community: {
+    name: string
+    icon: string
+    color: string
+  } | null
+}
+
 interface SidebarProps {
   communities: Community[]
   pins: Pin[]
@@ -24,10 +36,13 @@ interface SidebarProps {
   subscribedIds: Set<string>
   ownedCommunityIds: Set<string>
   modCommunityIds: Set<string>
+  pendingInvites: PendingInvite[]
   onSelectCommunity: (id: string | null) => void
   onShowSubscribed: () => void
   onToggleSubscription: (id: string) => void
   onOpenSettings: (id: string) => void
+  onAcceptInvite: (memberId: string) => void
+  onDeclineInvite: (memberId: string) => void
   user: User | null
   authReady: boolean
   onSignIn: () => void
@@ -46,10 +61,13 @@ export default function Sidebar({
   subscribedIds,
   ownedCommunityIds,
   modCommunityIds,
+  pendingInvites,
   onSelectCommunity,
   onShowSubscribed,
   onToggleSubscription,
   onOpenSettings,
+  onAcceptInvite,
+  onDeclineInvite,
   user,
   authReady,
   onSignIn,
@@ -61,9 +79,13 @@ export default function Sidebar({
 }: SidebarProps) {
   const countFor = (id: string) => pins.filter((p) => p.community_id === id).length
 
-  const isOwner = (id: string) => ownedCommunityIds.has(id)
-  const isMod = (id: string) => modCommunityIds.has(id)
+  const isOwner      = (id: string) => ownedCommunityIds.has(id)
+  const isMod        = (id: string) => modCommunityIds.has(id)
   const isSubscribed = (id: string) => subscribedIds.has(id)
+
+  // Hide communities that the user has only a pending invite to (shown in invite banner instead)
+  const pendingCommunityIds = new Set(pendingInvites.map((i) => i.community_id))
+  const visibleCommunities = communities.filter((c) => !pendingCommunityIds.has(c.id))
 
   return (
     <>
@@ -181,11 +203,11 @@ export default function Sidebar({
         <div className="my-2 border-t border-gray-800" />
 
         {/* Per community */}
-        {communities.map((c) => {
-          const active = selectedCommunity === c.id
+        {visibleCommunities.map((c) => {
+          const active     = selectedCommunity === c.id
           const subscribed = isSubscribed(c.id)
-          const owner = isOwner(c.id)
-          const mod = isMod(c.id)
+          const owner      = isOwner(c.id)
+          const mod        = isMod(c.id)
 
           return (
             <div key={c.id} className="group relative mb-1">
@@ -217,6 +239,11 @@ export default function Sidebar({
 
                 <span className="flex-1 truncate text-sm font-medium">{c.name}</span>
 
+                {/* Private lock */}
+                {c.is_private && (
+                  <Lock className="h-3 w-3 shrink-0 text-gray-600" />
+                )}
+
                 {/* Mod/owner badges */}
                 {(owner || mod) && (
                   <Shield
@@ -238,25 +265,27 @@ export default function Sidebar({
 
               {/* Hover action buttons — absolutely positioned over the count badge */}
               <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
-                {/* Subscribe / unsubscribe */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onToggleSubscription(c.id)
-                  }}
-                  title={subscribed ? 'Unsubscribe' : 'Subscribe'}
-                  className={`rounded p-1 transition-colors ${
-                    subscribed
-                      ? 'text-yellow-400 hover:text-yellow-300'
-                      : 'text-gray-500 hover:text-gray-300'
-                  }`}
-                >
-                  {subscribed ? (
-                    <BookmarkCheck className="h-3.5 w-3.5" />
-                  ) : (
-                    <Bookmark className="h-3.5 w-3.5" />
-                  )}
-                </button>
+                {/* Subscribe / unsubscribe (only for public communities) */}
+                {!c.is_private && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onToggleSubscription(c.id)
+                    }}
+                    title={subscribed ? 'Unsubscribe' : 'Subscribe'}
+                    className={`rounded p-1 transition-colors ${
+                      subscribed
+                        ? 'text-yellow-400 hover:text-yellow-300'
+                        : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    {subscribed ? (
+                      <BookmarkCheck className="h-3.5 w-3.5" />
+                    ) : (
+                      <Bookmark className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                )}
 
                 {/* Community page link */}
                 <Link
@@ -289,6 +318,51 @@ export default function Sidebar({
 
       {/* Footer */}
       <div className="border-t border-gray-800 p-4 space-y-3">
+
+        {/* ── Pending invites ── */}
+        {pendingInvites.length > 0 && (
+          <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-3 space-y-2">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400">
+              <Lock className="h-3 w-3" />
+              {pendingInvites.length === 1
+                ? '1 private map invite'
+                : `${pendingInvites.length} private map invites`}
+            </p>
+            {pendingInvites.map((invite) => (
+              <div key={invite.id} className="flex items-center gap-2">
+                <span
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs"
+                  style={{
+                    backgroundColor: (invite.community?.color ?? '#6366f1') + '22',
+                    border: `2px solid ${invite.community?.color ?? '#6366f1'}`,
+                  }}
+                >
+                  {invite.community?.icon ?? '🗺️'}
+                </span>
+                <span className="flex-1 truncate text-xs font-medium text-gray-300">
+                  {invite.community?.name ?? 'Private Map'}
+                </span>
+                {/* Decline */}
+                <button
+                  onClick={() => onDeclineInvite(invite.id)}
+                  title="Decline"
+                  className="rounded p-1 text-gray-600 transition-colors hover:text-red-400"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                {/* Accept */}
+                <button
+                  onClick={() => onAcceptInvite(invite.id)}
+                  title="Accept"
+                  className="rounded p-1 text-gray-600 transition-colors hover:text-green-400"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Live dot */}
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">

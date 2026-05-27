@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   X, Shield, UserPlus, UserMinus, Search, Loader2,
-  CheckCircle2, XCircle, Clock, Settings, Users, Inbox,
+  CheckCircle2, XCircle, Clock, Settings, Users, Inbox, Lock,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import {
-  Community, CommunityModerator, Profile,
+  Community, CommunityMember, CommunityModerator, Profile,
   PinDuration, WhoCanPin, PIN_DURATION_LABELS, WHO_CAN_PIN_LABELS,
 } from '@/lib/types'
 import { timeAgo } from '@/lib/utils'
@@ -32,7 +32,7 @@ interface CommunitySettingsModalProps {
   onSettingsUpdate?: (updated: Partial<Community>) => void
 }
 
-type Tab = 'queue' | 'rules' | 'mods'
+type Tab = 'queue' | 'rules' | 'members' | 'mods'
 
 // ── Tab button ────────────────────────────────────────────────────────────────
 
@@ -133,6 +133,83 @@ export default function CommunitySettingsModal({
     }
   }
 
+  // ── Members state (private communities only) ─────────────────────────────
+  const [members, setMembers] = useState<CommunityMember[]>([])
+  const [loadingMembers, setLoadingMembers] = useState(true)
+  const [memberSearch, setMemberSearch] = useState('')
+  const [memberSearchResults, setMemberSearchResults] = useState<Pick<Profile, 'id' | 'username' | 'avatar_url'>[]>([])
+  const [searchingMembers, setSearchingMembers] = useState(false)
+  const [invitingId, setInvitingId] = useState<string | null>(null)
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
+  const memberDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const fetchMembers = async () => {
+    setLoadingMembers(true)
+    const { data } = await supabase
+      .from('community_members')
+      .select('id, community_id, user_id, invited_by, status, created_at, profile:profiles(username, avatar_url)')
+      .eq('community_id', community.id)
+      .order('created_at', { ascending: true })
+    if (data) setMembers(data as unknown as CommunityMember[])
+    setLoadingMembers(false)
+  }
+
+  useEffect(() => {
+    if (activeTab === 'members' && isOwner && community.is_private && loadingMembers) {
+      fetchMembers()
+    }
+  }, [activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounced user search for inviting
+  useEffect(() => {
+    if (memberDebounceRef.current) clearTimeout(memberDebounceRef.current)
+    if (!memberSearch.trim()) { setMemberSearchResults([]); return }
+
+    memberDebounceRef.current = setTimeout(async () => {
+      setSearchingMembers(true)
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .ilike('username', `%${memberSearch.trim()}%`)
+        .limit(10)
+
+      if (data) {
+        // exclude the owner and already-invited/accepted members
+        const excludedIds = new Set([currentUserId, ...members.map((m) => m.user_id)])
+        setMemberSearchResults(data.filter((p) => !excludedIds.has(p.id)))
+      }
+      setSearchingMembers(false)
+    }, 300)
+
+    return () => { if (memberDebounceRef.current) clearTimeout(memberDebounceRef.current) }
+  }, [memberSearch, members, currentUserId])
+
+  const handleInviteMember = async (profile: Pick<Profile, 'id' | 'username' | 'avatar_url'>) => {
+    setInvitingId(profile.id)
+    const { error } = await supabase.from('community_members').insert({
+      community_id: community.id,
+      user_id: profile.id,
+      invited_by: currentUserId,
+      status: 'pending',
+    })
+    if (!error) {
+      await fetchMembers()
+      setMemberSearch('')
+      setMemberSearchResults([])
+    }
+    setInvitingId(null)
+  }
+
+  const handleRemoveMember = async (memberId: string) => {
+    setRemovingMemberId(memberId)
+    await supabase.from('community_members').delete().eq('id', memberId)
+    setMembers((prev) => prev.filter((m) => m.id !== memberId))
+    setRemovingMemberId(null)
+  }
+
+  const acceptedMembers = members.filter((m) => m.status === 'accepted' && m.user_id !== currentUserId)
+  const pendingMembers  = members.filter((m) => m.status === 'pending')
+
   // ── Mods state ───────────────────────────────────────────────────────────
   const [mods, setMods] = useState<CommunityModerator[]>([])
   const [loadingMods, setLoadingMods] = useState(true)
@@ -157,7 +234,7 @@ export default function CommunitySettingsModal({
     if (activeTab === 'mods' && loadingMods) fetchMods()
   }, [activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounced profile search
+  // Debounced profile search for mods
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (!searchQuery.trim()) { setSearchResults([]); return }
@@ -219,7 +296,12 @@ export default function CommunitySettingsModal({
           <div className="flex items-center gap-3">
             <span className="text-xl">{community.icon}</span>
             <div>
-              <h2 className="text-sm font-bold text-white">{community.name}</h2>
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-sm font-bold text-white">{community.name}</h2>
+                {community.is_private && (
+                  <Lock className="h-3 w-3 text-gray-400" />
+                )}
+              </div>
               <p className="text-xs text-gray-500">{isOwner ? 'Owner' : 'Moderator'}</p>
             </div>
           </div>
@@ -248,6 +330,15 @@ export default function CommunitySettingsModal({
                 icon={<Settings className="h-3.5 w-3.5" />}
                 label="Rules"
               />
+              {community.is_private && (
+                <TabBtn
+                  active={activeTab === 'members'}
+                  onClick={() => setActiveTab('members')}
+                  icon={<Lock className="h-3.5 w-3.5" />}
+                  label="Members"
+                  badge={pendingMembers.length}
+                />
+              )}
               <TabBtn
                 active={activeTab === 'mods'}
                 onClick={() => setActiveTab('mods')}
@@ -448,6 +539,146 @@ export default function CommunitySettingsModal({
                   'Save Rules'
                 )}
               </button>
+            </div>
+          )}
+
+          {/* ── MEMBERS tab (private communities only) ─────────────────────── */}
+          {activeTab === 'members' && (
+            <div className="p-5 space-y-5">
+
+              {/* Accepted members */}
+              <section>
+                <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <Users className="h-3.5 w-3.5" />
+                  Members
+                  {acceptedMembers.length > 0 && (
+                    <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-gray-400">
+                      {acceptedMembers.length}
+                    </span>
+                  )}
+                </h3>
+
+                {loadingMembers ? (
+                  <div className="flex items-center gap-2 py-3 text-sm text-gray-600">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                  </div>
+                ) : acceptedMembers.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-gray-800 py-4 text-center text-sm text-gray-600">
+                    No members yet — invite someone below
+                  </p>
+                ) : (
+                  <ul className="space-y-1">
+                    {acceptedMembers.map((m) => (
+                      <li key={m.id} className="flex items-center gap-3 rounded-lg border border-gray-800 px-3 py-2">
+                        <Avatar
+                          userId={m.user_id}
+                          username={m.profile?.username ?? '??'}
+                          src={m.profile?.avatar_url ?? null}
+                        />
+                        <span className="flex-1 text-sm font-medium text-gray-200">
+                          {m.profile?.username ?? 'Unknown user'}
+                        </span>
+                        <button
+                          onClick={() => handleRemoveMember(m.id)}
+                          disabled={removingMemberId === m.id}
+                          className="rounded p-1 text-gray-600 transition-colors hover:text-red-400 disabled:opacity-40"
+                          title="Remove member"
+                        >
+                          {removingMemberId === m.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <UserMinus className="h-4 w-4" />}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              {/* Pending invites */}
+              {pendingMembers.length > 0 && (
+                <section>
+                  <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    <Clock className="h-3.5 w-3.5" />
+                    Pending Invites
+                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-amber-400">
+                      {pendingMembers.length}
+                    </span>
+                  </h3>
+                  <ul className="space-y-1">
+                    {pendingMembers.map((m) => (
+                      <li key={m.id} className="flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-800/30 px-3 py-2">
+                        <Avatar
+                          userId={m.user_id}
+                          username={m.profile?.username ?? '??'}
+                          src={m.profile?.avatar_url ?? null}
+                        />
+                        <span className="flex-1 text-sm font-medium text-gray-400">
+                          {m.profile?.username ?? 'Unknown user'}
+                        </span>
+                        <span className="text-xs text-amber-500/80">Pending</span>
+                        <button
+                          onClick={() => handleRemoveMember(m.id)}
+                          disabled={removingMemberId === m.id}
+                          className="rounded p-1 text-gray-600 transition-colors hover:text-red-400 disabled:opacity-40"
+                          title="Cancel invite"
+                        >
+                          {removingMemberId === m.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <XCircle className="h-4 w-4" />}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {/* Invite new member */}
+              <section>
+                <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Invite Someone
+                </h3>
+                <div className="relative mb-2">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                  <input
+                    type="text"
+                    placeholder="Search by username…"
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2 pl-9 pr-4 text-sm text-white placeholder-gray-600 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  />
+                  {searchingMembers && (
+                    <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-500" />
+                  )}
+                </div>
+
+                {memberSearchResults.length > 0 && (
+                  <ul className="space-y-1">
+                    {memberSearchResults.map((profile) => (
+                      <li key={profile.id} className="flex items-center gap-3 rounded-lg border border-gray-800 px-3 py-2 hover:border-gray-700 hover:bg-gray-800/50">
+                        <Avatar userId={profile.id} username={profile.username} src={profile.avatar_url} />
+                        <span className="flex-1 text-sm font-medium text-gray-200">{profile.username}</span>
+                        <button
+                          onClick={() => handleInviteMember(profile)}
+                          disabled={invitingId === profile.id}
+                          className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50"
+                        >
+                          {invitingId === profile.id
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <UserPlus className="h-3.5 w-3.5" />}
+                          Invite
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {memberSearch.trim() && !searchingMembers && memberSearchResults.length === 0 && (
+                  <p className="py-2 text-center text-sm text-gray-600">
+                    No users found matching &ldquo;{memberSearch}&rdquo;
+                  </p>
+                )}
+              </section>
             </div>
           )}
 

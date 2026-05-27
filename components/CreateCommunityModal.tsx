@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Globe, Loader2, X, AlertTriangle, AlertCircle } from 'lucide-react'
+import { Globe, Lock, Loader2, X, AlertTriangle, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 // ── Picker data ──────────────────────────────────────────────────────────────
@@ -66,6 +66,7 @@ export default function CreateCommunityModal({
   const [description, setDescription] = useState('')
   const [icon, setIcon] = useState(EMOJIS[0])
   const [color, setColor] = useState(COLORS[0])
+  const [isPrivate, setIsPrivate] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -82,11 +83,12 @@ export default function CreateCommunityModal({
     (c) => c.name.toLowerCase() === trimmedName.toLowerCase()
   )
 
-  // Debounced similarity search
+  // Debounced similarity search — only for public communities (private ones
+  // won't clash with the public namespace in a meaningful way)
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
-    if (trimmedName.length < 3) {
+    if (isPrivate || trimmedName.length < 3) {
       setSimilarCommunities([])
       setChecking(false)
       return
@@ -106,7 +108,7 @@ export default function CreateCommunityModal({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [trimmedName])
+  }, [trimmedName, isPrivate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -123,6 +125,7 @@ export default function CreateCommunityModal({
         description: description.trim() || null,
         icon,
         color,
+        is_private: isPrivate,
         created_by: userId,
       })
       .select()
@@ -142,11 +145,13 @@ export default function CreateCommunityModal({
       className="absolute inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl">
+      <div className="w-full max-w-lg overflow-y-auto overflow-x-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl" style={{ maxHeight: '90vh' }}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-800 px-5 py-4">
           <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4 text-indigo-400" />
+            {isPrivate
+              ? <Lock className="h-4 w-4 text-indigo-400" />
+              : <Globe className="h-4 w-4 text-indigo-400" />}
             <h2 className="font-semibold text-white">New Community</h2>
           </div>
           <button
@@ -158,6 +163,47 @@ export default function CreateCommunityModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 p-5">
+          {/* ── Privacy toggle ── */}
+          <div>
+            <label className="mb-2 block text-sm text-gray-400">Visibility</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setIsPrivate(false)}
+                className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
+                  !isPrivate
+                    ? 'border-indigo-500 bg-indigo-600/10'
+                    : 'border-gray-700 hover:border-gray-600'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Globe className={`h-3.5 w-3.5 ${!isPrivate ? 'text-indigo-400' : 'text-gray-500'}`} />
+                  <span className={`text-sm font-medium ${!isPrivate ? 'text-indigo-300' : 'text-gray-400'}`}>
+                    Public
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600">Anyone can see and find this map</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPrivate(true)}
+                className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
+                  isPrivate
+                    ? 'border-indigo-500 bg-indigo-600/10'
+                    : 'border-gray-700 hover:border-gray-600'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Lock className={`h-3.5 w-3.5 ${isPrivate ? 'text-indigo-400' : 'text-gray-500'}`} />
+                  <span className={`text-sm font-medium ${isPrivate ? 'text-indigo-300' : 'text-gray-400'}`}>
+                    Private
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600">Invite-only — invisible to everyone else</p>
+              </button>
+            </div>
+          </div>
+
           {/* Name */}
           <div>
             <label className="mb-1.5 block text-sm text-gray-400">
@@ -168,7 +214,7 @@ export default function CreateCommunityModal({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Skate Parks, Jazz Bars, Dog Walks…"
+                placeholder={isPrivate ? 'e.g. Where My Friends Live, Fav Bars…' : 'e.g. Skate Parks, Jazz Bars, Dog Walks…'}
                 maxLength={50}
                 autoFocus
                 required
@@ -292,6 +338,9 @@ export default function CreateCommunityModal({
               <span className="flex-1 truncate text-sm font-medium text-white">
                 {previewName}
               </span>
+              {isPrivate && (
+                <Lock className="h-3 w-3 shrink-0 text-gray-500" />
+              )}
               <span className="rounded-full bg-gray-700 px-2 py-0.5 text-xs text-gray-400">
                 0
               </span>
