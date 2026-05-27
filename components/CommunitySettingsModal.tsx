@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import {
   X, Shield, UserPlus, UserMinus, Search, Loader2,
-  CheckCircle2, XCircle, Clock, Settings, Users, Inbox, Lock, Mail, Trash2, AlertTriangle,
+  CheckCircle2, XCircle, Clock, Settings, Users, Inbox, Lock, Mail, Trash2, AlertTriangle, Globe,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useDebounce } from '@/lib/hooks'
@@ -131,6 +131,7 @@ export default function CommunitySettingsModal({
   const [requireApproval, setRequireApproval] = useState(community.require_approval)
   const [pinDuration, setPinDuration] = useState<PinDuration>(community.default_pin_duration)
   const [whoCanPin, setWhoCanPin] = useState<WhoCanPin>(community.who_can_pin)
+  const [isPrivate, setIsPrivate] = useState(community.is_private)
   const [savingRules, setSavingRules] = useState(false)
   const [rulesSaved, setRulesSaved] = useState(false)
 
@@ -141,6 +142,7 @@ export default function CommunitySettingsModal({
       require_approval: requireApproval,
       default_pin_duration: pinDuration,
       who_can_pin: whoCanPin,
+      is_private: isPrivate,
     }
     const { error } = await supabase.from('communities').update(updates).eq('id', community.id)
     setSavingRules(false)
@@ -382,7 +384,7 @@ export default function CommunitySettingsModal({
             <div>
               <div className="flex items-center gap-1.5">
                 <h2 className="text-sm font-bold text-white">{community.name}</h2>
-                {community.is_private && (
+                {isPrivate && (
                   <Lock className="h-3 w-3 text-gray-400" />
                 )}
               </div>
@@ -414,7 +416,7 @@ export default function CommunitySettingsModal({
                 icon={<Settings className="h-3.5 w-3.5" />}
                 label="Rules"
               />
-              {community.is_private && (
+              {isPrivate && (
                 <TabBtn
                   active={activeTab === 'members'}
                   onClick={() => setActiveTab('members')}
@@ -515,6 +517,62 @@ export default function CommunitySettingsModal({
           {/* ── RULES tab ──────────────────────────────────────────────────── */}
           {activeTab === 'rules' && (
             <div className="p-5 space-y-6">
+
+              {/* Visibility */}
+              <section>
+                <h3 className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <Globe className="h-3.5 w-3.5" />
+                  Visibility
+                </h3>
+                <p className="mb-3 text-xs text-gray-600">
+                  Controls who can discover and view this community.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsPrivate(false)}
+                    className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
+                      !isPrivate
+                        ? 'border-indigo-500 bg-indigo-600/10'
+                        : 'border-gray-700 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Globe className={`h-3.5 w-3.5 ${!isPrivate ? 'text-indigo-400' : 'text-gray-500'}`} />
+                      <span className={`text-sm font-medium ${!isPrivate ? 'text-indigo-300' : 'text-gray-400'}`}>
+                        Public
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600">Visible to everyone</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPrivate(true)}
+                    className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
+                      isPrivate
+                        ? 'border-indigo-500 bg-indigo-600/10'
+                        : 'border-gray-700 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Lock className={`h-3.5 w-3.5 ${isPrivate ? 'text-indigo-400' : 'text-gray-500'}`} />
+                      <span className={`text-sm font-medium ${isPrivate ? 'text-indigo-300' : 'text-gray-400'}`}>
+                        Private
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600">Invite-only</p>
+                  </button>
+                </div>
+                {/* Warn on direction change */}
+                {isPrivate !== community.is_private && (
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-400">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    {isPrivate
+                      ? 'Making this community private will hide it from non-members. Existing pins remain visible to current members.'
+                      : 'Making this community public will make it visible to everyone. All pins will become publicly accessible.'}
+                  </div>
+                )}
+              </section>
 
               {/* Pin lifespan */}
               <section>
