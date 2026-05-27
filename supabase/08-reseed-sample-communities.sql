@@ -7,12 +7,15 @@
 -- Run this in Supabase SQL Editor if the starter communities are missing.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-INSERT INTO communities (name, slug, description, color, icon, is_private)
+-- Note: is_private is intentionally omitted so this works whether or not
+-- migration 06 has been run. If the column exists it defaults to false.
+
+INSERT INTO communities (name, slug, description, color, icon)
 VALUES
-  ('Birds',            'birds',       'Bird sightings from fellow birders',              '#22c55e', '🐦',  false),
-  ('Public Bathrooms', 'bathrooms',   'Clean and accessible public restrooms',           '#3b82f6', '🚻',  false),
-  ('Vegan Spots',      'vegan',       'Vegan-friendly restaurants and cafes',            '#a855f7', '🌱',  false),
-  ('Street Art',       'street-art',  'Murals, graffiti, and public art installations',  '#f97316', '🎨',  false),
-  ('Free WiFi',        'wifi',        'Free public WiFi hotspots',                       '#eab308', '📶',  false),
-  ('Hiking Trails',    'hiking',      'Trail heads, scenic spots, and campgrounds',      '#78716c', '🥾',  false)
+  ('Birds',            'birds',       'Bird sightings from fellow birders',              '#22c55e', '🐦'),
+  ('Public Bathrooms', 'bathrooms',   'Clean and accessible public restrooms',           '#3b82f6', '🚻'),
+  ('Vegan Spots',      'vegan',       'Vegan-friendly restaurants and cafes',            '#a855f7', '🌱'),
+  ('Street Art',       'street-art',  'Murals, graffiti, and public art installations',  '#f97316', '🎨'),
+  ('Free WiFi',        'wifi',        'Free public WiFi hotspots',                       '#eab308', '📶'),
+  ('Hiking Trails',    'hiking',      'Trail heads, scenic spots, and campgrounds',      '#78716c', '🥾')
 ON CONFLICT (slug) DO NOTHING;
