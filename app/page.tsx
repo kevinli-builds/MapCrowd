@@ -200,9 +200,10 @@ export default function Home() {
   }
 
   const handleAddPinForCommunity = (communityId: string) => {
-    if (!user) { setShowAuthModal(true); return }
+    // Set state before auth check so it survives the sign-in flow
     setPendingCommunityOverride(communityId)
     setPendingLatLng([mapCenter[0], mapCenter[1]])
+    if (!user) { setShowAuthModal(true); return }
   }
 
   const handleSignOut = async () => {
@@ -251,6 +252,10 @@ export default function Home() {
       .eq('user_id', user.id)
     setPendingInvites((prev) => prev.filter((i) => i.id !== memberId))
   }
+
+  const handleCenterChange = useCallback((lat: number, lng: number) => {
+    setMapCenter([lat, lng])
+  }, [])
 
   const handleFlyTo = (lat: number, lng: number, zoom: number) => {
     flyToCounter.current += 1
@@ -316,7 +321,7 @@ export default function Home() {
           onMapClick={handleMapClick}
           onPinClick={handlePinClick}
           flyToTarget={flyToTarget}
-          onCenterChange={(lat, lng) => setMapCenter([lat, lng])}
+          onCenterChange={handleCenterChange}
         />
 
         {showCreateModal && user && (

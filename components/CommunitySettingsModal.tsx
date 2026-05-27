@@ -416,7 +416,7 @@ export default function CommunitySettingsModal({
                 icon={<Settings className="h-3.5 w-3.5" />}
                 label="Rules"
               />
-              {isPrivate && (
+              {community.is_private && (
                 <TabBtn
                   active={activeTab === 'members'}
                   onClick={() => setActiveTab('members')}
