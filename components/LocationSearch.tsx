@@ -102,6 +102,7 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
       .then((r) => r.json())
       .then((data: NominatimResult[]) => {
         if (cancelled) return
+        if (justSelected.current) return   // user selected a result; don't reopen with stale data
         setResults(data)
         setOpen(true)
         setActiveIdx(-1)
@@ -190,7 +191,7 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => { setQuery(e.target.value); setPinCandidate(null) }}
+          onChange={(e) => { setQuery(e.target.value); setPinCandidate(null); setOpen(false) }}
           onKeyDown={handleKeyDown}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder="Go to a place…"
