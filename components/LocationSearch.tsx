@@ -194,6 +194,7 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
           onKeyDown={handleKeyDown}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder="Go to a place…"
+          autoComplete="off"
           className="w-full rounded-xl border border-gray-700 bg-gray-900/90 py-2.5 pl-9 pr-9 text-sm text-white placeholder-gray-500 shadow-lg backdrop-blur-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
         {showSpinner ? (
@@ -213,9 +214,14 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
       {open && results.length > 0 && (
         <ul className="mt-1.5 overflow-hidden rounded-xl border border-gray-700 bg-gray-900/95 shadow-2xl backdrop-blur-sm">
           {results.map((r, i) => {
-            const primary   = extractPrimaryName(r.display_name)
-            // Secondary: everything after the primary name in display_name
-            const secondary = r.display_name.slice(primary.length).replace(/^,\s*/, '')
+            // Split on Nominatim's ", " separator to get clean parts
+            const rawParts      = r.display_name.split(', ')
+            const isHouseNum    = rawParts.length > 1 && /^\d+[A-Za-z]?$/.test(rawParts[0].trim())
+            const primary       = isHouseNum
+              ? `${rawParts[0].trim()} ${rawParts[1].trim()}`
+              : rawParts[0].trim()
+            // Skip the parts consumed by primary (1 for place names, 2 for house+street)
+            const secondary     = rawParts.slice(isHouseNum ? 2 : 1).join(', ')
             return (
               <li key={r.place_id}>
                 <button
