@@ -46,6 +46,8 @@ interface AddPinModalProps {
   lng: number
   communities: Community[]
   initialCommunityId: string | null
+  /** Pre-fill the title and location fields (e.g. from the map search bar) */
+  initialTitle?: string
   userId: string
   subscribedIds: Set<string>
   moderatedIds: Set<string>
@@ -58,6 +60,7 @@ export default function AddPinModal({
   lng,
   communities,
   initialCommunityId,
+  initialTitle,
   userId,
   subscribedIds,
   moderatedIds,
@@ -67,7 +70,7 @@ export default function AddPinModal({
   const [communityId, setCommunityId] = useState(
     initialCommunityId ?? communities[0]?.id ?? ''
   )
-  const [title, setTitle] = useState('')
+  const [title, setTitle] = useState(initialTitle ?? '')
   const [description, setDescription] = useState('')
   const [photos, setPhotos] = useState<File[]>([])
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
@@ -82,11 +85,12 @@ export default function AddPinModal({
   const [pinLng, setPinLng] = useState(lng)
 
   // ── Address / place search ─────────────────────────────────────────────────
-  const [locationQuery, setLocationQuery] = useState('')
+  const [locationQuery, setLocationQuery] = useState(initialTitle ?? '')
   const [locationResults, setLocationResults] = useState<NominatimResult[]>([])
   const [locationFetching, setLocationFetching] = useState(false)
   const [locationOpen, setLocationOpen] = useState(false)
-  const [selectedPlace, setSelectedPlace] = useState<string | null>(null)
+  // Pre-select the place when opened from the map search bar
+  const [selectedPlace, setSelectedPlace] = useState<string | null>(initialTitle ?? null)
 
   const debouncedLocationQuery = useDebounce(locationQuery.trim(), DEBOUNCE_MS.geocode)
 

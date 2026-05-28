@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Search, X, Loader2, MapPin } from 'lucide-react'
+import { Search, X, Loader2, MapPin, Plus } from 'lucide-react'
 import { useDebounce } from '@/lib/hooks'
 import { DEBOUNCE_MS, LIMITS } from '@/lib/constants'
 
@@ -19,6 +19,8 @@ interface LocationSearchProps {
   onFlyTo: (lat: number, lng: number, zoom: number) => void
   /** When a side panel (e.g. community pins) is open, shift left to avoid overlap */
   panelOpen?: boolean
+  /** Called when the user clicks "Add pin" on a searched location */
+  onAddPin?: (lat: number, lng: number, placeName: string) => void
 }
 
 /** Derive a sensible zoom from the result's bounding box size. */
@@ -36,12 +38,13 @@ function bboxZoom(bb: string[]): number {
   return 3                     // continent / world
 }
 
-export default function LocationSearch({ onFlyTo, panelOpen = false }: LocationSearchProps) {
+export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }: LocationSearchProps) {
   const [query, setQuery]       = useState('')
   const [results, setResults]   = useState<NominatimResult[]>([])
   const [fetching, setFetching] = useState(false)
   const [open, setOpen]         = useState(false)
   const [activeIdx, setActiveIdx] = useState(-1)
+  const [pinCandidate, setPinCandidate] = useState<{ lat: number; lng: number; name: string } | null>(null)
 
   const inputRef     = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -100,9 +103,12 @@ export default function LocationSearch({ onFlyTo, panelOpen = false }: LocationS
     const zoom = bboxZoom(r.boundingbox)
     onFlyTo(lat, lng, zoom)
     // Show only the primary place name in the input after selection
-    setQuery(r.display_name.split(',')[0].trim())
+    const name = r.display_name.split(',')[0].trim()
+    setQuery(name)
     setOpen(false)
     inputRef.current?.blur()
+    // Offer to pin this location (if parent supports it)
+    if (onAddPin) setPinCandidate({ lat, lng, name })
   }
 
   // ── Keyboard navigation ──────────────────────────────────────────────────
@@ -128,6 +134,7 @@ export default function LocationSearch({ onFlyTo, panelOpen = false }: LocationS
     setQuery('')
     setResults([])
     setOpen(false)
+    setPinCandidate(null)
     inputRef.current?.focus()
   }
 
@@ -151,7 +158,7 @@ export default function LocationSearch({ onFlyTo, panelOpen = false }: LocationS
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => { setQuery(e.target.value); setPinCandidate(null) }}
           onKeyDown={handleKeyDown}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder="Go to a place…"
@@ -200,6 +207,24 @@ export default function LocationSearch({ onFlyTo, panelOpen = false }: LocationS
             )
           })}
         </ul>
+      )}
+
+      {/* ── "Add pin here" action pill — appears after a place is selected ── */}
+      {pinCandidate && onAddPin && (
+        <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-gray-900/95 px-3 py-2 shadow-lg backdrop-blur-sm">
+          <MapPin className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
+          <span className="flex-1 truncate text-xs text-gray-300">{pinCandidate.name}</span>
+          <button
+            onMouseDown={(e) => {
+              e.preventDefault()
+              onAddPin(pinCandidate.lat, pinCandidate.lng, pinCandidate.name)
+            }}
+            className="flex shrink-0 items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-500"
+          >
+            <Plus className="h-3 w-3" />
+            Add pin
+          </button>
+        </div>
       )}
     </div>
   )

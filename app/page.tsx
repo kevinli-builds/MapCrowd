@@ -37,6 +37,7 @@ export default function Home() {
   const [showSubscribedOnly, setShowSubscribedOnly] = useState(false)
   const [pendingLatLng, setPendingLatLng] = useState<[number, number] | null>(null)
   const [pendingCommunityOverride, setPendingCommunityOverride] = useState<string | null>(null)
+  const [pendingPinTitle, setPendingPinTitle] = useState<string | null>(null)
   const [mapCenter, setMapCenter] = useState<[number, number]>([30, 10]) // matches MapInner initial center
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null)
 
@@ -363,7 +364,15 @@ export default function Home() {
         )}
 
         {/* Location / geocoding search — top right of map */}
-        <LocationSearch onFlyTo={handleFlyTo} panelOpen={!!selectedCommunityObj} />
+        <LocationSearch
+          onFlyTo={handleFlyTo}
+          panelOpen={!!selectedCommunityObj}
+          onAddPin={(lat, lng, name) => {
+            setPendingLatLng([lat, lng])
+            setPendingPinTitle(name)
+            if (!user) setShowAuthModal(true)
+          }}
+        />
 
         <MapWrapper
           pins={filteredPins}
@@ -412,11 +421,12 @@ export default function Home() {
             lng={pendingLatLng[1]}
             communities={communities}
             initialCommunityId={pendingCommunityOverride ?? selectedCommunity}
+            initialTitle={pendingPinTitle ?? undefined}
             userId={user.id}
             subscribedIds={subscribedIds}
             moderatedIds={moderatedIds}
-            onClose={() => { setPendingLatLng(null); setPendingCommunityOverride(null) }}
-            onSuccess={() => { setPendingLatLng(null); setPendingCommunityOverride(null); fetchPins() }}
+            onClose={() => { setPendingLatLng(null); setPendingCommunityOverride(null); setPendingPinTitle(null) }}
+            onSuccess={() => { setPendingLatLng(null); setPendingCommunityOverride(null); setPendingPinTitle(null); fetchPins() }}
           />
         )}
 
