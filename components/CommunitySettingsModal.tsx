@@ -368,6 +368,10 @@ export default function CommunitySettingsModal({
   const [searching, setSearching] = useState(false)
   const [addingId, setAddingId] = useState<string | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const [modEmailStatus, setModEmailStatus] = useState<'idle' | 'sending' | 'added' | 'not_found' | 'error'>('idle')
+  const [modEmailMsg, setModEmailMsg] = useState('')
+
+  const isModEmail = searchQuery.trim().includes('@')
 
   const fetchMods = async () => {
     setLoadingMods(true)
@@ -383,8 +387,11 @@ export default function CommunitySettingsModal({
     if (activeTab === 'mods' && loadingMods) fetchMods()
   }, [activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounced mod search
-  const debouncedModSearch = useDebounce(searchQuery.trim(), DEBOUNCE_MS.userSearch)
+  // Debounced mod search — skip entirely when input looks like an email
+  const debouncedModSearch = useDebounce(
+    isModEmail ? '' : searchQuery.trim(),
+    DEBOUNCE_MS.userSearch
+  )
 
   useEffect(() => {
     if (!debouncedModSearch) { setSearchResults([]); return }
@@ -420,6 +427,29 @@ export default function CommunitySettingsModal({
       setSearchResults([])
     }
     setAddingId(null)
+  }
+
+  const handleModEmailInvite = async () => {
+    const email = searchQuery.trim()
+    setModEmailStatus('sending')
+    setModEmailMsg('')
+    const { data, error } = await supabase.rpc('add_mod_by_email', {
+      p_community_id: community.id,
+      p_email: email,
+    })
+    if (error) {
+      setModEmailStatus('error')
+      setModEmailMsg(error.message || 'Something went wrong — please try again.')
+    } else if (!data?.found) {
+      setModEmailStatus('not_found')
+      setModEmailMsg(`No MapCrowd account found for ${email}`)
+    } else {
+      setModEmailStatus('added')
+      setModEmailMsg(`Added ${data?.username ?? email} as a moderator!`)
+      await fetchMods()
+      setSearchQuery('')
+    }
+    setTimeout(() => { setModEmailStatus('idle'); setModEmailMsg('') }, 4000)
   }
 
   const handleRemoveMod = async (userId: string) => {
@@ -1156,20 +1186,55 @@ export default function CommunitySettingsModal({
                   Add Moderator
                 </h3>
                 <div className="relative mb-2">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                  {isModEmail
+                    ? <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                    : <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />}
                   <input
                     type="text"
-                    placeholder="Search by username…"
+                    placeholder="Username or email address…"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value)
+                      if (modEmailStatus !== 'idle') setModEmailStatus('idle')
+                    }}
                     className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2 pl-9 pr-4 text-sm text-white placeholder-gray-600 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   />
-                  {searching && (
+                  {(searching || modEmailStatus === 'sending') && (
                     <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-500" />
                   )}
                 </div>
 
-                {searchResults.length > 0 && (
+                {/* Email invite button */}
+                {isModEmail && (
+                  <div className="mb-1">
+                    <button
+                      onClick={handleModEmailInvite}
+                      disabled={modEmailStatus === 'sending'}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50"
+                    >
+                      {modEmailStatus === 'sending' ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Checking…</>
+                      ) : (
+                        <><UserPlus className="h-4 w-4" /> Add {searchQuery.trim()} as mod</>
+                      )}
+                    </button>
+                    {modEmailStatus !== 'idle' && modEmailStatus !== 'sending' && (
+                      <div className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                        modEmailStatus === 'error' || modEmailStatus === 'not_found'
+                          ? 'bg-red-500/10 text-red-400'
+                          : 'bg-green-500/10 text-green-400'
+                      }`}>
+                        {modEmailStatus === 'error' || modEmailStatus === 'not_found'
+                          ? <XCircle className="h-4 w-4 shrink-0" />
+                          : <CheckCircle2 className="h-4 w-4 shrink-0" />}
+                        {modEmailMsg}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Username search results */}
+                {!isModEmail && searchResults.length > 0 && (
                   <ul className="space-y-1">
                     {searchResults.map((profile) => (
                       <li
@@ -1195,7 +1260,7 @@ export default function CommunitySettingsModal({
                   </ul>
                 )}
 
-                {searchQuery.trim() && !searching && searchResults.length === 0 && (
+                {!isModEmail && searchQuery.trim() && !searching && searchResults.length === 0 && (
                   <p className="py-2 text-center text-sm text-gray-600">
                     No users found matching &ldquo;{searchQuery}&rdquo;
                   </p>
