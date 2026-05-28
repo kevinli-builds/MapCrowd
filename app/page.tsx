@@ -15,6 +15,7 @@ import PinDetailModal from '@/components/PinDetailModal'
 import AuthModal from '@/components/AuthModal'
 import CreateCommunityModal from '@/components/CreateCommunityModal'
 import CommunitySettingsModal from '@/components/CommunitySettingsModal'
+import CommunityPinsPanel from '@/components/CommunityPinsPanel'
 import SearchModal from '@/components/SearchModal'
 
 export default function Home() {
@@ -298,6 +299,10 @@ export default function Home() {
     ? communities.find((c) => c.id === communitySettingsId) ?? null
     : null
 
+  const selectedCommunityObj = selectedCommunity
+    ? communities.find((c) => c.id === selectedCommunity) ?? null
+    : null
+
   return (
     <div className="flex h-full overflow-hidden bg-gray-950">
       <Sidebar
@@ -348,6 +353,15 @@ export default function Home() {
           flyToTarget={flyToTarget}
           onCenterChange={handleCenterChange}
         />
+
+        {selectedCommunityObj && (
+          <CommunityPinsPanel
+            community={selectedCommunityObj}
+            pins={filteredPins}
+            onClose={() => handleSelectCommunity(null)}
+            onPinClick={handlePinClick}
+          />
+        )}
 
         {showCreateModal && user && (
           <CreateCommunityModal
