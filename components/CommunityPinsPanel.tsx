@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { X, ThumbsUp, ThumbsDown, Clock, ArrowUpRight, Lock, Plus } from 'lucide-react'
+import { X, ThumbsUp, ThumbsDown, Clock, ArrowUpRight, Lock, Plus, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { Community, Pin } from '@/lib/types'
 import { timeAgo } from '@/lib/utils'
@@ -61,6 +61,12 @@ export default function CommunityPinsPanel({
             <p className="text-xs text-gray-500">
               {sorted.length} {sorted.length === 1 ? 'pin' : 'pins'}
             </p>
+            {community.geo_restriction && (
+              <div className="mt-0.5 flex items-center gap-1 text-[10px] text-gray-500">
+                <MapPin className="h-2.5 w-2.5 shrink-0" />
+                <span className="truncate">{community.geo_restriction.name} only</span>
+              </div>
+            )}
           </div>
         </div>
 

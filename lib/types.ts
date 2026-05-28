@@ -1,3 +1,12 @@
+/** Bounding box stored as JSONB in communities.geo_restriction */
+export interface GeoRestriction {
+  name: string   // Human-readable place name, e.g. "New York City"
+  south: number  // Min latitude
+  north: number  // Max latitude
+  west: number   // Min longitude
+  east: number   // Max longitude
+}
+
 export interface Community {
   id: string
   name: string
@@ -10,6 +19,7 @@ export interface Community {
   require_approval: boolean         // pins need mod sign-off before going live
   default_pin_duration: PinDuration // auto-expiry applied to all new pins
   who_can_pin: WhoCanPin            // permission level required to drop a pin
+  geo_restriction?: GeoRestriction | null // optional bounding-box area restriction
   created_at: string
 }
 

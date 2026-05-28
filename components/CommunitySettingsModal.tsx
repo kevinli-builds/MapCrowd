@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react'
 import {
   X, Shield, UserPlus, UserMinus, Search, Loader2,
-  CheckCircle2, XCircle, Clock, Settings, Pencil, Users, Inbox, Lock, Mail, Trash2, AlertTriangle, AlertCircle, Globe,
+  CheckCircle2, XCircle, Clock, Settings, Pencil, Users, Inbox, Lock, Mail, Trash2, AlertTriangle, AlertCircle, Globe, MapPin,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useDebounce } from '@/lib/hooks'
 import { DEBOUNCE_MS, LIMITS } from '@/lib/constants'
 import {
   Community, CommunityMember, CommunityModerator, Profile,
-  PinDuration, WhoCanPin, PIN_DURATION_LABELS, WHO_CAN_PIN_LABELS,
+  PinDuration, WhoCanPin, PIN_DURATION_LABELS, WHO_CAN_PIN_LABELS, GeoRestriction,
 } from '@/lib/types'
 import { timeAgo } from '@/lib/utils'
 import Avatar from '@/components/Avatar'
@@ -150,6 +150,71 @@ export default function CommunitySettingsModal({
       setRenameSaved(true)
       onSettingsUpdate?.({ name: trimmedNewName })
       setTimeout(() => setRenameSaved(false), 2000)
+    }
+  }
+
+  // ── Geo restriction state ────────────────────────────────────────────────
+  // Nominatim result shape (only the fields we need)
+  type GeoResult = { place_id: number; display_name: string; lat: string; lon: string; boundingbox: string[] }
+
+  const [geoQuery, setGeoQuery]       = useState('')
+  const [geoResults, setGeoResults]   = useState<GeoResult[]>([])
+  const [geoFetching, setGeoFetching] = useState(false)
+  const [geoOpen, setGeoOpen]         = useState(false)
+  const [geoRestriction, setGeoRestriction] = useState<GeoRestriction | null>(community.geo_restriction ?? null)
+  const [geoSaving, setGeoSaving]     = useState(false)
+  const [geoSaved, setGeoSaved]       = useState(false)
+
+  const debouncedGeoQuery = useDebounce(geoQuery.trim(), DEBOUNCE_MS.geocode)
+  // True when the local value differs from what's stored in the DB
+  const geoHasChanges =
+    JSON.stringify(geoRestriction) !== JSON.stringify(community.geo_restriction ?? null)
+
+  useEffect(() => {
+    if (debouncedGeoQuery.length < 2) { setGeoResults([]); setGeoOpen(false); setGeoFetching(false); return }
+    let cancelled = false
+    setGeoFetching(true)
+    fetch(
+      `https://nominatim.openstreetmap.org/search` +
+      `?q=${encodeURIComponent(debouncedGeoQuery)}&format=json&limit=${LIMITS.geocodeResults}&addressdetails=1`
+    )
+      .then((r) => r.json())
+      .then((data: GeoResult[]) => {
+        if (cancelled) return
+        setGeoResults(data)
+        setGeoOpen(data.length > 0)
+      })
+      .catch(() => { if (!cancelled) setGeoResults([]) })
+      .finally(() => { if (!cancelled) setGeoFetching(false) })
+    return () => { cancelled = true }
+  }, [debouncedGeoQuery])
+
+  const handleGeoSelect = (r: GeoResult) => {
+    const restriction: GeoRestriction = {
+      name:  r.display_name.split(',')[0].trim(),
+      south: parseFloat(r.boundingbox[0]),
+      north: parseFloat(r.boundingbox[1]),
+      west:  parseFloat(r.boundingbox[2]),
+      east:  parseFloat(r.boundingbox[3]),
+    }
+    setGeoRestriction(restriction)
+    setGeoQuery('')
+    setGeoResults([])
+    setGeoOpen(false)
+    setGeoSaved(false)
+  }
+
+  const handleSaveGeo = async () => {
+    setGeoSaving(true)
+    const { error } = await supabase
+      .from('communities')
+      .update({ geo_restriction: geoRestriction })
+      .eq('id', community.id)
+    setGeoSaving(false)
+    if (!error) {
+      setGeoSaved(true)
+      onSettingsUpdate?.({ geo_restriction: geoRestriction })
+      setTimeout(() => setGeoSaved(false), 2000)
     }
   }
 
@@ -540,7 +605,7 @@ export default function CommunitySettingsModal({
 
           {/* ── GENERAL tab ────────────────────────────────────────────────── */}
           {activeTab === 'general' && (
-            <div className="p-5">
+            <div className="p-5 space-y-6">
               <section>
                 <h3 className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                   <Pencil className="h-3.5 w-3.5" />
@@ -613,6 +678,106 @@ export default function CommunitySettingsModal({
                     </span>
                   ) : (
                     'Save Name'
+                  )}
+                </button>
+              </section>
+
+              {/* ── Geographic area restriction ── */}
+              <section className="border-t border-gray-800 pt-1">
+                <h3 className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Geographic Area
+                </h3>
+                <p className="mb-3 text-xs text-gray-600">
+                  Optionally restrict this community to a specific city or region.
+                  Users dropping pins outside it will see a warning.
+                </p>
+
+                {/* Current restriction pill */}
+                {geoRestriction ? (
+                  <div className="mb-3 flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2.5">
+                    <MapPin className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
+                    <span className="flex-1 text-sm text-indigo-300">{geoRestriction.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => { setGeoRestriction(null); setGeoSaved(false) }}
+                      title="Remove restriction"
+                      className="rounded p-0.5 text-gray-500 transition-colors hover:text-red-400"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="mb-3 text-xs italic text-gray-600">
+                    No restriction — pins can be placed anywhere
+                  </p>
+                )}
+
+                {/* Place search */}
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-600" />
+                  <input
+                    type="text"
+                    value={geoQuery}
+                    onChange={(e) => { setGeoQuery(e.target.value); setGeoSaved(false) }}
+                    onFocus={() => geoResults.length > 0 && setGeoOpen(true)}
+                    onBlur={() => setTimeout(() => setGeoOpen(false), 150)}
+                    placeholder={geoRestriction ? 'Search to change area…' : 'Search for a city, region, country…'}
+                    className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2.5 pl-9 pr-9 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  {geoFetching && (
+                    <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-gray-500" />
+                  )}
+                </div>
+
+                {/* Dropdown results */}
+                {geoOpen && geoResults.length > 0 && (
+                  <ul className="mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-700 bg-gray-900 shadow-xl">
+                    {geoResults.map((r) => {
+                      const parts = r.display_name.split(', ')
+                      return (
+                        <li key={r.place_id}>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => { e.preventDefault(); handleGeoSelect(r) }}
+                            className="flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-gray-800"
+                          >
+                            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-400" />
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-white">{parts[0]}</p>
+                              {parts.length > 1 && (
+                                <p className="truncate text-xs text-gray-500">{parts.slice(1).join(', ')}</p>
+                              )}
+                            </div>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+
+                {/* Save button */}
+                <button
+                  onClick={handleSaveGeo}
+                  disabled={!geoHasChanges || geoSaving}
+                  className={`mt-3 w-full rounded-lg py-2.5 text-sm font-semibold transition-all ${
+                    geoSaved
+                      ? 'bg-green-700 text-white'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50'
+                  }`}
+                >
+                  {geoSaving ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Saving…
+                    </span>
+                  ) : geoSaved ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <CheckCircle2 className="h-4 w-4" /> Saved!
+                    </span>
+                  ) : geoRestriction ? (
+                    'Save Area'
+                  ) : (
+                    'Remove Restriction'
                   )}
                 </button>
               </section>

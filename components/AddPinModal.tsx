@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle, Search } from 'lucide-react'
+import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle, Search, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { Community, WHO_CAN_PIN_LABELS } from '@/lib/types'
+import { Community, WHO_CAN_PIN_LABELS, GeoRestriction } from '@/lib/types'
 import { LIMITS, DEBOUNCE_MS } from '@/lib/constants'
 import { useDebounce } from '@/lib/hooks'
 
@@ -136,6 +136,13 @@ export default function AddPinModal({
   const hasDuration = selectedCommunity?.default_pin_duration !== 'permanent'
   const durationLabel = selectedCommunity ? DURATION_SHORT[selectedCommunity.default_pin_duration] ?? null : null
   const userCanPin = selectedCommunity ? canUserPin(selectedCommunity, subscribedIds, moderatedIds) : true
+
+  // ── Geographic restriction check ─────────────────────────────────────────
+  const geoRestriction: GeoRestriction | null = selectedCommunity?.geo_restriction ?? null
+  const isOutsideGeo = geoRestriction !== null
+    ? (pinLat < geoRestriction.south || pinLat > geoRestriction.north ||
+       pinLng < geoRestriction.west  || pinLng > geoRestriction.east)
+    : false
 
   // ── Photo selection ───────────────────────────────────────────────────────
 
@@ -452,6 +459,17 @@ export default function AddPinModal({
             {/* Rules preview banners */}
             {selectedCommunity && (
               <div className="space-y-1.5">
+                {/* Geo restriction warning — shown when pin is outside the community's area */}
+                {isOutsideGeo && geoRestriction && (
+                  <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      This location is outside{' '}
+                      <strong className="font-semibold">{geoRestriction.name}</strong>.
+                      This community focuses on pins in that area.
+                    </span>
+                  </div>
+                )}
                 {hasDuration && durationLabel && (
                   <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
                     <Clock className="h-3.5 w-3.5 shrink-0" />
