@@ -130,13 +130,23 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
     const lng  = parseFloat(r.lon)
     const zoom = bboxZoom(r.boundingbox)
     onFlyTo(lat, lng, zoom)
-    // Build a readable short name; for street addresses the first comma-
-    // segment is just the house number, so extractPrimaryName combines it
-    // with the street name (e.g. "139 Chrystie Street" not "139").
+
+    const rawParts  = r.display_name.split(', ')
+    const isAddress = rawParts.length > 1 && /^\d+[A-Za-z]?$/.test(rawParts[0].trim())
+    // Short human-readable name used for the "Add pin" pill and named places
     const name = extractPrimaryName(r.display_name)
-    justSelected.current = true
+
+    if (isAddress) {
+      // Leave the input exactly as the user typed it — debouncedQuery won't
+      // change, so no re-fetch fires and the dropdown stays closed.
+    } else {
+      // Named place: shorten to primary name and guard the ensuing debounce
+      // so it doesn't immediately re-search with the shortened string.
+      justSelected.current = true
+      setQuery(name)
+    }
+
     setResults([])   // clear so onFocus can't reopen the dropdown
-    setQuery(name)
     setOpen(false)
     // Offer to pin this location (if parent supports it)
     if (onAddPin) setPinCandidate({ lat, lng, name })
