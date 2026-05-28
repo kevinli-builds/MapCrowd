@@ -234,13 +234,6 @@ export default function Home() {
 
   const handleMapClick = (lat: number, lng: number) => {
     if (selectedPin) { setSelectedPin(null); return }
-
-    if (!user) {
-      setPendingLatLng([lat, lng])
-      setShowAuthModal(true)
-      return
-    }
-
     setPendingLatLng([lat, lng])
   }
 
@@ -250,10 +243,8 @@ export default function Home() {
   }
 
   const handleAddPinForCommunity = (communityId: string) => {
-    // Set state before auth check so it survives the sign-in flow
     setPendingCommunityOverride(communityId)
     setPendingLatLng([mapCenter[0], mapCenter[1]])
-    if (!user) { setShowAuthModal(true); return }
   }
 
   const handleSignOut = async () => {
@@ -371,7 +362,6 @@ export default function Home() {
   const handleFabAddPin = () => {
     setPendingCommunityOverride(selectedCommunity)
     setPendingLatLng([mapCenter[0], mapCenter[1]])
-    if (!user) setShowAuthModal(true)
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -448,7 +438,6 @@ export default function Home() {
           onAddPin={(lat, lng, name) => {
             setPendingLatLng([lat, lng])
             setPendingPinTitle(name)
-            if (!user) setShowAuthModal(true)
           }}
         />
 
@@ -493,18 +482,19 @@ export default function Home() {
           />
         )}
 
-        {pendingLatLng && user && !showAuthModal && (
+        {pendingLatLng && !showAuthModal && (
           <AddPinModal
             lat={pendingLatLng[0]}
             lng={pendingLatLng[1]}
             communities={communities}
             initialCommunityId={pendingCommunityOverride ?? selectedCommunity}
             initialTitle={pendingPinTitle ?? undefined}
-            userId={user.id}
+            userId={user?.id ?? null}
             subscribedIds={subscribedIds}
             moderatedIds={moderatedIds}
             onClose={() => { setPendingLatLng(null); setPendingCommunityOverride(null); setPendingPinTitle(null) }}
             onSuccess={() => { setPendingLatLng(null); setPendingCommunityOverride(null); setPendingPinTitle(null); fetchPins() }}
+            onSignIn={() => { setShowAuthModal(true) }}
           />
         )}
 

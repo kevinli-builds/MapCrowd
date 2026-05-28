@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle, Search, AlertTriangle } from 'lucide-react'
+import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle, Search, AlertTriangle, LogIn } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Community, WHO_CAN_PIN_LABELS, GeoRestriction } from '@/lib/types'
 import { LIMITS, DEBOUNCE_MS } from '@/lib/constants'
@@ -24,10 +24,12 @@ const DURATION_SHORT: Record<string, string> = {
 
 function canUserPin(
   community: Community,
+  userId: string | null,
   subscribedIds: Set<string>,
   moderatedIds: Set<string>,
 ): boolean {
   if (community.who_can_pin === 'anyone') return true
+  if (!userId) return false  // anonymous users can only pin in 'anyone' communities
   if (community.who_can_pin === 'subscribers') return subscribedIds.has(community.id)
   if (community.who_can_pin === 'mods') return moderatedIds.has(community.id)
   return true
@@ -48,11 +50,14 @@ interface AddPinModalProps {
   initialCommunityId: string | null
   /** Pre-fill the title and location fields (e.g. from the map search bar) */
   initialTitle?: string
-  userId: string
+  /** null for anonymous / unauthenticated users */
+  userId: string | null
   subscribedIds: Set<string>
   moderatedIds: Set<string>
   onClose: () => void
   onSuccess: () => void
+  /** Called when the user taps "Sign in" inside the modal */
+  onSignIn?: () => void
 }
 
 export default function AddPinModal({
@@ -66,6 +71,7 @@ export default function AddPinModal({
   moderatedIds,
   onClose,
   onSuccess,
+  onSignIn,
 }: AddPinModalProps) {
   const [communityId, setCommunityId] = useState(
     initialCommunityId ?? communities[0]?.id ?? ''
@@ -135,7 +141,7 @@ export default function AddPinModal({
   const isPending = selectedCommunity?.require_approval ?? false
   const hasDuration = selectedCommunity?.default_pin_duration !== 'permanent'
   const durationLabel = selectedCommunity ? DURATION_SHORT[selectedCommunity.default_pin_duration] ?? null : null
-  const userCanPin = selectedCommunity ? canUserPin(selectedCommunity, subscribedIds, moderatedIds) : true
+  const userCanPin = selectedCommunity ? canUserPin(selectedCommunity, userId, subscribedIds, moderatedIds) : true
 
   // ── Geographic restriction check ─────────────────────────────────────────
   const geoRestriction: GeoRestriction | null = selectedCommunity?.geo_restriction ?? null
@@ -208,8 +214,8 @@ export default function AddPinModal({
 
     const pinId = pinData.id
 
-    // Step 2: Upload photos (if any)
-    if (photos.length > 0) {
+    // Step 2: Upload photos (only for authenticated users)
+    if (photos.length > 0 && userId) {
       for (let i = 0; i < photos.length; i++) {
         const file = photos[i]
         setUploadProgress(`Uploading photo ${i + 1} of ${photos.length}…`)
@@ -344,7 +350,7 @@ export default function AddPinModal({
               <div className="grid grid-cols-2 gap-2">
                 {communities.map((c) => {
                   const active = communityId === c.id
-                  const allowed = canUserPin(c, subscribedIds, moderatedIds)
+                  const allowed = canUserPin(c, userId, subscribedIds, moderatedIds)
                   return (
                     <button
                       key={c.id}
@@ -409,8 +415,27 @@ export default function AddPinModal({
               />
             </div>
 
-            {/* Photo upload */}
-            <div>
+            {/* Sign-in prompt for anonymous users in restricted communities */}
+            {!userId && selectedCommunity && selectedCommunity.who_can_pin !== 'anyone' && (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3">
+                <p className="text-sm text-indigo-300">
+                  Sign in to pin in <strong className="font-semibold">{selectedCommunity.name}</strong>
+                </p>
+                {onSignIn && (
+                  <button
+                    type="button"
+                    onClick={onSignIn}
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-500"
+                  >
+                    <LogIn className="h-3.5 w-3.5" />
+                    Sign in
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Photo upload — authenticated users only */}
+            {userId && <div>
               <label className="mb-2 block text-sm text-gray-400">
                 Photos <span className="text-gray-600">(optional, up to 5)</span>
               </label>
@@ -457,11 +482,23 @@ export default function AddPinModal({
                   </button>
                 </>
               )}
-            </div>
+            </div>}
 
             {/* Rules preview banners */}
             {selectedCommunity && (
               <div className="space-y-1.5">
+                {/* Anonymous posting notice */}
+                {!userId && selectedCommunity.who_can_pin === 'anyone' && (
+                  <div className="flex items-center gap-2 rounded-lg bg-gray-800 px-3 py-2 text-xs text-gray-400">
+                    <LogIn className="h-3.5 w-3.5 shrink-0" />
+                    Posting anonymously
+                    {onSignIn && (
+                      <button type="button" onClick={onSignIn} className="ml-auto text-indigo-400 underline hover:text-indigo-300">
+                        Sign in instead
+                      </button>
+                    )}
+                  </div>
+                )}
                 {/* Geo restriction: pin is outside the area → warn + explain approval */}
                 {isOutsideGeo && geoRestriction && (
                   <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
