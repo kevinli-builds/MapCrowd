@@ -144,6 +144,9 @@ export default function AddPinModal({
        pinLng < geoRestriction.west  || pinLng > geoRestriction.east)
     : false
 
+  // Pin needs mod approval if the community requires it OR the pin is outside the geo area
+  const effectivePending = isPending || isOutsideGeo
+
   // ── Photo selection ───────────────────────────────────────────────────────
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -235,7 +238,7 @@ export default function AddPinModal({
     setSubmitting(false)
     setUploadProgress('')
 
-    if (isPending) {
+    if (effectivePending) {
       setSubmitted(true)
       setTimeout(() => onSuccess(), 3000)
     } else {
@@ -459,14 +462,14 @@ export default function AddPinModal({
             {/* Rules preview banners */}
             {selectedCommunity && (
               <div className="space-y-1.5">
-                {/* Geo restriction warning — shown when pin is outside the community's area */}
+                {/* Geo restriction: pin is outside the area → warn + explain approval */}
                 {isOutsideGeo && geoRestriction && (
                   <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     <span>
                       This location is outside{' '}
                       <strong className="font-semibold">{geoRestriction.name}</strong>.
-                      This community focuses on pins in that area.
+                      Your pin will need mod approval before appearing on the map.
                     </span>
                   </div>
                 )}
@@ -476,7 +479,8 @@ export default function AddPinModal({
                     This pin will auto-expire in {durationLabel}
                   </div>
                 )}
-                {isPending && (
+                {/* Only show the generic pending banner if it's not already covered by the geo warning */}
+                {isPending && !isOutsideGeo && (
                   <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-2 text-xs text-blue-400">
                     <Loader2 className="h-3.5 w-3.5 shrink-0" />
                     Will go into the mod queue before appearing on the map
@@ -507,7 +511,7 @@ export default function AddPinModal({
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {uploadProgress || 'Adding…'}
                 </>
-              ) : isPending ? (
+              ) : effectivePending ? (
                 'Submit for Review'
               ) : (
                 'Add Pin'
