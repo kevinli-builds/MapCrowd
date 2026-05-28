@@ -94,6 +94,15 @@ export interface CommunityModerator {
   profile: Pick<Profile, 'username' | 'avatar_url'> | null
 }
 
+/** A user-defined folder for organising subscribed communities in the sidebar */
+export interface CommunityGroup {
+  id: string
+  user_id: string
+  name: string
+  position: number
+  created_at: string
+}
+
 /** Subset of community_members joined with community — used in the Sidebar invite banner */
 export interface PendingInvite {
   id: string          // community_members.id

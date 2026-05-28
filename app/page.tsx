@@ -5,7 +5,7 @@ import { Menu, Plus } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { ADMIN_USER_ID } from '@/lib/constants'
-import { Community, Pin, PendingInvite } from '@/lib/types'
+import { Community, Pin, PendingInvite, CommunityGroup } from '@/lib/types'
 import type { FlyToTarget } from '@/components/MapInner'
 import Sidebar from '@/components/Sidebar'
 import MapWrapper from '@/components/MapWrapper'
@@ -45,6 +45,11 @@ export default function Home() {
   const [subscribedIds, setSubscribedIds] = useState<Set<string>>(new Set())
   const [modCommunityIds, setModCommunityIds] = useState<Set<string>>(new Set())
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([])
+
+  // Community groups (personal folders for organising subscriptions)
+  const [groups, setGroups] = useState<CommunityGroup[]>([])
+  // Maps communityId → groupId (null = ungrouped). Only includes subscribed communities.
+  const [communityGroupMap, setCommunityGroupMap] = useState<Map<string, string | null>>(new Map())
 
   // Communities this user owns (derived from communities list)
   const ownedCommunityIds = useMemo(
@@ -97,12 +102,19 @@ export default function Home() {
 
   // ── Subscriptions & mod roles — refresh whenever auth changes ─────────────
   const fetchSubscriptions = useCallback(async () => {
-    if (!user) { setSubscribedIds(new Set()); return }
+    if (!user) {
+      setSubscribedIds(new Set())
+      setCommunityGroupMap(new Map())
+      return
+    }
     const { data } = await supabase
       .from('community_subscriptions')
-      .select('community_id')
+      .select('community_id, group_id')
       .eq('user_id', user.id)
-    if (data) setSubscribedIds(new Set(data.map((s) => s.community_id)))
+    if (data) {
+      setSubscribedIds(new Set(data.map((s) => s.community_id)))
+      setCommunityGroupMap(new Map(data.map((s) => [s.community_id, s.group_id ?? null])))
+    }
   }, [user])
 
   const fetchModRoles = useCallback(async () => {
@@ -124,14 +136,31 @@ export default function Home() {
     if (data) setPendingInvites(data as unknown as PendingInvite[])
   }, [user])
 
+  const fetchGroups = useCallback(async () => {
+    if (!user) { setGroups([]); return }
+    const { data } = await supabase
+      .from('community_groups')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('position')
+      .order('created_at')
+    if (data) setGroups(data)
+  }, [user])
+
   useEffect(() => { fetchSubscriptions() }, [fetchSubscriptions])
   useEffect(() => { fetchModRoles() }, [fetchModRoles])
   useEffect(() => { fetchPendingInvites() }, [fetchPendingInvites])
+  useEffect(() => { fetchGroups() }, [fetchGroups])
 
   // Reset manual-filter flag when auth changes, and clear subscribed view on sign-out
   useEffect(() => {
     userChoseFilter.current = false
-    if (!user) { setShowSubscribedOnly(false); setSelectedCommunity(null) }
+    if (!user) {
+      setShowSubscribedOnly(false)
+      setSelectedCommunity(null)
+      setGroups([])
+      setCommunityGroupMap(new Map())
+    }
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-default logged-in users with subscriptions to the subscribed-only view
@@ -295,6 +324,49 @@ export default function Home() {
     setSelectedPin(null)
   }
 
+  // ── Community group CRUD ─────────────────────────────────────────────────
+
+  const handleCreateGroup = useCallback(async (name: string): Promise<string | null> => {
+    if (!user) return null
+    const position = groups.length
+    const { data, error } = await supabase
+      .from('community_groups')
+      .insert({ user_id: user.id, name: name.trim(), position })
+      .select()
+      .single()
+    if (error || !data) return null
+    setGroups((prev) => [...prev, data])
+    return data.id
+  }, [user, groups.length])
+
+  const handleRenameGroup = useCallback(async (id: string, name: string) => {
+    await supabase.from('community_groups').update({ name: name.trim() }).eq('id', id)
+    setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, name: name.trim() } : g)))
+  }, [])
+
+  const handleDeleteGroup = useCallback(async (id: string) => {
+    await supabase.from('community_groups').delete().eq('id', id)
+    setGroups((prev) => prev.filter((g) => g.id !== id))
+    // Clear group assignment for any communities that were in this group
+    setCommunityGroupMap((prev) => {
+      const next = new Map(prev)
+      for (const [cid, gid] of next) {
+        if (gid === id) next.set(cid, null)
+      }
+      return next
+    })
+  }, [])
+
+  const handleAssignGroup = useCallback(async (communityId: string, groupId: string | null) => {
+    if (!user) return
+    await supabase
+      .from('community_subscriptions')
+      .update({ group_id: groupId })
+      .eq('community_id', communityId)
+      .eq('user_id', user.id)
+    setCommunityGroupMap((prev) => new Map(prev).set(communityId, groupId))
+  }, [user])
+
   // Mobile FAB — opens AddPinModal at the current map centre
   const handleFabAddPin = () => {
     setPendingCommunityOverride(selectedCommunity)
@@ -327,6 +399,12 @@ export default function Home() {
         onOpenSettings={setCommunitySettingsId}
         onAddPin={handleAddPinForCommunity}
         onOpenSearch={() => setShowSearch(true)}
+        groups={groups}
+        communityGroupMap={communityGroupMap}
+        onCreateGroup={handleCreateGroup}
+        onRenameGroup={handleRenameGroup}
+        onDeleteGroup={handleDeleteGroup}
+        onAssignGroup={handleAssignGroup}
         pendingInvites={pendingInvites}
         onAcceptInvite={handleAcceptInvite}
         onDeclineInvite={handleDeclineInvite}
