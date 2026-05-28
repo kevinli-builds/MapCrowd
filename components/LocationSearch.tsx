@@ -202,7 +202,7 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => { setQuery(e.target.value); setPinCandidate(null); setOpen(false) }}
+          onChange={(e) => { setQuery(e.target.value); setPinCandidate(null); setOpen(false); setResults([]) }}
           onKeyDown={handleKeyDown}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder="Go to a place…"
