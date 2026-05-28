@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import {
   X, Shield, UserPlus, UserMinus, Search, Loader2,
-  CheckCircle2, XCircle, Clock, Settings, Users, Inbox, Lock, Mail, Trash2, AlertTriangle, Globe,
+  CheckCircle2, XCircle, Clock, Settings, Users, Inbox, Lock, Mail, Trash2, AlertTriangle, AlertCircle, Globe,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useDebounce } from '@/lib/hooks'
@@ -36,7 +36,7 @@ interface CommunitySettingsModalProps {
   onDelete?: () => void
 }
 
-type Tab = 'queue' | 'rules' | 'members' | 'mods'
+type Tab = 'general' | 'queue' | 'rules' | 'members' | 'mods'
 type EmailInviteStatus = 'idle' | 'sending' | 'sent_existing' | 'sent_new' | 'error'
 
 // ── Tab button ────────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ export default function CommunitySettingsModal({
   onSettingsUpdate,
   onDelete,
 }: CommunitySettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('queue')
+  const [activeTab, setActiveTab] = useState<Tab>('general')
 
   // ── Delete state ─────────────────────────────────────────────────────────
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -92,6 +92,65 @@ export default function CommunitySettingsModal({
     await supabase.from('communities').delete().eq('id', community.id)
     setDeleting(false)
     onDelete?.()
+  }
+
+  // ── Rename state ─────────────────────────────────────────────────────────
+  const [newName, setNewName] = useState(community.name)
+  const [renameSimilar, setRenameSimilar] = useState<{ id: string; name: string; icon: string }[]>([])
+  const [renameChecking, setRenameChecking] = useState(false)
+  const [renameSaving, setRenameSaving] = useState(false)
+  const [renameSaved, setRenameSaved] = useState(false)
+  const [renameError, setRenameError] = useState<string | null>(null)
+
+  const trimmedNewName = newName.trim()
+
+  // Only fire similarity search when the name has actually changed
+  const debouncedNewName = useDebounce(
+    trimmedNewName !== community.name && trimmedNewName.length >= 2 ? trimmedNewName : '',
+    DEBOUNCE_MS.similarity
+  )
+
+  useEffect(() => {
+    if (!debouncedNewName) { setRenameSimilar([]); setRenameChecking(false); return }
+
+    let cancelled = false
+    setRenameChecking(true)
+    supabase
+      .from('communities')
+      .select('id, name, icon')
+      .ilike('name', `%${debouncedNewName}%`)
+      .neq('id', community.id)   // exclude self
+      .eq('is_private', false)   // only public namespace conflicts matter
+      .limit(LIMITS.similarCommunities)
+      .then(({ data }) => {
+        if (cancelled) return
+        setRenameSimilar(data ?? [])
+        setRenameChecking(false)
+      })
+    return () => { cancelled = true }
+  }, [debouncedNewName, community.id])
+
+  const renameExactMatch = renameSimilar.find(
+    (c) => c.name.toLowerCase() === trimmedNewName.toLowerCase()
+  )
+
+  const handleRename = async () => {
+    if (!trimmedNewName || trimmedNewName === community.name) return
+    setRenameSaving(true)
+    setRenameError(null)
+    const { error } = await supabase.rpc('rename_community', {
+      p_community_id: community.id,
+      p_new_name: trimmedNewName,
+    })
+    setRenameSaving(false)
+    if (error) {
+      console.error('Failed to rename community:', error)
+      setRenameError(error.message || 'Failed to rename — please try again.')
+    } else {
+      setRenameSaved(true)
+      onSettingsUpdate?.({ name: trimmedNewName })
+      setTimeout(() => setRenameSaved(false), 2000)
+    }
   }
 
   // ── Queue state ──────────────────────────────────────────────────────────
@@ -407,6 +466,12 @@ export default function CommunitySettingsModal({
         {/* Tab bar */}
         <div className="flex shrink-0 border-b border-gray-800 bg-gray-900">
           <TabBtn
+            active={activeTab === 'general'}
+            onClick={() => setActiveTab('general')}
+            icon={<Settings className="h-3.5 w-3.5" />}
+            label="General"
+          />
+          <TabBtn
             active={activeTab === 'queue'}
             onClick={() => setActiveTab('queue')}
             icon={<Inbox className="h-3.5 w-3.5" />}
@@ -442,6 +507,87 @@ export default function CommunitySettingsModal({
 
         {/* Tab content — scrollable */}
         <div className="flex-1 overflow-y-auto">
+
+          {/* ── GENERAL tab ────────────────────────────────────────────────── */}
+          {activeTab === 'general' && (
+            <div className="p-5">
+              <section>
+                <h3 className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <Settings className="h-3.5 w-3.5" />
+                  Community Name
+                </h3>
+                <p className="mb-3 text-xs text-gray-600">
+                  Rename this community. The URL slug stays the same.
+                </p>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => {
+                      setNewName(e.target.value)
+                      setRenameSaved(false)
+                      setRenameError(null)
+                    }}
+                    maxLength={50}
+                    className={`w-full rounded-lg border bg-gray-800 px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 ${
+                      renameExactMatch
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                        : 'border-gray-700 focus:border-indigo-500 focus:ring-indigo-500'
+                    }`}
+                  />
+                  {(renameChecking || (trimmedNewName !== community.name && trimmedNewName.length >= 2 && trimmedNewName !== debouncedNewName)) && (
+                    <Loader2 className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-gray-500" />
+                  )}
+                </div>
+
+                {/* Exact duplicate — block save */}
+                {renameExactMatch && (
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-400">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    A public community named &ldquo;{renameExactMatch.name}&rdquo; already exists.
+                  </div>
+                )}
+
+                {/* Similar names — warn but allow */}
+                {!renameExactMatch && renameSimilar.length > 0 && (
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2.5 text-xs text-yellow-400">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    Similar communities exist: {renameSimilar.map((c) => `${c.icon} ${c.name}`).join(', ')}
+                  </div>
+                )}
+
+                {/* Save error */}
+                {renameError && (
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-400">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    {renameError}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleRename}
+                  disabled={renameSaving || !trimmedNewName || trimmedNewName === community.name || !!renameExactMatch}
+                  className={`mt-3 w-full rounded-lg py-2.5 text-sm font-semibold transition-all ${
+                    renameSaved
+                      ? 'bg-green-700 text-white'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50'
+                  }`}
+                >
+                  {renameSaving ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Renaming…
+                    </span>
+                  ) : renameSaved ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <CheckCircle2 className="h-4 w-4" /> Renamed!
+                    </span>
+                  ) : (
+                    'Save Name'
+                  )}
+                </button>
+              </section>
+            </div>
+          )}
 
           {/* ── QUEUE tab ──────────────────────────────────────────────────── */}
           {activeTab === 'queue' && (
