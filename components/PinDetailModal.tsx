@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   X, ThumbsUp, ThumbsDown, Clock, MapPin, Navigation, ExternalLink, Trash2,
   Timer, MessageSquare, Send, ChevronLeft, ChevronRight,
-  ImageOff, Calendar, Users, Loader2,
+  ImageOff, Calendar, Users, Loader2, Pencil, Check,
 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import Link from 'next/link'
@@ -197,11 +197,18 @@ export default function PinDetailModal({
       .then(({ data }) => { if (data) setPhotos(data) })
   }, [pin.id])
 
-  // ── Tags ─────────────────────────────────────────────────────────────────
+  // ── Tags (display + inline editing) ──────────────────────────────────────
   const [pinTags, setPinTags] = useState<CommunityTag[]>([])
+  const [editingTags, setEditingTags] = useState(false)
+  const [communityTags, setCommunityTags] = useState<CommunityTag[]>([])
+  const [loadingCommunityTags, setLoadingCommunityTags] = useState(false)
+  const [togglingTagId, setTogglingTagId] = useState<string | null>(null)
 
+  // Fetch this pin's applied tags whenever the pin changes
   useEffect(() => {
     setPinTags([])
+    setEditingTags(false)
+    setCommunityTags([])
     supabase
       .from('pin_tags')
       .select('tag:community_tags(id, community_id, name, created_by, created_at)')
@@ -216,6 +223,39 @@ export default function PinDetailModal({
         }
       })
   }, [pin.id])
+
+  // Fetch the community's full tag vocabulary when the editor is opened
+  useEffect(() => {
+    if (!editingTags || communityTags.length > 0) return
+    setLoadingCommunityTags(true)
+    supabase
+      .from('community_tags')
+      .select('*')
+      .eq('community_id', pin.community_id)
+      .order('name')
+      .then(({ data }) => {
+        setCommunityTags((data ?? []) as CommunityTag[])
+        setLoadingCommunityTags(false)
+      })
+  }, [editingTags]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleToggleExistingTag = async (tag: CommunityTag) => {
+    if (togglingTagId) return
+    setTogglingTagId(tag.id)
+    const isApplied = pinTags.some((t) => t.id === tag.id)
+    if (isApplied) {
+      await supabase.from('pin_tags').delete().eq('pin_id', pin.id).eq('tag_id', tag.id)
+      setPinTags((prev) => prev.filter((t) => t.id !== tag.id))
+    } else {
+      const { error } = await supabase.from('pin_tags').insert({ pin_id: pin.id, tag_id: tag.id })
+      if (!error) {
+        setPinTags((prev) =>
+          [...prev, tag].sort((a, b) => a.name.localeCompare(b.name))
+        )
+      }
+    }
+    setTogglingTagId(null)
+  }
 
   // ── Comments ──────────────────────────────────────────────────────────────
   const [comments, setComments] = useState<Comment[]>([])
@@ -507,22 +547,86 @@ export default function PinDetailModal({
               )}
             </div>
 
-            {/* ── Tag chips ────────────────────────────────────────────── */}
-            {pinTags.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-1.5">
-                {pinTags.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className="rounded-full border px-2.5 py-0.5 text-xs font-medium"
-                    style={{
-                      borderColor: (community?.color ?? '#6366f1') + '60',
-                      color: community?.color ?? '#818cf8',
-                      backgroundColor: (community?.color ?? '#6366f1') + '18',
-                    }}
-                  >
-                    {tag.name}
-                  </span>
-                ))}
+            {/* ── Tags ────────────────────────────────────────────────── */}
+            {(pinTags.length > 0 || canDelete) && (
+              <div className="mb-4">
+                {/* Header row */}
+                <div className="mb-1.5 flex items-center gap-2">
+                  <span className="text-xs font-medium text-gray-500">Tags</span>
+                  {canDelete && (
+                    <button
+                      onClick={() => setEditingTags((v) => !v)}
+                      className="ml-auto flex items-center gap-1 text-xs text-gray-600 transition-colors hover:text-indigo-400"
+                    >
+                      {editingTags ? (
+                        <><Check className="h-3 w-3" /> Done</>
+                      ) : (
+                        <><Pencil className="h-3 w-3" /> {pinTags.length > 0 ? 'Edit' : 'Add tags'}</>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {/* Editor mode: all community tags as toggle chips */}
+                {editingTags ? (
+                  loadingCommunityTags ? (
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
+                    </div>
+                  ) : communityTags.length === 0 ? (
+                    <p className="text-xs italic text-gray-600">
+                      No tags defined for this community yet. Ask a mod to add some in Community Settings → Tags.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {communityTags.map((tag) => {
+                        const applied = pinTags.some((t) => t.id === tag.id)
+                        const color = community?.color ?? '#6366f1'
+                        const toggling = togglingTagId === tag.id
+                        return (
+                          <button
+                            key={tag.id}
+                            onClick={() => handleToggleExistingTag(tag)}
+                            disabled={!!togglingTagId}
+                            className="flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all disabled:opacity-50"
+                            style={
+                              applied
+                                ? { borderColor: color, backgroundColor: color + '22', color }
+                                : { borderColor: '#374151', color: '#9ca3af' }
+                            }
+                          >
+                            {toggling ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : applied ? (
+                              <Check className="h-3 w-3" />
+                            ) : null}
+                            {tag.name}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )
+                ) : pinTags.length > 0 ? (
+                  /* Read-only chips */
+                  <div className="flex flex-wrap gap-1.5">
+                    {pinTags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                        style={{
+                          borderColor: (community?.color ?? '#6366f1') + '60',
+                          color: community?.color ?? '#818cf8',
+                          backgroundColor: (community?.color ?? '#6366f1') + '18',
+                        }}
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  /* canDelete but no tags and not editing: nothing shown in the chip area */
+                  <p className="text-xs italic text-gray-600">None — click &ldquo;Add tags&rdquo; to tag this pin</p>
+                )}
               </div>
             )}
 
