@@ -73,6 +73,15 @@ export interface EventRsvp {
   created_at: string
 }
 
+/** A mod-defined tag label for a community */
+export interface CommunityTag {
+  id: string
+  community_id: string
+  name: string
+  created_by: string | null
+  created_at: string
+}
+
 export interface Vote {
   id: string
   pin_id: string

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle, Search, AlertTriangle, LogIn, Calendar, Users, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { Community, WHO_CAN_PIN_LABELS, GeoRestriction } from '@/lib/types'
+import { Community, CommunityTag, WHO_CAN_PIN_LABELS, GeoRestriction } from '@/lib/types'
 import { LIMITS, DEBOUNCE_MS } from '@/lib/constants'
 import { useDebounce } from '@/lib/hooks'
 
@@ -85,6 +85,36 @@ export default function AddPinModal({
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // ── Community tags ────────────────────────────────────────────────────────
+  const [availableTags, setAvailableTags] = useState<CommunityTag[]>([])
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set())
+  const [loadingTags, setLoadingTags] = useState(false)
+
+  useEffect(() => {
+    if (!communityId) return
+    setSelectedTagIds(new Set())
+    setAvailableTags([])
+    setLoadingTags(true)
+    supabase
+      .from('community_tags')
+      .select('*')
+      .eq('community_id', communityId)
+      .order('name')
+      .then(({ data }) => {
+        setAvailableTags((data ?? []) as CommunityTag[])
+        setLoadingTags(false)
+      })
+  }, [communityId])
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(tagId)) next.delete(tagId)
+      else next.add(tagId)
+      return next
+    })
+  }
 
   // ── Event / meetup fields ─────────────────────────────────────────────────
   const [isEvent, setIsEvent] = useState(false)
@@ -251,6 +281,12 @@ export default function AddPinModal({
       }
     }
 
+    // Step 3: Attach tags (authenticated users only — RLS requires user_id match)
+    if (selectedTagIds.size > 0 && userId) {
+      const tagRows = Array.from(selectedTagIds).map((tag_id) => ({ pin_id: pinId, tag_id }))
+      await supabase.from('pin_tags').insert(tagRows)
+    }
+
     setSubmitting(false)
     setUploadProgress('')
 
@@ -393,6 +429,42 @@ export default function AddPinModal({
                 </p>
               )}
             </div>
+
+            {/* Tag picker — shown only when the community has tags defined */}
+            {(loadingTags || availableTags.length > 0) && (
+              <div>
+                <label className="mb-2 block text-sm text-gray-400">
+                  Tags <span className="text-gray-600">(optional)</span>
+                </label>
+                {loadingTags ? (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading tags…
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {availableTags.map((tag) => {
+                      const selected = selectedTagIds.has(tag.id)
+                      const color = selectedCommunity?.color ?? '#6366f1'
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => toggleTag(tag.id)}
+                          className="rounded-full border px-3 py-1 text-sm font-medium transition-all"
+                          style={
+                            selected
+                              ? { borderColor: color, backgroundColor: color + '22', color }
+                              : { borderColor: '#374151', color: '#9ca3af' }
+                          }
+                        >
+                          {tag.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Title */}
             <div>

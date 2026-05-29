@@ -9,7 +9,7 @@ import {
 import type { User } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Pin, Comment, PinPhoto } from '@/lib/types'
+import { Pin, Comment, PinPhoto, CommunityTag } from '@/lib/types'
 import { getSessionId } from '@/lib/session'
 import { timeAgo, timeUntil } from '@/lib/utils'
 import Avatar from '@/components/Avatar'
@@ -195,6 +195,26 @@ export default function PinDetailModal({
       .eq('pin_id', pin.id)
       .order('created_at')
       .then(({ data }) => { if (data) setPhotos(data) })
+  }, [pin.id])
+
+  // ── Tags ─────────────────────────────────────────────────────────────────
+  const [pinTags, setPinTags] = useState<CommunityTag[]>([])
+
+  useEffect(() => {
+    setPinTags([])
+    supabase
+      .from('pin_tags')
+      .select('tag:community_tags(id, community_id, name, created_by, created_at)')
+      .eq('pin_id', pin.id)
+      .order('tag(name)')
+      .then(({ data }) => {
+        if (data) {
+          const tags = (data as unknown as { tag: CommunityTag | CommunityTag[] }[])
+            .map((r) => (Array.isArray(r.tag) ? r.tag[0] : r.tag))
+            .filter((t): t is CommunityTag => !!t)
+          setPinTags(tags)
+        }
+      })
   }, [pin.id])
 
   // ── Comments ──────────────────────────────────────────────────────────────
@@ -486,6 +506,25 @@ export default function PinDetailModal({
                 </span>
               )}
             </div>
+
+            {/* ── Tag chips ────────────────────────────────────────────── */}
+            {pinTags.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-1.5">
+                {pinTags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                    style={{
+                      borderColor: (community?.color ?? '#6366f1') + '60',
+                      color: community?.color ?? '#818cf8',
+                      backgroundColor: (community?.color ?? '#6366f1') + '18',
+                    }}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {pin.description && (
               <p className="mb-4 text-sm leading-relaxed text-gray-400">{pin.description}</p>

@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react'
 import {
   X, Shield, UserPlus, UserMinus, Search, Loader2,
-  CheckCircle2, XCircle, Clock, Settings, Pencil, Users, Inbox, Lock, Mail, Trash2, AlertTriangle, AlertCircle, Globe, MapPin,
+  CheckCircle2, XCircle, Clock, Settings, Pencil, Users, Inbox, Lock, Mail, Trash2, AlertTriangle, AlertCircle, Globe, MapPin, Tag, Plus,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useDebounce } from '@/lib/hooks'
 import { DEBOUNCE_MS, LIMITS } from '@/lib/constants'
 import {
-  Community, CommunityMember, CommunityModerator, Profile,
+  Community, CommunityMember, CommunityModerator, CommunityTag, Profile,
   PinDuration, WhoCanPin, PIN_DURATION_LABELS, WHO_CAN_PIN_LABELS, GeoRestriction,
 } from '@/lib/types'
 import { timeAgo } from '@/lib/utils'
@@ -36,7 +36,7 @@ interface CommunitySettingsModalProps {
   onDelete?: () => void
 }
 
-type Tab = 'general' | 'queue' | 'rules' | 'members' | 'mods'
+type Tab = 'general' | 'queue' | 'rules' | 'members' | 'mods' | 'tags'
 type EmailInviteStatus = 'idle' | 'sending' | 'sent_existing' | 'sent_new' | 'error'
 
 // ── Tab button ────────────────────────────────────────────────────────────────
@@ -528,6 +528,60 @@ export default function CommunitySettingsModal({
     setRemovingId(null)
   }
 
+  // ── Tags state ───────────────────────────────────────────────────────────
+  const [tags, setTags] = useState<CommunityTag[]>([])
+  const [loadingTags, setLoadingTags] = useState(true)
+  const [newTagName, setNewTagName] = useState('')
+  const [addingTag, setAddingTag] = useState(false)
+  const [tagError, setTagError] = useState<string | null>(null)
+  const [deletingTagId, setDeletingTagId] = useState<string | null>(null)
+
+  const fetchTags = async () => {
+    setLoadingTags(true)
+    const { data } = await supabase
+      .from('community_tags')
+      .select('*')
+      .eq('community_id', community.id)
+      .order('name')
+    if (data) setTags(data as CommunityTag[])
+    setLoadingTags(false)
+  }
+
+  useEffect(() => {
+    if (activeTab === 'tags' && loadingTags) fetchTags()
+  }, [activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleAddTag = async () => {
+    const name = newTagName.trim()
+    if (!name) return
+    // Case-insensitive duplicate check (client-side before hitting unique constraint)
+    if (tags.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
+      setTagError(`Tag "${name}" already exists`)
+      return
+    }
+    setAddingTag(true)
+    setTagError(null)
+    const { data, error } = await supabase
+      .from('community_tags')
+      .insert({ community_id: community.id, name, created_by: currentUserId })
+      .select('*')
+      .single()
+    setAddingTag(false)
+    if (error) {
+      setTagError(error.message.includes('unique') ? `"${name}" already exists` : 'Failed to add tag')
+    } else if (data) {
+      setTags((prev) => [...prev, data as CommunityTag].sort((a, b) => a.name.localeCompare(b.name)))
+      setNewTagName('')
+    }
+  }
+
+  const handleDeleteTag = async (tagId: string) => {
+    setDeletingTagId(tagId)
+    await supabase.from('community_tags').delete().eq('id', tagId)
+    setTags((prev) => prev.filter((t) => t.id !== tagId))
+    setDeletingTagId(null)
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="absolute inset-0 z-[2000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -598,6 +652,12 @@ export default function CommunitySettingsModal({
               />
             </>
           )}
+          <TabBtn
+            active={activeTab === 'tags'}
+            onClick={() => setActiveTab('tags')}
+            icon={<Tag className="h-3.5 w-3.5" />}
+            label="Tags"
+          />
         </div>
 
         {/* Tab content — scrollable */}
@@ -1430,6 +1490,99 @@ export default function CommunitySettingsModal({
                     No users found matching &ldquo;{searchQuery}&rdquo;
                   </p>
                 )}
+              </section>
+            </div>
+          )}
+
+          {/* ── TAGS tab ───────────────────────────────────────────────────── */}
+          {activeTab === 'tags' && (
+            <div className="p-5 space-y-5">
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Define tags that pinners can apply to their pins. Tags help people filter and understand what a pin is about.
+              </p>
+
+              {/* Existing tags */}
+              <section>
+                <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <Tag className="h-3.5 w-3.5" />
+                  Current Tags
+                  {tags.length > 0 && (
+                    <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-gray-400">
+                      {tags.length}
+                    </span>
+                  )}
+                </h3>
+
+                {loadingTags ? (
+                  <div className="flex items-center gap-2 py-3 text-sm text-gray-600">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                  </div>
+                ) : tags.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-gray-800 py-5 text-center text-sm text-gray-600">
+                    No tags yet — add some below
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium"
+                        style={{ borderColor: community.color + '60', color: community.color, backgroundColor: community.color + '18' }}
+                      >
+                        {tag.name}
+                        <button
+                          onClick={() => handleDeleteTag(tag.id)}
+                          disabled={deletingTagId === tag.id}
+                          title="Remove tag"
+                          className="ml-0.5 rounded-full p-0.5 opacity-60 transition-opacity hover:opacity-100 disabled:opacity-30"
+                          style={{ color: community.color }}
+                        >
+                          {deletingTagId === tag.id
+                            ? <Loader2 className="h-3 w-3 animate-spin" />
+                            : <X className="h-3 w-3" />}
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Add new tag */}
+              <section>
+                <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Tag
+                </h3>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newTagName}
+                    onChange={(e) => { setNewTagName(e.target.value); setTagError(null) }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag() } }}
+                    maxLength={30}
+                    placeholder="e.g. Verified, Rare, Historic…"
+                    className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <button
+                    onClick={handleAddTag}
+                    disabled={addingTag || !newTagName.trim()}
+                    className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {addingTag
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Plus className="h-4 w-4" />}
+                    Add
+                  </button>
+                </div>
+                {tagError && (
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-red-400">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    {tagError}
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-gray-600">
+                  Deleting a tag removes it from all pins automatically.
+                </p>
               </section>
             </div>
           )}
