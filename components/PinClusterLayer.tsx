@@ -10,23 +10,36 @@ import type { Community, Pin } from '@/lib/types'
 
 // ── Icon builders ─────────────────────────────────────────────────────────────
 
-/** Teardrop pin icon coloured by community */
-function buildPinIcon(community: Community): L.DivIcon {
+/** Teardrop pin icon coloured by community; event pins get a 📅 badge */
+function buildPinIcon(community: Community, isEvent = false): L.DivIcon {
   const size = 36
   const half = size / 2
+  const badge = isEvent
+    ? `<div style="
+        position:absolute;top:-6px;right:-6px;
+        background:#fff;border-radius:50%;
+        width:16px;height:16px;
+        display:flex;align-items:center;justify-content:center;
+        font-size:10px;line-height:1;
+        box-shadow:0 1px 4px rgba(0,0,0,.45);
+      ">📅</div>`
+    : ''
   return L.divIcon({
     className: '',
     html: `
-      <div style="
-        width:${size}px;height:${size}px;
-        border-radius:50% 50% 50% 0;transform:rotate(-45deg);
-        background:${community.color};border:3px solid #fff;
-        box-shadow:0 3px 10px rgba(0,0,0,.35);
-        display:flex;align-items:center;justify-content:center;
-      ">
-        <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.44)}px;line-height:1;display:block">
-          ${community.icon}
-        </span>
+      <div style="position:relative;width:${size}px;height:${size}px;">
+        <div style="
+          width:${size}px;height:${size}px;
+          border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+          background:${community.color};border:3px solid #fff;
+          box-shadow:0 3px 10px rgba(0,0,0,.35);
+          display:flex;align-items:center;justify-content:center;
+        ">
+          <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.44)}px;line-height:1;display:block">
+            ${community.icon}
+          </span>
+        </div>
+        ${badge}
       </div>`,
     iconSize: [size, size],
     iconAnchor: [half, size],
@@ -103,7 +116,7 @@ export default function PinClusterLayer({ pins, communityById, onPinClick }: Pin
     for (const pin of pins) {
       const community = communityById[pin.community_id]
       if (!community) continue
-      const marker = L.marker([pin.lat, pin.lng], { icon: buildPinIcon(community) })
+      const marker = L.marker([pin.lat, pin.lng], { icon: buildPinIcon(community, !!pin.event_date) })
       marker.on('click', () => onClickRef.current(pin))
       markers.push(marker)
     }

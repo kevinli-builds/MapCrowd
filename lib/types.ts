@@ -57,9 +57,20 @@ export interface Pin {
   vote_count: number
   status: 'pending' | 'approved' | 'rejected'
   expires_at: string | null         // ISO timestamp; null = permanent
+  // Event / meetup fields — null means this is a regular pin, not an event
+  event_date: string | null         // ISO timestamp of event start
+  event_end_date: string | null     // ISO timestamp of event end (optional)
+  event_capacity: number | null     // max attendees; null = unlimited
   created_at: string
   community?: Community
   profile?: Pick<Profile, 'username' | 'avatar_url'> | null
+}
+
+export interface EventRsvp {
+  id: string
+  pin_id: string
+  user_id: string
+  created_at: string
 }
 
 export interface Vote {

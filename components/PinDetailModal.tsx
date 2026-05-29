@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   X, ThumbsUp, ThumbsDown, Clock, MapPin, Navigation, ExternalLink, Trash2,
   Timer, MessageSquare, Send, ChevronLeft, ChevronRight,
-  ImageOff,
+  ImageOff, Calendar, Users, Loader2,
 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import Link from 'next/link'
@@ -13,6 +13,20 @@ import { Pin, Comment, PinPhoto } from '@/lib/types'
 import { getSessionId } from '@/lib/session'
 import { timeAgo, timeUntil } from '@/lib/utils'
 import Avatar from '@/components/Avatar'
+
+// ── Event date helpers ────────────────────────────────────────────────────────
+
+function formatEventDate(start: string, end?: string | null): string {
+  const s = new Date(start)
+  const datePart = s.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  const startTime = s.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  if (end) {
+    const e = new Date(end)
+    const endTime = e.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    return `${datePart} · ${startTime} – ${endTime}`
+  }
+  return `${datePart} · ${startTime}`
+}
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -51,6 +65,14 @@ export default function PinDetailModal({
   // Stable ref — getSessionId() reads/writes localStorage once at mount time
   const sessionId = useRef(getSessionId()).current
 
+  // ── RSVP (events) ─────────────────────────────────────────────────────────
+  const [rsvpCount, setRsvpCount] = useState(0)
+  const [userGoing, setUserGoing] = useState(false)
+  const [rsvpLoading, setRsvpLoading] = useState(false)
+  const [rsvpToggling, setRsvpToggling] = useState(false)
+  const [rsvpError, setRsvpError] = useState<string | null>(null)
+  const isEventPast = pin.event_date ? new Date(pin.event_date) < new Date() : false
+
   useEffect(() => {
     supabase
       .from('votes')
@@ -62,6 +84,52 @@ export default function PinDetailModal({
   }, [pin.id, sessionId])
 
   useEffect(() => { setConfirmDelete(false) }, [pin.id])
+
+  // Load RSVP count + user's status whenever the pin changes
+  useEffect(() => {
+    if (!pin.event_date) return
+    setRsvpCount(0)
+    setUserGoing(false)
+    setRsvpError(null)
+    setRsvpLoading(true)
+
+    const fetchRsvps = async () => {
+      const [{ count }, userRow] = await Promise.all([
+        supabase
+          .from('event_rsvps')
+          .select('id', { count: 'exact', head: true })
+          .eq('pin_id', pin.id),
+        user
+          ? supabase
+              .from('event_rsvps')
+              .select('id')
+              .eq('pin_id', pin.id)
+              .eq('user_id', user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+      ])
+      setRsvpCount(count ?? 0)
+      setUserGoing(!!(userRow.data))
+      setRsvpLoading(false)
+    }
+    fetchRsvps()
+  }, [pin.id, pin.event_date, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleRsvp = async () => {
+    if (!user) { onSignIn?.(); return }
+    if (rsvpToggling) return
+    setRsvpToggling(true)
+    setRsvpError(null)
+    const { data, error } = await supabase.rpc('toggle_event_rsvp', { p_pin_id: pin.id })
+    setRsvpToggling(false)
+    if (error) {
+      if (error.message?.includes('full')) setRsvpError('This event is full')
+    } else if (data) {
+      const result = data as { going: boolean; rsvp_count: number }
+      setUserGoing(result.going)
+      setRsvpCount(result.rsvp_count)
+    }
+  }
 
   const handleVote = async (value: number) => {
     if (!user) { onSignIn?.(); return }
@@ -421,6 +489,75 @@ export default function PinDetailModal({
 
             {pin.description && (
               <p className="mb-4 text-sm leading-relaxed text-gray-400">{pin.description}</p>
+            )}
+
+            {/* ── Event RSVP card ─────────────────────────────────────── */}
+            {pin.event_date && (
+              <div className="mb-4 rounded-xl border border-indigo-500/25 bg-indigo-500/5 p-4">
+                <div className="flex items-start gap-3">
+                  <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-indigo-400" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white leading-snug">
+                      {formatEventDate(pin.event_date, pin.event_end_date)}
+                    </p>
+                    {isEventPast && (
+                      <span className="mt-0.5 block text-xs text-amber-500">Past event</span>
+                    )}
+
+                    <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+                      {/* Attendee count */}
+                      <span className="flex items-center gap-1.5 text-sm text-gray-400">
+                        <Users className="h-3.5 w-3.5 shrink-0" />
+                        {rsvpLoading ? (
+                          <span className="h-3 w-16 rounded bg-gray-800 animate-pulse inline-block" />
+                        ) : pin.event_capacity ? (
+                          <>{rsvpCount} / {pin.event_capacity} going</>
+                        ) : (
+                          <>{rsvpCount} going</>
+                        )}
+                      </span>
+
+                      {/* RSVP button */}
+                      {!isEventPast && (
+                        user ? (
+                          <button
+                            onClick={handleRsvp}
+                            disabled={rsvpToggling || (!userGoing && !!pin.event_capacity && rsvpCount >= pin.event_capacity)}
+                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all disabled:opacity-60 ${
+                              userGoing
+                                ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+                                : (!pin.event_capacity || rsvpCount < pin.event_capacity)
+                                  ? 'bg-gray-800 text-gray-300 hover:bg-indigo-600/20 hover:text-indigo-300'
+                                  : 'cursor-not-allowed bg-gray-800 text-gray-600'
+                            }`}
+                          >
+                            {rsvpToggling ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : userGoing ? (
+                              <>✓ Going</>
+                            ) : (!pin.event_capacity || rsvpCount < pin.event_capacity) ? (
+                              <>Going?</>
+                            ) : (
+                              <>Full</>
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => onSignIn?.()}
+                            className="flex items-center gap-1.5 rounded-lg bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-400 transition-colors hover:bg-indigo-600/20 hover:text-indigo-300"
+                          >
+                            Sign in to RSVP
+                          </button>
+                        )
+                      )}
+                    </div>
+
+                    {rsvpError && (
+                      <p className="mt-2 text-xs text-red-400">{rsvpError}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Voting row */}

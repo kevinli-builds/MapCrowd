@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle, Search, AlertTriangle, LogIn } from 'lucide-react'
+import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle, Search, AlertTriangle, LogIn, Calendar, Users, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Community, WHO_CAN_PIN_LABELS, GeoRestriction } from '@/lib/types'
 import { LIMITS, DEBOUNCE_MS } from '@/lib/constants'
@@ -85,6 +85,12 @@ export default function AddPinModal({
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // ── Event / meetup fields ─────────────────────────────────────────────────
+  const [isEvent, setIsEvent] = useState(false)
+  const [eventDate, setEventDate] = useState('')
+  const [eventEndDate, setEventEndDate] = useState('')
+  const [eventCapacity, setEventCapacity] = useState('')
 
   // ── Location overridable from address search ──────────────────────────────
   const [pinLat, setPinLat] = useState(lat)
@@ -202,6 +208,10 @@ export default function AddPinModal({
         lat: pinLat,
         lng: pinLng,
         vote_count: 0,
+        // Event fields (null when not an event)
+        event_date:     isEvent && eventDate    ? new Date(eventDate).toISOString()    : null,
+        event_end_date: isEvent && eventEndDate ? new Date(eventEndDate).toISOString() : null,
+        event_capacity: isEvent && eventCapacity ? parseInt(eventCapacity, 10) : null,
       })
       .select('id')
       .single()
@@ -415,6 +425,75 @@ export default function AddPinModal({
               />
             </div>
 
+            {/* Event toggle */}
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEvent(!isEvent)
+                  if (isEvent) { setEventDate(''); setEventEndDate(''); setEventCapacity('') }
+                }}
+                className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+                  isEvent
+                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300'
+                    : 'border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400'
+                }`}
+              >
+                <Calendar className="h-4 w-4 shrink-0" />
+                <span className="flex-1 text-left">
+                  {isEvent ? 'This is an event' : 'Make this an event / meetup'}
+                </span>
+                {isEvent && <Check className="h-3.5 w-3.5 shrink-0" />}
+              </button>
+
+              {isEvent && (
+                <div className="mt-3 space-y-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-400">
+                      Start date &amp; time <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      required={isEvent}
+                      style={{ colorScheme: 'dark' }}
+                      className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-400">
+                      End time <span className="text-gray-600">(optional)</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={eventEndDate}
+                      onChange={(e) => setEventEndDate(e.target.value)}
+                      min={eventDate || undefined}
+                      style={{ colorScheme: 'dark' }}
+                      className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-400">
+                      <span className="flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5" />
+                        Capacity <span className="text-gray-600">(optional)</span>
+                      </span>
+                    </label>
+                    <input
+                      type="number"
+                      value={eventCapacity}
+                      onChange={(e) => setEventCapacity(e.target.value)}
+                      min={1}
+                      placeholder="No limit"
+                      className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Sign-in prompt for anonymous users in restricted communities */}
             {!userId && selectedCommunity && selectedCommunity.who_can_pin !== 'anyone' && (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3">
@@ -540,13 +619,20 @@ export default function AddPinModal({
             </button>
             <button
               type="submit"
-              disabled={!title.trim() || !communityId || submitting || !userCanPin}
+              disabled={!title.trim() || !communityId || submitting || !userCanPin || (isEvent && !eventDate)}
               className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {uploadProgress || 'Adding…'}
+                </>
+              ) : isEvent && effectivePending ? (
+                'Submit Event for Review'
+              ) : isEvent ? (
+                <>
+                  <Calendar className="h-4 w-4" />
+                  Create Event
                 </>
               ) : effectivePending ? (
                 'Submit for Review'
