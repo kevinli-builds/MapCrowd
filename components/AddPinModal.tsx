@@ -133,10 +133,19 @@ export default function AddPinModal({
   const [locationOpen, setLocationOpen] = useState(false)
   // Pre-select the place when opened from the map search bar
   const [selectedPlace, setSelectedPlace] = useState<string | null>(initialTitle ?? null)
+  // True after a result is selected (or when pre-filled from the map search);
+  // blocks the dropdown from reopening until the user types. Cleared only in onChange.
+  const suppressLocationSearch = useRef(Boolean(initialTitle))
 
   const debouncedLocationQuery = useDebounce(locationQuery.trim(), DEBOUNCE_MS.geocode)
 
   useEffect(() => {
+    // A result was just selected (or the field was pre-filled). Stay closed
+    // until the user types again — onChange is the only thing that clears this.
+    if (suppressLocationSearch.current) {
+      setLocationFetching(false)
+      return
+    }
     if (!debouncedLocationQuery) {
       setLocationResults([])
       setLocationOpen(false)
@@ -150,6 +159,7 @@ export default function AddPinModal({
     )
       .then((r) => r.json())
       .then((data: NominatimResult[]) => {
+        if (suppressLocationSearch.current) return // a selection landed while in flight
         setLocationResults(data)
         setLocationOpen(data.length > 0)
       })
@@ -165,6 +175,7 @@ export default function AddPinModal({
     setPinLng(newLng)
     // Use a short place label — everything before the first comma
     const shortName = result.display_name.split(',')[0].trim()
+    suppressLocationSearch.current = true // don't re-search the name we just picked
     setSelectedPlace(shortName)
     setLocationQuery(shortName)
     setLocationOpen(false)
@@ -353,10 +364,11 @@ export default function AddPinModal({
                   type="text"
                   value={locationQuery}
                   onChange={(e) => {
+                    suppressLocationSearch.current = false // genuine typing — re-enable searching
                     setLocationQuery(e.target.value)
                     if (selectedPlace && e.target.value !== selectedPlace) setSelectedPlace(null)
                   }}
-                  onFocus={() => locationResults.length > 0 && setLocationOpen(true)}
+                  onFocus={() => { if (!suppressLocationSearch.current && locationResults.length > 0) setLocationOpen(true) }}
                   onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
                   placeholder="Search address or place name…"
                   className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2.5 pl-9 pr-9 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"

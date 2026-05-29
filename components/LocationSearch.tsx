@@ -64,9 +64,11 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
 
   const inputRef      = useRef<HTMLInputElement>(null)
   const containerRef  = useRef<HTMLDivElement>(null)
-  // Set to true immediately after a result is selected so the debounce effect
-  // can skip the fetch that would otherwise fire with the shortened query name.
-  const justSelected  = useRef(false)
+  // Set to true when a result is selected (or input is cleared) and stays true
+  // until the user types again. While true, the dropdown is fully suppressed —
+  // no fetch, no reopen — so selecting a place never re-triggers a search.
+  // The ONLY place this is cleared is the input's onChange (genuine typing).
+  const suppressSearch = useRef(false)
   // Always reflects the latest value of `query` so async fetch callbacks can
   // detect they are stale (user has typed more since the fetch was queued).
   const queryRef      = useRef(query)
@@ -75,17 +77,17 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
   // Debounce the trimmed query — replaces the manual useRef + setTimeout pattern
   const debouncedQuery = useDebounce(query.trim(), DEBOUNCE_MS.geocode)
 
-  // Show a spinner as soon as the user types, not only after the debounce fires
+  // Show a spinner as soon as the user types, not only after the debounce fires.
+  // Suppressed while a selection is settling so it doesn't flash after a pick.
   const isPending = query.trim().length >= 2 && query.trim() !== debouncedQuery
-  const showSpinner = isPending || fetching
+  const showSpinner = (isPending || fetching) && !suppressSearch.current
 
   // ── Geocoding fetch ──────────────────────────────────────────────────────
   useEffect(() => {
-    // Skip the fetch that fires right after the user selects a result —
-    // we've already got the data we need and the query was just shortened
-    // for display purposes, so re-searching it would reopen the dropdown.
-    if (justSelected.current) {
-      justSelected.current = false
+    // A result was just selected (or the input was cleared). Stay closed until
+    // the user types again — onChange is the only thing that clears this flag.
+    if (suppressSearch.current) {
+      setFetching(false)
       return
     }
 
@@ -106,7 +108,7 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
       .then((r) => r.json())
       .then((data: NominatimResult[]) => {
         if (cancelled) return
-        if (justSelected.current) return   // user selected a result; don't reopen with stale data
+        if (suppressSearch.current) return // a selection landed while in flight; don't reopen
         // Guard against intermediate debounce fires: if the user has typed more
         // characters since this fetch was queued, the results are stale — discard them.
         if (queryRef.current.trim() !== debouncedQuery) return
@@ -142,11 +144,10 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
     // and named places ("Central Park").
     const name = extractPrimaryName(r.display_name)
 
-    // Always update the input to the clean selected name and suppress the
-    // debounce that will fire after the query state change — without this flag
-    // the effect would kick off a fresh search for the new query string,
-    // reopening the dropdown.
-    justSelected.current = true
+    // Update the input to the clean selected name and suppress searching until
+    // the user types again. Without this, the debounce that fires after the
+    // query change would re-search the name and reopen the dropdown.
+    suppressSearch.current = true
     setQuery(name)
 
     setResults([])   // clear so onFocus can't reopen the dropdown
@@ -175,6 +176,7 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
   }
 
   const clear = () => {
+    suppressSearch.current = true   // an empty box shouldn't auto-search; typing re-enables it
     setQuery('')
     setResults([])
     setOpen(false)
@@ -202,9 +204,15 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => { setQuery(e.target.value); setPinCandidate(null); setOpen(false); setResults([]) }}
+          onChange={(e) => {
+            suppressSearch.current = false // genuine typing — re-enable searching
+            setQuery(e.target.value)
+            setPinCandidate(null)
+            setOpen(false)
+            setResults([])
+          }}
           onKeyDown={handleKeyDown}
-          onFocus={() => results.length > 0 && setOpen(true)}
+          onFocus={() => { if (!suppressSearch.current && results.length > 0) setOpen(true) }}
           placeholder="Go to a place…"
           autoComplete="off"
           className="w-full rounded-xl border border-gray-700 bg-gray-900/90 py-2.5 pl-9 pr-9 text-sm text-white placeholder-gray-500 shadow-lg backdrop-blur-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
