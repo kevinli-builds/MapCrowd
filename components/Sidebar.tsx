@@ -4,12 +4,13 @@ import { useState } from 'react'
 import {
   Bookmark, BookmarkCheck, Check, ChevronDown, ChevronRight,
   Compass, Folder, FolderPlus, LogOut, Lock, MapPin, Pencil, Plus,
-  Search, Settings, Shield, Trash2, User2, ArrowUpRight, X,
+  Search, Settings, Shield, Trash2, User2, ArrowUpRight, X, Users,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
 import { Community, CommunityGroup, Pin, PendingInvite } from '@/lib/types'
 import Avatar from '@/components/Avatar'
+import FollowingPanel from '@/components/FollowingPanel'
 
 export type { PendingInvite }
 
@@ -33,6 +34,10 @@ interface SidebarProps {
   pendingInvites: PendingInvite[]
   groups: CommunityGroup[]
   communityGroupMap: Map<string, string | null>
+  /** User IDs the current user follows — drives the Following feed */
+  followedUserIds: Set<string>
+  /** Fly to + open a pin (used by the Following feed) */
+  onSelectPin: (pin: Pin) => void
   onSelectCommunity: (id: string | null) => void
   onShowSubscribed: () => void
   onToggleSubscription: (id: string) => void
@@ -66,6 +71,8 @@ export default function Sidebar({
   pendingInvites,
   groups,
   communityGroupMap,
+  followedUserIds,
+  onSelectPin,
   onSelectCommunity,
   onShowSubscribed,
   onToggleSubscription,
@@ -88,6 +95,7 @@ export default function Sidebar({
   isAdmin = false,
 }: SidebarProps) {
   // ── Local UI state ──────────────────────────────────────────────────────
+  const [tab, setTab] = useState<'communities' | 'following'>('communities')
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [groupPicker, setGroupPicker]         = useState<string | null>(null) // communityId
   const [pickerCreating, setPickerCreating]   = useState(false)
@@ -429,9 +437,50 @@ export default function Sidebar({
             <span className="flex-1 text-left">Search…</span>
             <kbd className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-600">⌘K</kbd>
           </button>
+
+          {/* ── Communities / Following tab switcher ── */}
+          <div className="mt-3 flex gap-1 rounded-lg bg-gray-800/60 p-1">
+            <button
+              onClick={() => setTab('communities')}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-medium transition-colors ${
+                tab === 'communities' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <MapPin className="h-3.5 w-3.5" />
+              Communities
+            </button>
+            <button
+              onClick={() => setTab('following')}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-medium transition-colors ${
+                tab === 'following' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <Users className="h-3.5 w-3.5" />
+              Following
+              {followedUserIds.size > 0 && (
+                <span className="rounded-full bg-amber-500/20 px-1.5 text-[10px] font-semibold text-amber-400">
+                  {followedUserIds.size}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
+        {/* ── Following feed ── */}
+        {tab === 'following' && (
+          <div className="flex-1 overflow-y-auto p-3">
+            <FollowingPanel
+              pins={pins}
+              followedUserIds={followedUserIds}
+              onSelectPin={onSelectPin}
+              signedIn={!!user}
+              onSignIn={onSignIn}
+            />
+          </div>
+        )}
+
         {/* ── Community list ── */}
+        {tab === 'communities' && (
         <div
           className="flex-1 overflow-y-auto p-3"
           onClick={() => setGroupPicker(null)}
@@ -621,6 +670,7 @@ export default function Sidebar({
           {/* ── Unsubscribed / all-other communities ── */}
           {unsubscribedVisible.map((c) => renderRow(c, false))}
         </div>
+        )}
 
         {/* ── Footer ── */}
         <div className="space-y-3 border-t border-gray-800 p-4">

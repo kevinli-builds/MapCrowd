@@ -10,11 +10,17 @@ import type { Community, Pin } from '@/lib/types'
 
 // ── Icon builders ─────────────────────────────────────────────────────────────
 
-/** Teardrop pin icon coloured by community; event pins get a 📅 badge */
-function buildPinIcon(community: Community, isEvent = false): L.DivIcon {
+/** Teardrop pin icon coloured by community.
+ *  Event pins get a 📅 badge (top-right); pins from followed users get a
+ *  ⭐ badge (top-left) plus a bright ring so they stand out on the map. */
+function buildPinIcon(community: Community, isEvent = false, isFollowed = false): L.DivIcon {
   const size = 36
   const half = size / 2
-  const badge = isEvent
+  const border = isFollowed ? '#fbbf24' : '#fff' // amber ring for followed authors
+  const ringShadow = isFollowed
+    ? 'box-shadow:0 0 0 2px #fbbf24,0 3px 10px rgba(0,0,0,.35);'
+    : 'box-shadow:0 3px 10px rgba(0,0,0,.35);'
+  const eventBadge = isEvent
     ? `<div style="
         position:absolute;top:-6px;right:-6px;
         background:#fff;border-radius:50%;
@@ -24,6 +30,16 @@ function buildPinIcon(community: Community, isEvent = false): L.DivIcon {
         box-shadow:0 1px 4px rgba(0,0,0,.45);
       ">📅</div>`
     : ''
+  const followBadge = isFollowed
+    ? `<div style="
+        position:absolute;top:-6px;left:-6px;
+        background:#fbbf24;border-radius:50%;
+        width:16px;height:16px;
+        display:flex;align-items:center;justify-content:center;
+        font-size:9px;line-height:1;
+        box-shadow:0 1px 4px rgba(0,0,0,.45);
+      ">⭐</div>`
+    : ''
   return L.divIcon({
     className: '',
     html: `
@@ -31,15 +47,16 @@ function buildPinIcon(community: Community, isEvent = false): L.DivIcon {
         <div style="
           width:${size}px;height:${size}px;
           border-radius:50% 50% 50% 0;transform:rotate(-45deg);
-          background:${community.color};border:3px solid #fff;
-          box-shadow:0 3px 10px rgba(0,0,0,.35);
+          background:${community.color};border:3px solid ${border};
+          ${ringShadow}
           display:flex;align-items:center;justify-content:center;
         ">
           <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.44)}px;line-height:1;display:block">
             ${community.icon}
           </span>
         </div>
-        ${badge}
+        ${eventBadge}
+        ${followBadge}
       </div>`,
     iconSize: [size, size],
     iconAnchor: [half, size],
@@ -74,9 +91,11 @@ interface PinClusterLayerProps {
   pins: Pin[]
   communityById: Record<string, Community>
   onPinClick: (pin: Pin) => void
+  /** User IDs the current user follows — their pins get a ⭐ badge + ring */
+  followedUserIds?: Set<string>
 }
 
-export default function PinClusterLayer({ pins, communityById, onPinClick }: PinClusterLayerProps) {
+export default function PinClusterLayer({ pins, communityById, onPinClick, followedUserIds }: PinClusterLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.MarkerClusterGroup | null>(null)
 
@@ -116,12 +135,13 @@ export default function PinClusterLayer({ pins, communityById, onPinClick }: Pin
     for (const pin of pins) {
       const community = communityById[pin.community_id]
       if (!community) continue
-      const marker = L.marker([pin.lat, pin.lng], { icon: buildPinIcon(community, !!pin.event_date) })
+      const isFollowed = !!pin.user_id && !!followedUserIds?.has(pin.user_id)
+      const marker = L.marker([pin.lat, pin.lng], { icon: buildPinIcon(community, !!pin.event_date, isFollowed) })
       marker.on('click', () => onClickRef.current(pin))
       markers.push(marker)
     }
     group.addLayers(markers)
-  }, [pins, communityById])
+  }, [pins, communityById, followedUserIds])
 
   return null
 }

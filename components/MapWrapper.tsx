@@ -24,6 +24,7 @@ interface MapWrapperProps {
   onPinClick: (pin: Pin) => void
   flyToTarget: FlyToTarget | null
   onCenterChange?: (lat: number, lng: number) => void
+  followedUserIds?: Set<string>
 }
 
 export default function MapWrapper(props: MapWrapperProps) {

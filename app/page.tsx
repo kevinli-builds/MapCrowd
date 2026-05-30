@@ -45,6 +45,8 @@ export default function Home() {
   const [subscribedIds, setSubscribedIds] = useState<Set<string>>(new Set())
   const [modCommunityIds, setModCommunityIds] = useState<Set<string>>(new Set())
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([])
+  // User IDs the current user follows
+  const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set())
 
   // Community groups (personal folders for organising subscriptions)
   const [groups, setGroups] = useState<CommunityGroup[]>([])
@@ -126,6 +128,15 @@ export default function Home() {
     if (data) setModCommunityIds(new Set(data.map((m) => m.community_id)))
   }, [user])
 
+  const fetchFollowing = useCallback(async () => {
+    if (!user) { setFollowedUserIds(new Set()); return }
+    const { data } = await supabase
+      .from('follows')
+      .select('followee_id')
+      .eq('follower_id', user.id)
+    if (data) setFollowedUserIds(new Set(data.map((f) => f.followee_id)))
+  }, [user])
+
   const fetchPendingInvites = useCallback(async () => {
     if (!user) { setPendingInvites([]); return }
     const { data } = await supabase
@@ -151,6 +162,7 @@ export default function Home() {
   useEffect(() => { fetchModRoles() }, [fetchModRoles])
   useEffect(() => { fetchPendingInvites() }, [fetchPendingInvites])
   useEffect(() => { fetchGroups() }, [fetchGroups])
+  useEffect(() => { fetchFollowing() }, [fetchFollowing])
 
   // Reset manual-filter flag when auth changes, and clear subscribed view on sign-out
   useEffect(() => {
@@ -300,6 +312,33 @@ export default function Home() {
     setPendingInvites((prev) => prev.filter((i) => i.id !== memberId))
   }
 
+  const handleToggleFollow = async (targetUserId: string) => {
+    if (!user) { setShowAuthModal(true); return }
+    if (targetUserId === user.id) return // can't follow yourself
+
+    if (followedUserIds.has(targetUserId)) {
+      // Optimistic remove
+      setFollowedUserIds((prev) => { const n = new Set(prev); n.delete(targetUserId); return n })
+      await supabase
+        .from('follows')
+        .delete()
+        .eq('follower_id', user.id)
+        .eq('followee_id', targetUserId)
+    } else {
+      setFollowedUserIds((prev) => new Set([...prev, targetUserId]))
+      await supabase
+        .from('follows')
+        .insert({ follower_id: user.id, followee_id: targetUserId })
+    }
+  }
+
+  // Following feed → fly to the pin and open its detail
+  const handleSelectPin = (pin: Pin) => {
+    handleFlyTo(pin.lat, pin.lng, 16)
+    setSelectedPin(pin)
+    setShowMobileSidebar(false)
+  }
+
   const handleCenterChange = useCallback((lat: number, lng: number) => {
     setMapCenter([lat, lng])
   }, [])
@@ -420,6 +459,8 @@ export default function Home() {
         onOpenSearch={() => setShowSearch(true)}
         groups={groups}
         communityGroupMap={communityGroupMap}
+        followedUserIds={followedUserIds}
+        onSelectPin={handleSelectPin}
         onCreateGroup={handleCreateGroup}
         onRenameGroup={handleRenameGroup}
         onDeleteGroup={handleDeleteGroup}
@@ -496,6 +537,7 @@ export default function Home() {
           onPinClick={handlePinClick}
           flyToTarget={flyToTarget}
           onCenterChange={handleCenterChange}
+          followedUserIds={followedUserIds}
         />
 
         {selectedCommunityObj && (
@@ -567,6 +609,8 @@ export default function Home() {
             onGoToPin={() => {
               handleFlyTo(selectedPin.lat, selectedPin.lng, 17)
             }}
+            followedUserIds={followedUserIds}
+            onToggleFollow={handleToggleFollow}
           />
         )}
 

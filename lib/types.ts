@@ -82,6 +82,13 @@ export interface CommunityTag {
   created_at: string
 }
 
+/** A follow edge: follower_id follows followee_id */
+export interface Follow {
+  follower_id: string
+  followee_id: string
+  created_at: string
+}
+
 export interface Vote {
   id: string
   pin_id: string

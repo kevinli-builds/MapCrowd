@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, MapPin, ThumbsUp, Users, AlertCircle, Loader2 } from 'lucide-react'
+import type { User } from '@supabase/supabase-js'
+import { ArrowLeft, MapPin, ThumbsUp, Users, AlertCircle, Loader2, UserPlus, UserCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Profile, Pin } from '@/lib/types'
 import { timeAgo, avatarColor } from '@/lib/utils'
@@ -19,6 +20,14 @@ export default function ProfilePage() {
   const [pins, setPins] = useState<Pin[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+
+  // ── Follow state ──────────────────────────────────────────────────────────
+  const [viewer, setViewer] = useState<User | null>(null)
+  const [following, setFollowing] = useState(false)
+  const [followerCount, setFollowerCount] = useState(0)
+  const [followingCount, setFollowingCount] = useState(0)
+  const [followBusy, setFollowBusy] = useState(false)
+  const isOwnProfile = !!viewer && !!profile && viewer.id === profile.id
 
   const load = useCallback(async () => {
     if (!username) return
@@ -50,6 +59,62 @@ export default function ProfilePage() {
   }, [username])
 
   useEffect(() => { load() }, [load])
+
+  // Load follow counts + the viewer's follow status once the profile is known
+  useEffect(() => {
+    if (!profile) return
+    let cancelled = false
+
+    const loadFollowState = async () => {
+      const [{ count: followers }, { count: followings }, { data: { session } }] =
+        await Promise.all([
+          supabase.from('follows').select('*', { count: 'exact', head: true }).eq('followee_id', profile.id),
+          supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profile.id),
+          supabase.auth.getSession(),
+        ])
+      if (cancelled) return
+      setFollowerCount(followers ?? 0)
+      setFollowingCount(followings ?? 0)
+      setViewer(session?.user ?? null)
+
+      if (session?.user && session.user.id !== profile.id) {
+        const { data } = await supabase
+          .from('follows')
+          .select('followee_id')
+          .eq('follower_id', session.user.id)
+          .eq('followee_id', profile.id)
+          .maybeSingle()
+        if (!cancelled) setFollowing(!!data)
+      }
+    }
+    loadFollowState()
+    return () => { cancelled = true }
+  }, [profile])
+
+  const toggleFollow = async () => {
+    if (!profile) return
+    if (!viewer) {
+      // Sign in with Google, then come back to this profile
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.href },
+      })
+      return
+    }
+    if (viewer.id === profile.id || followBusy) return
+    setFollowBusy(true)
+    if (following) {
+      setFollowing(false)
+      setFollowerCount((c) => Math.max(0, c - 1))
+      await supabase.from('follows').delete()
+        .eq('follower_id', viewer.id).eq('followee_id', profile.id)
+    } else {
+      setFollowing(true)
+      setFollowerCount((c) => c + 1)
+      await supabase.from('follows').insert({ follower_id: viewer.id, followee_id: profile.id })
+    }
+    setFollowBusy(false)
+  }
 
   // ── Derived stats (memoised — only recompute when pins changes) ─────────
   const { totalVotes, communityCount, topCommunities } = useMemo(() => {
@@ -118,7 +183,7 @@ export default function ProfilePage() {
               userId={profile.id}
               className="h-20 w-20 rounded-2xl text-3xl ring-4 ring-gray-800"
             />
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-bold text-white">{profile.username}</h1>
               <p className="mt-1 text-sm text-gray-500">
                 Joined{' '}
@@ -128,6 +193,25 @@ export default function ProfilePage() {
                 })}
               </p>
             </div>
+
+            {/* Follow button — hidden on your own profile */}
+            {!isOwnProfile && (
+              <button
+                onClick={toggleFollow}
+                disabled={followBusy}
+                className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-60 ${
+                  following
+                    ? 'border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                }`}
+              >
+                {followBusy
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : following
+                    ? <><UserCheck className="h-4 w-4" /> Following</>
+                    : <><UserPlus className="h-4 w-4" /> Follow</>}
+              </button>
+            )}
           </div>
 
           {/* Stats */}
@@ -154,6 +238,18 @@ export default function ProfilePage() {
               <p className="text-2xl font-bold text-white">{communityCount}</p>
               <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
                 <Users className="h-3 w-3" /> Communities
+              </p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">{followerCount}</p>
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
+                <UserCheck className="h-3 w-3" /> Followers
+              </p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">{followingCount}</p>
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
+                <UserPlus className="h-3 w-3" /> Following
               </p>
             </div>
           </div>

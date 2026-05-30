@@ -85,6 +85,7 @@ supabase/
   18-community-tags.sql
   19-pin-tags-delete.sql
   20-mod-helper.sql
+  21-follows.sql
   # Superseded — do not run:
   schema.sql
   auth-migration.sql
@@ -108,6 +109,7 @@ supabase/
 | `comments` | Comments on pins |
 | `pin_photos` | Photo uploads linked to pins (stored in `pin-photos` Storage bucket) |
 | `event_rsvps` | "Going" RSVPs for event pins (one per user per pin) |
+| `follows` | User social graph: follower_id → followee_id (public, self-managed) |
 
 Key RPCs:
 - `vote_on_pin(p_pin_id, p_session_id, p_value)` — SECURITY DEFINER, handles toggle/switch/new votes
@@ -218,3 +220,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from Supabase dashboard>
 - **Geocoding / map search**: top-right search bar flies the map to any place in the world (Nominatim)
 - **Events / meetups** — event pins with date/time/capacity; Going RSVP; 📅 badge on map marker
 - **Community-managed tags** — mods define tag vocabulary; pinners multi-select tags; edit tags inline on existing pins
+- **Discover page** (`/discover`) — browse/search/sort all public communities; subscribe inline
+- **Near Me** — geolocation button flies the map to the user's location
+- **User follows** — follow other mappers; Sidebar "Following" tab shows their recent pin activity; followed users' pins get a ⭐ badge + amber ring on the map; follower/following counts + Follow button on profile pages

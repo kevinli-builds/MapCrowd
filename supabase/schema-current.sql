@@ -216,6 +216,18 @@ CREATE TABLE IF NOT EXISTS public.event_rsvps (
 
 ALTER TABLE event_rsvps ENABLE ROW LEVEL SECURITY;
 
+-- ── follows (user social graph) ───────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.follows (
+  follower_id UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  followee_id UUID        NOT NULL REFERENCES profiles(id)   ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (follower_id, followee_id),
+  CONSTRAINT follows_no_self CHECK (follower_id <> followee_id)
+);
+
+ALTER TABLE follows ENABLE ROW LEVEL SECURITY;
+
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- SECTION 2 — SHARED HELPER FUNCTIONS
@@ -419,6 +431,11 @@ CREATE POLICY "photos_delete_author_or_mod" ON pin_photos FOR DELETE
 CREATE POLICY "rsvps_select_all"  ON event_rsvps FOR SELECT USING (true);
 CREATE POLICY "rsvps_insert_own"  ON event_rsvps FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "rsvps_delete_own"  ON event_rsvps FOR DELETE USING (auth.uid() = user_id);
+
+-- follows (public social graph; you manage only your own rows)
+CREATE POLICY "follows_select_all" ON follows FOR SELECT USING (true);
+CREATE POLICY "follows_insert_own" ON follows FOR INSERT WITH CHECK (auth.uid() = follower_id);
+CREATE POLICY "follows_delete_own" ON follows FOR DELETE USING (auth.uid() = follower_id);
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -688,6 +705,8 @@ CREATE INDEX IF NOT EXISTS idx_pins_status_expires
 
 CREATE INDEX IF NOT EXISTS community_tags_community_idx ON community_tags (community_id);
 CREATE INDEX IF NOT EXISTS pin_tags_tag_idx             ON pin_tags (tag_id);
+CREATE INDEX IF NOT EXISTS follows_follower_idx         ON follows (follower_id);
+CREATE INDEX IF NOT EXISTS follows_followee_idx         ON follows (followee_id);
 
 
 -- ─────────────────────────────────────────────────────────────────────────────

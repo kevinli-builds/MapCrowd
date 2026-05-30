@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   X, ThumbsUp, ThumbsDown, Clock, MapPin, Navigation, ExternalLink, Trash2,
   Timer, MessageSquare, Send, ChevronLeft, ChevronRight,
-  ImageOff, Calendar, Users, Loader2, Pencil, Check,
+  ImageOff, Calendar, Users, Loader2, Pencil, Check, UserPlus, UserCheck,
 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import Link from 'next/link'
@@ -29,6 +29,10 @@ interface PinDetailModalProps {
   onSignIn?: () => void
   /** Fly the map to this pin and close the modal */
   onGoToPin?: () => void
+  /** User IDs the current user follows */
+  followedUserIds?: Set<string>
+  /** Toggle following the given user */
+  onToggleFollow?: (userId: string) => void
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -43,6 +47,8 @@ export default function PinDetailModal({
   onDeletePin,
   onSignIn,
   onGoToPin,
+  followedUserIds,
+  onToggleFollow,
 }: PinDetailModalProps) {
   // ── Voting ────────────────────────────────────────────────────────────────
   const [userVote, setUserVote] = useState<number>(0)
@@ -486,6 +492,27 @@ export default function PinDetailModal({
                   </span>
                 </>
               )}
+              {/* Follow author — hidden on your own pins */}
+              {pin.user_id && onToggleFollow && (!user || user.id !== pin.user_id) && (() => {
+                const following = !!followedUserIds?.has(pin.user_id!)
+                return (
+                  <button
+                    onClick={() => {
+                      if (!user) { onSignIn?.(); return }
+                      onToggleFollow(pin.user_id!)
+                    }}
+                    className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                      following
+                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-400 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400'
+                        : 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20'
+                    }`}
+                  >
+                    {following
+                      ? <><UserCheck className="h-3 w-3" /> Following</>
+                      : <><UserPlus className="h-3 w-3" /> Follow</>}
+                  </button>
+                )
+              })()}
               {/* Address / coordinates row */}
               <span className="w-full flex items-center gap-1 min-w-0">
                 {loadingAddress ? (

@@ -59,6 +59,7 @@ interface MapInnerProps {
   onPinClick: (pin: Pin) => void
   flyToTarget: FlyToTarget | null
   onCenterChange?: (lat: number, lng: number) => void
+  followedUserIds?: Set<string>
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -70,6 +71,7 @@ export default function MapInner({
   onPinClick,
   flyToTarget,
   onCenterChange,
+  followedUserIds,
 }: MapInnerProps) {
   const communityById = useMemo(
     () => Object.fromEntries(communities.map((c) => [c.id, c])),
@@ -102,6 +104,7 @@ export default function MapInner({
         pins={pins}
         communityById={communityById}
         onPinClick={onPinClick}
+        followedUserIds={followedUserIds}
       />
     </MapContainer>
   )
