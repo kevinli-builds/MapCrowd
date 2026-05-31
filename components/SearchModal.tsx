@@ -103,7 +103,7 @@ export default function SearchModal({
 
   return (
     <div
-      className="absolute inset-0 z-[2000] flex items-start justify-center bg-black/60 pt-[12vh] backdrop-blur-sm"
+      className="absolute inset-0 z-[1300] flex items-start justify-center bg-black/60 pt-[12vh] backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="mx-4 w-full max-w-xl overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl">

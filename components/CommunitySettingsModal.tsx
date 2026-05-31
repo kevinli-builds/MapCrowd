@@ -584,7 +584,7 @@ export default function CommunitySettingsModal({
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="absolute inset-0 z-[2000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div className="absolute inset-0 z-[1300] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl" style={{ maxHeight: '90vh' }}>
 
         {/* Header */}

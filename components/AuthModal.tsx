@@ -63,7 +63,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
 
   return (
     <div
-      className="absolute inset-0 z-[2000] flex items-center justify-center bg-black/60 p-4"
+      className="absolute inset-0 z-[1300] flex items-center justify-center bg-black/60 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl">

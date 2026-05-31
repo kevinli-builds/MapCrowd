@@ -145,9 +145,19 @@ Key helper functions (SECURITY DEFINER):
 ### Mobile sidebar & z-index
 - Sidebar is a fixed drawer on mobile, permanently visible on `md:` breakpoint
 - State: `showMobileSidebar` in `app/page.tsx`
-- Hamburger button: `fixed left-4 top-4 z-[1001]` — must be above 1000 to clear Leaflet's internal z-indices
-- Sidebar drawer: `z-[1002]`, backdrop: `z-[1001]` — same reason
-- **Critical**: Leaflet internally uses z-indices up to ~1000 for tiles, markers, popups, controls. Any UI element that must appear above the map must use `z-[1001]` or higher. Tailwind's `z-50` (50) is NOT enough.
+- **Critical**: Leaflet internally uses z-indices up to ~1000 for tiles, markers, popups, controls. Any UI element above the map must use `z-[1100]` or higher. Tailwind's `z-50` (50) is NOT enough.
+
+#### Layering scale (keep these tiers consistent)
+| Tier | z-index | What |
+|---|---|---|
+| Map base | ≤ 1000 | Leaflet tiles / markers / zoom control (internal) |
+| Map controls | `z-[1100]` | Hamburger, LocationSearch, Near Me, mobile FAB |
+| Community panel | `z-[1150]` | `CommunityPinsPanel` (bottom sheet on mobile, side column on desktop) |
+| Mid modals | `z-[1200]` | `AddPinModal`, `PinDetailModal`, `CreateCommunityModal` |
+| Top modals | `z-[1300]` | `AuthModal`, `SearchModal`, `CommunitySettingsModal` |
+| Mobile sidebar | `z-[1400]` backdrop / `z-[1401]` drawer | nav drawer (drawer drops to `z-auto` on `md:`) |
+
+- **Map controls hide when an overlay is open.** `app/page.tsx` derives `panelOpen` / `modalOpen` / `overlayOpen`; the hamburger, FAB, and Near Me are gated on `overlayOpen`, and `LocationSearch` is unmounted while `modalOpen`. This prevents the floating controls from rendering on top of a sheet on mobile.
 
 ### LocationSearch (geocoding)
 - Uses **Nominatim** (OpenStreetMap) — free, no API key, rate limit ~1 req/s

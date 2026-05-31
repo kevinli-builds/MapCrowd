@@ -191,7 +191,7 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
       // Sits top-right of the map, above Leaflet's max z-index (~1000).
       // When the community panel is open: hidden on mobile (panel is full-width),
       // shifted left on sm+ so it clears the 320px panel + 16px gap.
-      className={`absolute top-4 z-[1001] w-72 max-w-[calc(100vw-4.5rem)] transition-[right] duration-200 ${
+      className={`absolute top-4 z-[1100] w-72 max-w-[calc(100vw-4.5rem)] transition-[right] duration-200 ${
         panelOpen
           ? 'right-4 hidden sm:block sm:right-[336px]'
           : 'right-4'

@@ -358,7 +358,7 @@ export default function PinDetailModal({
   return (
     /* Full-screen backdrop — bottom sheet on mobile, centred modal on sm+ */
     <div
-      className="absolute inset-0 z-[1000] flex items-end bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
+      className="absolute inset-0 z-[1200] flex items-end bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div

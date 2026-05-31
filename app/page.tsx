@@ -441,6 +441,16 @@ export default function Home() {
     ? communities.find((c) => c.id === selectedCommunity) ?? null
     : null
 
+  // ── Overlay bookkeeping ───────────────────────────────────────────────────
+  // panelOpen  = the community side panel / bottom sheet (non-blocking on desktop)
+  // modalOpen  = a blocking modal/sheet that should own the screen
+  // When either is up, the floating map controls hide so nothing overlaps.
+  const panelOpen = !!selectedCommunityObj
+  const modalOpen =
+    !!pendingLatLng || !!selectedPin || showAuthModal || showSearch ||
+    showCreateModal || !!communitySettingsId
+  const overlayOpen = panelOpen || modalOpen
+
   return (
     <div className="flex h-full overflow-hidden bg-gray-950">
       <Sidebar
@@ -479,56 +489,60 @@ export default function Home() {
       />
 
       <main className="relative flex-1 overflow-hidden">
-        {/* Hamburger — mobile only; hidden while the community panel covers the screen */}
+        {/* Hamburger — mobile only; hidden whenever any overlay owns the screen */}
         <button
           onClick={() => setShowMobileSidebar(true)}
-          className={`fixed left-4 top-4 z-[1001] flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 shadow-lg border border-gray-700 text-gray-300 hover:text-white transition-colors ${selectedCommunityObj ? 'hidden' : 'md:hidden'}`}
+          className={`fixed left-4 top-4 z-[1100] flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 shadow-lg border border-gray-700 text-gray-300 hover:text-white transition-colors ${overlayOpen ? 'hidden' : 'md:hidden'}`}
           aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
         </button>
 
         {/* Mobile FAB — drop a pin at the current map centre.
-            Hidden on md+ (desktop uses tap-the-map), hidden when any sheet
-            is already open so it doesn't fight for z-index attention. */}
-        {!pendingLatLng && !selectedPin && !selectedCommunityObj && !showAuthModal && (
+            Hidden on md+ (desktop uses tap-the-map) and whenever an overlay is open. */}
+        {!overlayOpen && (
           <button
             onClick={handleFabAddPin}
             aria-label="Drop a pin"
-            className="fixed bottom-28 right-4 z-[1001] flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xl transition-transform active:scale-95 hover:bg-indigo-500 md:hidden"
+            className="fixed bottom-28 right-4 z-[1100] flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xl transition-transform active:scale-95 hover:bg-indigo-500 md:hidden"
           >
             <Plus className="h-7 w-7" />
           </button>
         )}
 
-        {/* Location / geocoding search — top right of map */}
-        <LocationSearch
-          onFlyTo={handleFlyTo}
-          panelOpen={!!selectedCommunityObj}
-          onAddPin={(lat, lng, name) => {
-            setPendingLatLng([lat, lng])
-            setPendingPinTitle(name)
-          }}
-        />
+        {/* Location / geocoding search — top right of map.
+            Unmounted while a blocking modal is open so it can't float over a sheet. */}
+        {!modalOpen && (
+          <LocationSearch
+            onFlyTo={handleFlyTo}
+            panelOpen={panelOpen}
+            onAddPin={(lat, lng, name) => {
+              setPendingLatLng([lat, lng])
+              setPendingPinTitle(name)
+            }}
+          />
+        )}
 
-        {/* Near me — bottom-right of map */}
-        <div className="absolute right-4 bottom-8 z-[1001] flex flex-col items-end gap-2">
-          {locationError && (
-            <div className="rounded-lg border border-red-500/30 bg-gray-900 px-3 py-1.5 text-xs text-red-400 shadow-lg">
-              {locationError}
-            </div>
-          )}
-          <button
-            onClick={handleNearMe}
-            disabled={locating}
-            title="Fly to my location"
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-700 bg-gray-900 text-gray-300 shadow-lg transition-colors hover:border-indigo-500 hover:text-white disabled:opacity-50"
-          >
-            {locating
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <LocateFixed className="h-4 w-4" />}
-          </button>
-        </div>
+        {/* Near me — bottom-right of map; hidden when any overlay is open */}
+        {!overlayOpen && (
+          <div className="absolute right-4 bottom-8 z-[1100] flex flex-col items-end gap-2">
+            {locationError && (
+              <div className="rounded-lg border border-red-500/30 bg-gray-900 px-3 py-1.5 text-xs text-red-400 shadow-lg">
+                {locationError}
+              </div>
+            )}
+            <button
+              onClick={handleNearMe}
+              disabled={locating}
+              title="Fly to my location"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-700 bg-gray-900 text-gray-300 shadow-lg transition-colors hover:border-indigo-500 hover:text-white disabled:opacity-50"
+            >
+              {locating
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <LocateFixed className="h-4 w-4" />}
+            </button>
+          </div>
+        )}
 
         <MapWrapper
           pins={filteredPins}

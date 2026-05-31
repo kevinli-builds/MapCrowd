@@ -313,7 +313,7 @@ export default function AddPinModal({
 
   if (submitted) {
     return (
-      <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4">
+      <div className="absolute inset-0 z-[1200] flex items-center justify-center bg-black/50 p-4">
         <div className="w-full max-w-md rounded-2xl border border-gray-700 bg-gray-900 p-8 text-center shadow-2xl">
           <CheckCircle2 className="mx-auto mb-4 h-10 w-10 text-amber-400" />
           <h3 className="mb-2 text-lg font-bold text-white">Pin submitted!</h3>
@@ -327,7 +327,7 @@ export default function AddPinModal({
 
   return (
     <div
-      className="absolute inset-0 z-[1000] flex items-end bg-black/50 sm:items-center sm:p-4"
+      className="absolute inset-0 z-[1200] flex items-end bg-black/50 sm:items-center sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="flex w-full flex-col overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl sm:max-w-md sm:rounded-2xl" style={{ maxHeight: '90vh' }}>
