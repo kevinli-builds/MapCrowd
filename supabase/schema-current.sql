@@ -35,8 +35,10 @@ CREATE TABLE IF NOT EXISTS public.communities (
   name                 TEXT        NOT NULL CHECK (char_length(name) BETWEEN 1 AND 50),
   slug                 TEXT        UNIQUE NOT NULL,
   description          TEXT        CHECK (char_length(description) <= 200),
-  color                TEXT        NOT NULL DEFAULT '#6366f1',
-  icon                 TEXT        NOT NULL DEFAULT '📍',
+  color                TEXT        NOT NULL DEFAULT '#6366f1'
+                         CHECK (color ~ '^#[0-9a-fA-F]{3,8}$'),
+  icon                 TEXT        NOT NULL DEFAULT '📍'
+                         CHECK (char_length(icon) <= 32 AND icon !~ '[<>]'),
   is_private           BOOLEAN     NOT NULL DEFAULT false,
   require_approval     BOOLEAN     NOT NULL DEFAULT false,
   default_pin_duration TEXT        NOT NULL DEFAULT 'permanent',
@@ -503,7 +505,7 @@ CREATE TRIGGER on_new_user_convert_email_invites
 
 -- Set pin status + expires_at from community settings (also handles geo check)
 CREATE OR REPLACE FUNCTION public.set_pin_defaults_on_insert()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_require_approval     BOOLEAN;
   v_default_pin_duration TEXT;
@@ -574,7 +576,7 @@ END; $$;
 
 -- Toggle event RSVP; enforces capacity
 CREATE OR REPLACE FUNCTION public.toggle_event_rsvp(p_pin_id UUID)
-RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_user_id  UUID    := auth.uid();
   v_exists   BOOLEAN;
@@ -609,7 +611,7 @@ END; $$;
 -- Community stats (public — bypasses RLS on subscriptions)
 CREATE OR REPLACE FUNCTION public.get_community_stats(p_community_id UUID)
 RETURNS TABLE (pin_count BIGINT, subscriber_count BIGINT)
-LANGUAGE SQL SECURITY DEFINER AS $$
+LANGUAGE SQL SECURITY DEFINER SET search_path = public AS $$
   SELECT
     COUNT(DISTINCT CASE
       WHEN p.status = 'approved' AND (p.expires_at IS NULL OR p.expires_at > NOW())

@@ -8,6 +8,29 @@ import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import type { Community, Pin } from '@/lib/types'
 
+// ── Sanitizers ────────────────────────────────────────────────────────────────
+// Marker icons are rendered as raw HTML (Leaflet divIcon → innerHTML), so any
+// DB-sourced value interpolated below MUST be sanitized. community.color/icon
+// are only constrained by the create-form UI, not by RLS — a crafted insert
+// could otherwise smuggle markup onto every viewer's map (stored XSS).
+
+const COLOR_RE = /^#[0-9a-fA-F]{3,8}$/
+
+/** Return the color only if it's a plain hex literal; otherwise a safe default. */
+function safeColor(c: string | null | undefined): string {
+  return c && COLOR_RE.test(c.trim()) ? c.trim() : '#6366f1'
+}
+
+/** Escape the 5 HTML-significant characters so an icon string can't inject markup. */
+function escapeHtml(s: string | null | undefined): string {
+  return (s ?? '').replace(/[&<>"']/g, (ch) =>
+    ch === '&' ? '&amp;' :
+    ch === '<' ? '&lt;'  :
+    ch === '>' ? '&gt;'  :
+    ch === '"' ? '&quot;' : '&#39;'
+  )
+}
+
 // ── Icon builders ─────────────────────────────────────────────────────────────
 
 /** Teardrop pin icon coloured by community.
@@ -16,6 +39,8 @@ import type { Community, Pin } from '@/lib/types'
 function buildPinIcon(community: Community, isEvent = false, isFollowed = false): L.DivIcon {
   const size = 36
   const half = size / 2
+  const color = safeColor(community.color)
+  const icon = escapeHtml(community.icon)
   const border = isFollowed ? '#fbbf24' : '#fff' // amber ring for followed authors
   const ringShadow = isFollowed
     ? 'box-shadow:0 0 0 2px #fbbf24,0 3px 10px rgba(0,0,0,.35);'
@@ -47,12 +72,12 @@ function buildPinIcon(community: Community, isEvent = false, isFollowed = false)
         <div style="
           width:${size}px;height:${size}px;
           border-radius:50% 50% 50% 0;transform:rotate(-45deg);
-          background:${community.color};border:3px solid ${border};
+          background:${color};border:3px solid ${border};
           ${ringShadow}
           display:flex;align-items:center;justify-content:center;
         ">
           <span style="transform:rotate(45deg);font-size:${Math.round(size * 0.44)}px;line-height:1;display:block">
-            ${community.icon}
+            ${icon}
           </span>
         </div>
         ${eventBadge}
