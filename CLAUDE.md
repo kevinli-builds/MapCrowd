@@ -88,6 +88,8 @@ supabase/
   19-pin-tags-delete.sql
   20-mod-helper.sql
   21-follows.sql
+  22-security-hardening.sql               # XSS CHECK constraints + SECURITY DEFINER search_path
+  23-abuse-and-admin-hardening.sql        # rate limits, auth-based votes, real site-admin RLS
   # Superseded — do not run:
   schema.sql
   auth-migration.sql
@@ -107,7 +109,8 @@ supabase/
 | `community_tags` | Mod-defined tag vocabulary per community |
 | `pins` | Geo-tagged posts; nullable user_id (anonymous); optional event fields |
 | `pin_tags` | Many-to-many: pins ↔ community_tags |
-| `votes` | Anonymous votes by session_id (+1/-1), managed by `vote_on_pin()` RPC |
+| `votes` | Votes (+1/-1) — authenticated, one per (pin, user); written only via `vote_on_pin()` |
+| `site_admins` | Super-users (user_id PK); read only by `is_site_admin()` — no direct RLS access |
 | `comments` | Comments on pins |
 | `pin_photos` | Photo uploads linked to pins (stored in `pin-photos` Storage bucket) |
 | `event_rsvps` | "Going" RSVPs for event pins (one per user per pin) |
@@ -123,10 +126,18 @@ Key RPCs:
 - `find_profile_by_email(p_email)` — server-side only (service role); used by /api/invite
 
 Key helper functions (SECURITY DEFINER):
-- `is_community_mod(community_id)` — TRUE if caller is owner or assigned mod
+- `is_site_admin()` — TRUE if caller is in `site_admins` (seed it to match `NEXT_PUBLIC_ADMIN_USER_ID`)
+- `is_community_mod(community_id)` — TRUE if caller is a site admin, the owner, or an assigned mod
 - `is_pin_owner_or_mod(pin_id)` — TRUE if caller is pin author or community mod
 - `can_user_pin_in_community(community_id)` — enforces who_can_pin; handles anonymous
 - `check_community_member(community_id)` — breaks communities ↔ community_members RLS recursion
+
+### Security model notes
+- **All SECURITY DEFINER functions pin `search_path = public`** (migration 22). Keep it on any new one.
+- **Voting is authenticated + one-per-user.** `votes` has no direct write policies — `vote_on_pin()` (SECURITY DEFINER, requires `auth.uid()`) is the only writer; clients read their own row via `votes_select_own`. Keying on `auth.uid()` (not the client `session_id`) prevents vote stuffing.
+- **Site admin is real RLS**, not client-only: `is_site_admin()` feeds `is_community_mod()` (admin = mod everywhere) plus the community update/delete and mod-management policies. Seed `site_admins` with your admin UUID.
+- **Rate limits** (migration 23): authenticated pin creation (10/min, 100/hr) and follows (30/min) are capped by BEFORE INSERT triggers. Anonymous pins aren't per-actor trackable in Postgres — IP-based limiting needs an edge/middleware layer.
+- **Map markers render raw HTML** (Leaflet `divIcon`). Any DB value interpolated there MUST be sanitized — `PinClusterLayer` uses `safeColor()` + `escapeHtml()`, backed by `CHECK` constraints on `communities.color/icon`.
 
 ## Architecture decisions & gotchas
 

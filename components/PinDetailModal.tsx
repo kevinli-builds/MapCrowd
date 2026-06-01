@@ -78,12 +78,15 @@ export default function PinDetailModal({
     setCommunityTags([])
 
     Promise.all([
-      supabase
-        .from('votes')
-        .select('value')
-        .eq('pin_id', pin.id)
-        .eq('session_id', sessionId)
-        .maybeSingle(),
+      // Voting is authenticated + one-per-user; read this user's vote (if any)
+      user
+        ? supabase
+            .from('votes')
+            .select('value')
+            .eq('pin_id', pin.id)
+            .eq('user_id', user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
       supabase
         .from('pin_photos')
         .select('*')
@@ -95,7 +98,7 @@ export default function PinDetailModal({
         .eq('pin_id', pin.id)
         .order('tag(name)'),
     ]).then(([voteRes, photosRes, tagsRes]) => {
-      setUserVote(voteRes.data?.value ?? 0)
+      setUserVote((voteRes.data as { value: number } | null)?.value ?? 0)
       if (photosRes.data) setPhotos(photosRes.data as PinPhoto[])
       if (tagsRes.data) {
         const tags = (tagsRes.data as unknown as { tag: CommunityTag | CommunityTag[] }[])
@@ -104,7 +107,7 @@ export default function PinDetailModal({
         setPinTags(tags)
       }
     })
-  }, [pin.id, sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pin.id, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load RSVP count + user's status whenever the pin changes
   useEffect(() => {
