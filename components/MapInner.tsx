@@ -16,6 +16,29 @@ export interface FlyToTarget {
   id: number
 }
 
+export type MapStyle = 'light' | 'dark' | 'satellite'
+
+/** Tile presets — all free / no API key. */
+export const TILE_PRESETS: Record<MapStyle, { url: string; attribution: string; subdomains?: string; maxZoom: number }> = {
+  light: {
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20,
+  },
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20,
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+    maxZoom: 19,
+  },
+}
+
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 /** Invisible component — listens to map click events */
@@ -60,6 +83,7 @@ interface MapInnerProps {
   flyToTarget: FlyToTarget | null
   onCenterChange?: (lat: number, lng: number) => void
   followedUserIds?: Set<string>
+  mapStyle?: MapStyle
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -72,7 +96,9 @@ export default function MapInner({
   flyToTarget,
   onCenterChange,
   followedUserIds,
+  mapStyle = 'light',
 }: MapInnerProps) {
+  const tiles = TILE_PRESETS[mapStyle] ?? TILE_PRESETS.light
   const communityById = useMemo(
     () => Object.fromEntries(communities.map((c) => [c.id, c])),
     [communities]
@@ -86,12 +112,13 @@ export default function MapInner({
       className="h-full w-full"
       zoomControl={false}
     >
-      {/* CartoDB Positron — clean, light, free */}
+      {/* Tiles — switchable (light / dark / satellite). key forces a swap on change. */}
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        subdomains="abcd"
-        maxZoom={20}
+        key={mapStyle}
+        url={tiles.url}
+        attribution={tiles.attribution}
+        subdomains={tiles.subdomains ?? 'abc'}
+        maxZoom={tiles.maxZoom}
       />
 
       <ZoomControl position="bottomright" />

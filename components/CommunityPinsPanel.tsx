@@ -1,14 +1,17 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { X, ThumbsUp, ThumbsDown, Clock, ArrowUpRight, Lock, Plus, MapPin } from 'lucide-react'
 import Link from 'next/link'
-import { Community, Pin } from '@/lib/types'
+import { supabase } from '@/lib/supabase'
+import { Community, CommunityTag, Pin } from '@/lib/types'
 import { timeAgo } from '@/lib/utils'
 
 interface CommunityPinsPanelProps {
   community: Community
   pins: Pin[]
+  selectedTagIds: Set<string>
+  onToggleTag: (tagId: string) => void
   onClose: () => void
   onPinClick: (pin: Pin) => void
   onAddPin: (communityId: string) => void
@@ -17,10 +20,23 @@ interface CommunityPinsPanelProps {
 export default function CommunityPinsPanel({
   community,
   pins,
+  selectedTagIds,
+  onToggleTag,
   onClose,
   onPinClick,
   onAddPin,
 }: CommunityPinsPanelProps) {
+  // Community tag vocabulary — drives the filter chips
+  const [tags, setTags] = useState<CommunityTag[]>([])
+  useEffect(() => {
+    setTags([])
+    supabase
+      .from('community_tags')
+      .select('*')
+      .eq('community_id', community.id)
+      .order('name')
+      .then(({ data }) => { if (data) setTags(data as CommunityTag[]) })
+  }, [community.id])
   // Sort by vote count desc, then newest first for ties
   const sorted = useMemo(
     () =>
@@ -95,6 +111,37 @@ export default function CommunityPinsPanel({
           </button>
         </div>
       </div>
+
+      {/* ── Tag filter chips ─────────────────────────────────────────── */}
+      {tags.length > 0 && (
+        <div className="flex shrink-0 flex-wrap gap-1.5 border-b border-gray-800 px-4 py-2.5">
+          {tags.map((tag) => {
+            const active = selectedTagIds.has(tag.id)
+            return (
+              <button
+                key={tag.id}
+                onClick={() => onToggleTag(tag.id)}
+                className="rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all"
+                style={
+                  active
+                    ? { borderColor: community.color, backgroundColor: community.color + '22', color: community.color }
+                    : { borderColor: '#374151', color: '#9ca3af' }
+                }
+              >
+                {tag.name}
+              </button>
+            )
+          })}
+          {selectedTagIds.size > 0 && (
+            <button
+              onClick={() => tags.forEach((t) => { if (selectedTagIds.has(t.id)) onToggleTag(t.id) })}
+              className="rounded-full px-2 py-0.5 text-xs text-gray-500 transition-colors hover:text-gray-300"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Pin list ─────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">

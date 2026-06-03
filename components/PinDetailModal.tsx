@@ -5,6 +5,7 @@ import {
   X, ThumbsUp, ThumbsDown, Clock, MapPin, Navigation, ExternalLink, Trash2,
   Timer, MessageSquare, Send, ChevronLeft, ChevronRight,
   ImageOff, Calendar, Users, Loader2, Pencil, Check, UserPlus, UserCheck,
+  Link2, Share2,
 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import Link from 'next/link'
@@ -26,6 +27,8 @@ interface PinDetailModalProps {
   onClose: () => void
   onVoteUpdate: (updated: Partial<Pin> & { id: string }) => void
   onDeletePin: (pinId: string) => void
+  /** Reflect an edit (title/description/url) back to the list + map */
+  onUpdatePin?: (updated: Partial<Pin> & { id: string }) => void
   onSignIn?: () => void
   /** Fly the map to this pin and close the modal */
   onGoToPin?: () => void
@@ -45,6 +48,7 @@ export default function PinDetailModal({
   onClose,
   onVoteUpdate,
   onDeletePin,
+  onUpdatePin,
   onSignIn,
   onGoToPin,
   followedUserIds,
@@ -56,6 +60,62 @@ export default function PinDetailModal({
   const [confirmDelete, setConfirmDelete] = useState(false)
   // Stable ref — getSessionId() reads/writes localStorage once at mount time
   const sessionId = useRef(getSessionId()).current
+
+  // ── Edit + share ────────────────────────────────────────────────────────────
+  const canEdit = canDelete // author, community mod/owner, or site admin
+  const [editing, setEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState(pin.title)
+  const [editDescription, setEditDescription] = useState(pin.description ?? '')
+  const [editUrl, setEditUrl] = useState(pin.url ?? '')
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  // Only render external links that are genuinely http(s)
+  const safeUrl = pin.url && /^https?:\/\//i.test(pin.url) ? pin.url : null
+
+  useEffect(() => {
+    // Reset edit state whenever the pin changes
+    setEditing(false)
+    setEditTitle(pin.title)
+    setEditDescription(pin.description ?? '')
+    setEditUrl(pin.url ?? '')
+    setEditError(null)
+  }, [pin.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSaveEdit = async () => {
+    if (!editTitle.trim() || savingEdit) return
+    setSavingEdit(true)
+    setEditError(null)
+    const { data, error } = await supabase.rpc('update_pin', {
+      p_pin_id: pin.id,
+      p_title: editTitle.trim(),
+      p_description: editDescription.trim() || null,
+      p_url: editUrl.trim() || null,
+    })
+    setSavingEdit(false)
+    if (error) {
+      setEditError(error.message.replace(/^.*?:\s*/, '') || 'Could not save changes')
+      return
+    }
+    const row = (Array.isArray(data) ? data[0] : data) as Pin | null
+    onUpdatePin?.({
+      id: pin.id,
+      title: editTitle.trim(),
+      description: editDescription.trim() || null,
+      url: editUrl.trim() || null,
+      ...(row ?? {}),
+    })
+    setEditing(false)
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/?pin=${pin.id}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard unavailable — ignore */ }
+  }
 
   // ── RSVP (events) ─────────────────────────────────────────────────────────
   const [rsvpCount, setRsvpCount] = useState(0)
@@ -384,6 +444,27 @@ export default function PinDetailModal({
             </span>
           </div>
           <div className="flex items-center gap-1">
+            {/* Share / copy link — available to everyone */}
+            <button
+              onClick={handleCopyLink}
+              title="Copy link to this pin"
+              className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors ${
+                copied ? 'text-green-400' : 'text-gray-500 hover:bg-gray-800 hover:text-indigo-400'
+              }`}
+            >
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+              <span className="hidden sm:inline">{copied ? 'Copied' : 'Share'}</span>
+            </button>
+            {canEdit && !editing && (
+              <button
+                onClick={() => setEditing(true)}
+                title="Edit pin"
+                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-800 hover:text-indigo-400"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Edit</span>
+              </button>
+            )}
             {canDelete && (
               <button
                 onClick={() => {
@@ -473,8 +554,60 @@ export default function PinDetailModal({
         {/* ── Scrollable body ───────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-5">
-            {/* Pin title + metadata */}
-            <h3 className="text-lg font-semibold text-white">{pin.title}</h3>
+            {/* Pin title + metadata (or inline edit form) */}
+            {editing ? (
+              <div className="mb-4 space-y-2.5">
+                <input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  maxLength={100}
+                  placeholder="Title"
+                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm font-semibold text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  placeholder="Details (optional)"
+                  className="w-full resize-none rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                <input
+                  type="url"
+                  inputMode="url"
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  maxLength={500}
+                  placeholder="https://… (optional link)"
+                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                {editError && <p className="text-xs text-red-400">{editError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setEditing(false)
+                      setEditTitle(pin.title)
+                      setEditDescription(pin.description ?? '')
+                      setEditUrl(pin.url ?? '')
+                      setEditError(null)
+                    }}
+                    className="flex items-center gap-1 rounded-lg border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-400 transition-colors hover:text-gray-200"
+                  >
+                    <X className="h-3.5 w-3.5" /> Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={!editTitle.trim() || savingEdit}
+                    className="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50"
+                  >
+                    {savingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    Save
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <h3 className="text-lg font-semibold text-white">{pin.title}</h3>
+            )}
             <div className="mt-1 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
@@ -644,8 +777,23 @@ export default function PinDetailModal({
               </div>
             )}
 
-            {pin.description && (
+            {!editing && pin.description && (
               <p className="mb-4 text-sm leading-relaxed text-gray-400">{pin.description}</p>
+            )}
+
+            {/* External link */}
+            {!editing && safeUrl && (
+              <a
+                href={safeUrl}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                onClick={(e) => e.stopPropagation()}
+                className="mb-4 flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-sm font-medium text-indigo-300 transition-colors hover:bg-indigo-500/20"
+              >
+                <Link2 className="h-4 w-4 shrink-0" />
+                <span className="flex-1 truncate">{safeUrl.replace(/^https?:\/\/(www\.)?/i, '')}</span>
+                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              </a>
             )}
 
             {/* ── Event RSVP card ─────────────────────────────────────── */}

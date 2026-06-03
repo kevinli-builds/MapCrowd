@@ -18,6 +18,8 @@ import CommunitySettingsModal from '@/components/CommunitySettingsModal'
 import CommunityPinsPanel from '@/components/CommunityPinsPanel'
 import SearchModal from '@/components/SearchModal'
 import BottomNav from '@/components/BottomNav'
+import MapStyleSwitcher from '@/components/MapStyleSwitcher'
+import type { MapStyle } from '@/components/MapInner'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -52,6 +54,21 @@ export default function Home() {
   const [myUsername, setMyUsername] = useState<string | null>(null)
   // Which list the sidebar shows — lifted here so the bottom nav can switch it
   const [sidebarTab, setSidebarTab] = useState<'communities' | 'feed'>('communities')
+  // Map tile style (persisted)
+  const [mapStyle, setMapStyle] = useState<MapStyle>('light')
+  // Tag filter (community-scoped) — empty = show all
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set())
+
+  // Load persisted map style on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('mapStyle')
+    if (saved === 'light' || saved === 'dark' || saved === 'satellite') setMapStyle(saved)
+  }, [])
+
+  const handleMapStyleChange = (style: MapStyle) => {
+    setMapStyle(style)
+    localStorage.setItem('mapStyle', style)
+  }
 
   // Community groups (personal folders for organising subscriptions)
   const [groups, setGroups] = useState<CommunityGroup[]>([])
@@ -222,11 +239,19 @@ export default function Home() {
     const now = new Date().toISOString()
     const { data } = await supabase
       .from('pins')
-      .select('*, community:communities(*), profile:profiles(username, avatar_url)')
+      .select('*, community:communities(*), profile:profiles(username, avatar_url), pin_tags(tag_id)')
       .eq('status', 'approved')
       .or(`expires_at.is.null,expires_at.gt.${now}`)
       .order('created_at', { ascending: false })
-    if (data) setPins(data)
+    if (data) {
+      // Flatten the pin_tags join into a string[] of tag ids for filtering
+      setPins(
+        data.map((p) => {
+          const { pin_tags, ...pin } = p as Pin & { pin_tags?: { tag_id: string }[] }
+          return { ...pin, tag_ids: (pin_tags ?? []).map((t) => t.tag_id) }
+        })
+      )
+    }
   }, [])
 
   useEffect(() => { fetchPins() }, [fetchPins])
@@ -239,26 +264,67 @@ export default function Home() {
     return () => { supabase.removeChannel(channel) }
   }, [fetchPins])
 
+  // Deep link: /?pin=<id> opens that pin and flies to it (once, on mount)
+  useEffect(() => {
+    const pinId = new URLSearchParams(window.location.search).get('pin')
+    if (!pinId) return
+    supabase
+      .from('pins')
+      .select('*, community:communities(*), profile:profiles(username, avatar_url), pin_tags(tag_id)')
+      .eq('id', pinId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return
+        const { pin_tags, ...rest } = data as Pin & { pin_tags?: { tag_id: string }[] }
+        const pin = { ...rest, tag_ids: (pin_tags ?? []).map((t) => t.tag_id) } as Pin
+        setSelectedPin(pin)
+        handleFlyTo(pin.lat, pin.lng, 16)
+        // Clean the query string so a refresh/back doesn't reopen it
+        window.history.replaceState({}, '', window.location.pathname)
+      })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Interaction handlers ──────────────────────────────────────────────────
 
   const handleSelectCommunity = (id: string | null) => {
     userChoseFilter.current = true
     setSelectedCommunity(id)
     setShowSubscribedOnly(false)
+    setSelectedTagIds(new Set()) // tags are community-scoped — reset on switch
   }
 
   const handleShowSubscribed = () => {
     userChoseFilter.current = true
     setSelectedCommunity(null)
     setShowSubscribedOnly(true)
+    setSelectedTagIds(new Set())
   }
 
   const filteredPins = useMemo(() => {
-    if (selectedCommunity) return pins.filter((p) => p.community_id === selectedCommunity)
-    if (showSubscribedOnly && subscribedIds.size > 0)
-      return pins.filter((p) => subscribedIds.has(p.community_id))
-    return pins
-  }, [pins, selectedCommunity, showSubscribedOnly, subscribedIds])
+    let result: Pin[]
+    if (selectedCommunity) result = pins.filter((p) => p.community_id === selectedCommunity)
+    else if (showSubscribedOnly && subscribedIds.size > 0)
+      result = pins.filter((p) => subscribedIds.has(p.community_id))
+    else result = pins
+
+    // Tag filter (only meaningful inside a selected community) — pin must carry
+    // ALL selected tags
+    if (selectedTagIds.size > 0) {
+      result = result.filter((p) =>
+        p.tag_ids ? Array.from(selectedTagIds).every((id) => p.tag_ids!.includes(id)) : false
+      )
+    }
+    return result
+  }, [pins, selectedCommunity, showSubscribedOnly, subscribedIds, selectedTagIds])
+
+  const toggleTagFilter = (tagId: string) => {
+    setSelectedTagIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(tagId)) next.delete(tagId)
+      else next.add(tagId)
+      return next
+    })
+  }
 
   const handleMapClick = (lat: number, lng: number) => {
     if (selectedPin) { setSelectedPin(null); return }
@@ -368,6 +434,12 @@ export default function Home() {
     await supabase.from('pins').delete().eq('id', pinId)
     setPins((prev) => prev.filter((p) => p.id !== pinId))
     setSelectedPin(null)
+  }
+
+  // Reflect an edited pin (title/description/url) in both the list and the open modal
+  const handleUpdatePin = (updated: Partial<Pin> & { id: string }) => {
+    setPins((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)))
+    setSelectedPin((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev))
   }
 
   // ── Community group CRUD ─────────────────────────────────────────────────
@@ -562,6 +634,13 @@ export default function Home() {
           </div>
         )}
 
+        {/* Map style switcher — bottom-left of map; hidden when any overlay is open */}
+        {!overlayOpen && (
+          <div className="absolute left-4 bottom-20 z-[1100] md:bottom-8">
+            <MapStyleSwitcher value={mapStyle} onChange={handleMapStyleChange} />
+          </div>
+        )}
+
         <MapWrapper
           pins={filteredPins}
           communities={communities}
@@ -570,12 +649,15 @@ export default function Home() {
           flyToTarget={flyToTarget}
           onCenterChange={handleCenterChange}
           followedUserIds={followedUserIds}
+          mapStyle={mapStyle}
         />
 
         {selectedCommunityObj && (
           <CommunityPinsPanel
             community={selectedCommunityObj}
             pins={filteredPins}
+            selectedTagIds={selectedTagIds}
+            onToggleTag={toggleTagFilter}
             onClose={() => handleSelectCommunity(null)}
             onPinClick={handlePinClick}
             onAddPin={handleAddPinForCommunity}
@@ -637,6 +719,7 @@ export default function Home() {
               setSelectedPin((prev) => (prev ? { ...prev, ...updated } : null))
             }}
             onDeletePin={handleDeletePin}
+            onUpdatePin={handleUpdatePin}
             onSignIn={() => setShowAuthModal(true)}
             onGoToPin={() => {
               handleFlyTo(selectedPin.lat, selectedPin.lng, 17)

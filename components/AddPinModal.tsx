@@ -78,6 +78,7 @@ export default function AddPinModal({
   )
   const [title, setTitle] = useState(initialTitle ?? '')
   const [description, setDescription] = useState('')
+  const [url, setUrl] = useState('')
   const [photos, setPhotos] = useState<File[]>([])
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -246,6 +247,7 @@ export default function AddPinModal({
         user_id: userId,
         title: title.trim(),
         description: description.trim() || null,
+        url: url.trim() || null,
         lat: pinLat,
         lng: pinLng,
         vote_count: 0,
@@ -506,6 +508,22 @@ export default function AddPinModal({
                 rows={3}
                 maxLength={500}
                 className="w-full resize-none rounded-lg border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+
+            {/* Link */}
+            <div>
+              <label className="mb-1 block text-sm text-gray-400">
+                Link <span className="text-gray-600">(optional)</span>
+              </label>
+              <input
+                type="url"
+                inputMode="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://…"
+                maxLength={500}
+                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
 

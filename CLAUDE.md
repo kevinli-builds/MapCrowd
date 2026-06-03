@@ -90,6 +90,7 @@ supabase/
   21-follows.sql
   22-security-hardening.sql               # XSS CHECK constraints + SECURITY DEFINER search_path
   23-abuse-and-admin-hardening.sql        # rate limits, auth-based votes, real site-admin RLS
+  24-pin-links-and-edit.sql               # pins.url + update_pin() editor RPC
   # Superseded — do not run:
   schema.sql
   auth-migration.sql
@@ -257,4 +258,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from Supabase dashboard>
 - **Near Me** — geolocation button flies the map to the user's location
 - **User follows** — follow other mappers; followed users' pins get a ⭐ badge + amber ring on the map; follower/following counts + Follow button on profile pages
 - **Unified activity feed** — Sidebar "Feed" tab (and bottom-nav Feed) merges pins from followed users + subscribed communities, newest first, each tagged with why it's there (⭐ followed / 🔖 subscribed). Computed client-side from `pins` + `followedUserIds` + `subscribedIds` — no extra queries
+- **Map style switcher** — Light / Dark / Satellite tiles (`MapStyleSwitcher`, persisted to localStorage); tile presets in `MapInner` (`TILE_PRESETS`)
+- **Pin editing** — author or mod/admin edits title/description/url inline in the detail modal via the `update_pin()` RPC (column-restricted; can't touch status/votes/community)
+- **External links on pins** — optional `pins.url` (http/https, CHECK-constrained + client-validated `safeUrl`); shown as a "Visit site" button in the detail modal
+- **Tag filtering** — filter chips in `CommunityPinsPanel` narrow the map + list to pins carrying the selected community tags (`selectedTagIds`; pins carry `tag_ids` from the `pin_tags` join)
+- **Shareable pin links** — `/?pin=<id>` opens + flies to a pin on load; "Share" button in the detail modal copies the link
 - **Mobile-streamlined UX** — coherent z-index layering; floating controls hide under overlays; all modals are bottom sheets on mobile; persistent bottom tab bar (Map/Discover/Following/Profile)
