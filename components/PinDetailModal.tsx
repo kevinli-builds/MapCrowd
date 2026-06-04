@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Pin, Comment, PinPhoto, CommunityTag } from '@/lib/types'
 import { getSessionId } from '@/lib/session'
-import { timeAgo, timeUntil, formatEventDate } from '@/lib/utils'
+import { timeAgo, timeUntil, formatEventDate, voteColorClass, formatVoteCount } from '@/lib/utils'
 import Avatar from '@/components/Avatar'
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -414,8 +414,7 @@ export default function PinDetailModal({
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const community = pin.community
-  const voteColor =
-    pin.vote_count > 0 ? 'text-green-400' : pin.vote_count < 0 ? 'text-red-400' : 'text-gray-500'
+  const voteColor = voteColorClass(pin.vote_count)
   const currentPhoto = photos[photoIndex]
 
   return (
@@ -884,7 +883,7 @@ export default function PinDetailModal({
                       {userVote === 1 ? 'Liked' : 'Upvote'}
                     </button>
                     <span className={`min-w-[2rem] text-center text-lg font-bold tabular-nums ${voteColor}`}>
-                      {pin.vote_count > 0 ? `+${pin.vote_count}` : pin.vote_count}
+                      {formatVoteCount(pin.vote_count)}
                     </span>
                     <button
                       onClick={() => handleVote(-1)}
@@ -902,7 +901,7 @@ export default function PinDetailModal({
                 ) : (
                   <>
                     <span className={`min-w-[2rem] text-center text-lg font-bold tabular-nums ${voteColor}`}>
-                      {pin.vote_count > 0 ? `+${pin.vote_count}` : pin.vote_count}
+                      {formatVoteCount(pin.vote_count)}
                     </span>
                     <button
                       onClick={() => onSignIn?.()}

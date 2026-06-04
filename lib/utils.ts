@@ -47,6 +47,18 @@ export function canUserPinInCommunity(
   return true
 }
 
+// ── Votes ─────────────────────────────────────────────────────────────────────
+
+/** Tailwind text-colour class for a vote score (green / red / neutral). */
+export function voteColorClass(n: number, neutral = 'text-gray-500'): string {
+  return n > 0 ? 'text-green-400' : n < 0 ? 'text-red-400' : neutral
+}
+
+/** Vote score as a string with an explicit "+" for positives. */
+export function formatVoteCount(n: number): string {
+  return n > 0 ? `+${n}` : String(n)
+}
+
 // ── Number formatting ─────────────────────────────────────────────────────────
 
 export function formatCount(n: number): string {

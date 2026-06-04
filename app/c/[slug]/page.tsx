@@ -11,13 +11,12 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Community, Pin, PIN_DURATION_LABELS, WHO_CAN_PIN_LABELS } from '@/lib/types'
-import { timeAgo, formatCount } from '@/lib/utils'
+import { timeAgo, formatCount, voteColorClass, formatVoteCount } from '@/lib/utils'
 
 // ── Pin card ──────────────────────────────────────────────────────────────────
 
 function PinCard({ pin }: { pin: Pin & { comment_count?: number } }) {
-  const voteColor =
-    pin.vote_count > 0 ? 'text-green-400' : pin.vote_count < 0 ? 'text-red-400' : 'text-gray-500'
+  const voteColor = voteColorClass(pin.vote_count)
 
   return (
     <li className="rounded-xl border border-gray-800 bg-gray-800/30 p-4 transition-colors hover:border-gray-700 hover:bg-gray-800/60">
@@ -26,7 +25,7 @@ function PinCard({ pin }: { pin: Pin & { comment_count?: number } }) {
         <div className={`shrink-0 text-center ${voteColor}`}>
           <ThumbsUp className="mx-auto h-4 w-4 mb-0.5" />
           <span className="block text-sm font-bold tabular-nums">
-            {pin.vote_count > 0 ? `+${pin.vote_count}` : pin.vote_count}
+            {formatVoteCount(pin.vote_count)}
           </span>
         </div>
 

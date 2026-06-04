@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useDebounce } from '@/lib/hooks'
 import { DEBOUNCE_MS, LIMITS } from '@/lib/constants'
 import { Community, Pin } from '@/lib/types'
+import { voteColorClass, formatVoteCount } from '@/lib/utils'
 
 interface SearchModalProps {
   communities: Community[]
@@ -206,12 +207,8 @@ export default function SearchModal({
                             {comm?.name ?? 'Unknown'} · {pin.lat.toFixed(3)}, {pin.lng.toFixed(3)}
                           </p>
                         </div>
-                        <span
-                          className={`shrink-0 text-xs font-bold tabular-nums ${
-                            pin.vote_count > 0 ? 'text-green-400' : pin.vote_count < 0 ? 'text-red-400' : 'text-gray-600'
-                          }`}
-                        >
-                          {pin.vote_count > 0 ? `+${pin.vote_count}` : pin.vote_count}
+                        <span className={`shrink-0 text-xs font-bold tabular-nums ${voteColorClass(pin.vote_count, 'text-gray-600')}`}>
+                          {formatVoteCount(pin.vote_count)}
                         </span>
                       </button>
                     )

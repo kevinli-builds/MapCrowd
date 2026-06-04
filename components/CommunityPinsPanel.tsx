@@ -5,7 +5,7 @@ import { X, ThumbsUp, ThumbsDown, Clock, ArrowUpRight, Lock, Plus, MapPin, Searc
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Community, CommunityTag, Pin } from '@/lib/types'
-import { timeAgo } from '@/lib/utils'
+import { timeAgo, voteColorClass, formatVoteCount } from '@/lib/utils'
 
 interface CommunityPinsPanelProps {
   community: Community
@@ -215,13 +215,8 @@ export default function CommunityPinsPanel({
         ) : (
           <ul className="divide-y divide-gray-800/60">
             {displayed.map((pin) => {
-              const isPositive = pin.vote_count > 0
               const isNegative = pin.vote_count < 0
-              const voteColor = isPositive
-                ? 'text-green-400'
-                : isNegative
-                ? 'text-red-400'
-                : 'text-gray-600'
+              const voteColor = voteColorClass(pin.vote_count, 'text-gray-600')
 
               return (
                 <li key={pin.id}>
@@ -237,7 +232,7 @@ export default function CommunityPinsPanel({
                           ? <ThumbsDown className="h-3.5 w-3.5" />
                           : <ThumbsUp className="h-3.5 w-3.5" />}
                         <span className="text-xs font-bold tabular-nums leading-none">
-                          {isPositive ? `+${pin.vote_count}` : pin.vote_count}
+                          {formatVoteCount(pin.vote_count)}
                         </span>
                       </div>
 

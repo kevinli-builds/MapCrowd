@@ -7,7 +7,7 @@ import type { User } from '@supabase/supabase-js'
 import { ArrowLeft, MapPin, ThumbsUp, Users, AlertCircle, Loader2, UserPlus, UserCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Profile, Pin } from '@/lib/types'
-import { timeAgo, avatarColor } from '@/lib/utils'
+import { timeAgo, avatarColor, voteColorClass, formatVoteCount } from '@/lib/utils'
 import Avatar from '@/components/Avatar'
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -301,8 +301,7 @@ export default function ProfilePage() {
         ) : (
           <ul className="space-y-3">
             {pins.map((pin) => {
-              const voteColor =
-                pin.vote_count > 0 ? 'text-green-400' : pin.vote_count < 0 ? 'text-red-400' : 'text-gray-500'
+              const voteColor = voteColorClass(pin.vote_count)
               const comm = pin.community
 
               return (
@@ -315,7 +314,7 @@ export default function ProfilePage() {
                     <div className={`shrink-0 text-center ${voteColor}`}>
                       <ThumbsUp className="mx-auto h-4 w-4 mb-0.5" />
                       <span className="block text-sm font-bold tabular-nums">
-                        {pin.vote_count > 0 ? `+${pin.vote_count}` : pin.vote_count}
+                        {formatVoteCount(pin.vote_count)}
                       </span>
                     </div>
 

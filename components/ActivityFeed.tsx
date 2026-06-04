@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { Newspaper, MapPin, ThumbsUp, Calendar, Star, BookmarkCheck, UserPlus } from 'lucide-react'
 import { Pin } from '@/lib/types'
-import { timeAgo } from '@/lib/utils'
+import { timeAgo, voteColorClass, formatVoteCount } from '@/lib/utils'
 import Avatar from '@/components/Avatar'
 
 interface ActivityFeedProps {
@@ -95,8 +95,7 @@ export default function ActivityFeed({
     <ul className="space-y-1.5">
       {feed.map(({ pin, byFollowed, bySubscribed }) => {
         const comm = pin.community
-        const voteColor =
-          pin.vote_count > 0 ? 'text-green-400' : pin.vote_count < 0 ? 'text-red-400' : 'text-gray-600'
+        const voteColor = voteColorClass(pin.vote_count, 'text-gray-600')
         return (
           <li key={pin.id}>
             <button
@@ -146,7 +145,7 @@ export default function ActivityFeed({
                   )}
                   <span className={`flex items-center gap-0.5 ${voteColor}`}>
                     <ThumbsUp className="h-3 w-3" />
-                    {pin.vote_count > 0 ? `+${pin.vote_count}` : pin.vote_count}
+                    {formatVoteCount(pin.vote_count)}
                   </span>
                 </div>
               </div>
