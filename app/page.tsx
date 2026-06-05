@@ -722,7 +722,10 @@ export default function Home() {
             onSuccess={(newId) => {
               setShowCreateModal(false)
               fetchCommunities()
-              handleSelectCommunity(newId)
+              // If a pin is mid-drop, select the new community in that form
+              // (don't disturb the map behind it); otherwise jump the map to it.
+              if (pendingLatLng) setPendingCommunityOverride(newId)
+              else handleSelectCommunity(newId)
             }}
           />
         )}
@@ -750,6 +753,8 @@ export default function Home() {
             onClose={() => { setPendingLatLng(null); setPendingCommunityOverride(null); setPendingPinTitle(null) }}
             onSuccess={() => { setPendingLatLng(null); setPendingCommunityOverride(null); setPendingPinTitle(null); fetchPins() }}
             onSignIn={() => { setShowAuthModal(true) }}
+            onCreateCommunity={() => setShowCreateModal(true)}
+            selectCommunityId={pendingCommunityOverride}
           />
         )}
 

@@ -79,7 +79,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
             </h2>
             <p className="mt-0.5 text-xs text-gray-500">
               {mode === 'signin'
-                ? 'Sign in to drop pins on the map'
+                ? 'Sign in to vote, comment, follow, and save'
                 : 'Create a free account to get started'}
             </p>
           </div>

@@ -790,7 +790,7 @@ export default function Sidebar({
               className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-700 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-indigo-500 hover:bg-indigo-600/10 hover:text-white"
             >
               <User2 className="h-4 w-4" />
-              Sign in to drop pins
+              Sign in
             </button>
           )}
         </div>

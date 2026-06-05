@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle, Search, AlertTriangle, LogIn, Calendar, Users, Check } from 'lucide-react'
+import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle, Search, AlertTriangle, LogIn, Calendar, Users, Check, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Community, CommunityTag, WHO_CAN_PIN_LABELS, GeoRestriction } from '@/lib/types'
 import { LIMITS, DEBOUNCE_MS } from '@/lib/constants'
@@ -46,6 +46,11 @@ interface AddPinModalProps {
   onSuccess: () => void
   /** Called when the user taps "Sign in" inside the modal */
   onSignIn?: () => void
+  /** Open the create-community flow (from the "+ New community" picker button) */
+  onCreateCommunity?: () => void
+  /** When set, AddPinModal switches its selected community to this id (e.g. after
+   *  creating a new one) without losing the title/details already entered */
+  selectCommunityId?: string | null
 }
 
 export default function AddPinModal({
@@ -60,10 +65,21 @@ export default function AddPinModal({
   onClose,
   onSuccess,
   onSignIn,
+  onCreateCommunity,
+  selectCommunityId,
 }: AddPinModalProps) {
   const [communityId, setCommunityId] = useState(
     initialCommunityId ?? communities[0]?.id ?? ''
   )
+  // Filter box for the community picker (helps when there are many communities)
+  const [communityQuery, setCommunityQuery] = useState('')
+
+  // Switch to a community chosen elsewhere (e.g. just created), once it's loaded
+  useEffect(() => {
+    if (selectCommunityId && communities.some((c) => c.id === selectCommunityId)) {
+      setCommunityId(selectCommunityId)
+    }
+  }, [selectCommunityId, communities])
   const [title, setTitle] = useState(initialTitle ?? '')
   const [description, setDescription] = useState('')
   const [url, setUrl] = useState('')
@@ -398,8 +414,25 @@ export default function AddPinModal({
             {/* Community picker */}
             <div>
               <label className="mb-2 block text-sm text-gray-400">Community</label>
+
+              {/* Filter — shown once there are enough communities to be worth it */}
+              {communities.length > 8 && (
+                <div className="relative mb-2">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="text"
+                    value={communityQuery}
+                    onChange={(e) => setCommunityQuery(e.target.value)}
+                    placeholder={`Filter ${communities.length} communities…`}
+                    className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2 pl-9 pr-3 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2">
-                {communities.map((c) => {
+                {communities
+                  .filter((c) => c.name.toLowerCase().includes(communityQuery.trim().toLowerCase()))
+                  .map((c) => {
                   const active = communityId === c.id
                   const allowed = canUserPinInCommunity(c, userId, subscribedIds, moderatedIds)
                   return (
@@ -423,6 +456,18 @@ export default function AddPinModal({
                     </button>
                   )
                 })}
+
+                {/* + New community — only for signed-in users */}
+                {userId && onCreateCommunity && (
+                  <button
+                    type="button"
+                    onClick={onCreateCommunity}
+                    className="flex items-center gap-2 rounded-lg border border-dashed border-gray-700 p-2.5 text-left text-sm font-medium text-gray-400 transition-colors hover:border-indigo-500 hover:text-indigo-300"
+                  >
+                    <Plus className="h-4 w-4 shrink-0" />
+                    <span className="flex-1 truncate">New community</span>
+                  </button>
+                )}
               </div>
 
               {selectedCommunity && selectedCommunity.who_can_pin !== 'anyone' && (

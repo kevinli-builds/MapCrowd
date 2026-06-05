@@ -150,7 +150,7 @@ export default function CreateCommunityModal({
 
   return (
     <div
-      className="absolute inset-0 z-[1200] flex items-end bg-black/50 sm:items-center sm:justify-center sm:p-4"
+      className="absolute inset-0 z-[1250] flex items-end bg-black/50 sm:items-center sm:justify-center sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="w-full overflow-y-auto overflow-x-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl sm:max-w-lg sm:rounded-2xl" style={{ maxHeight: '90vh' }}>
