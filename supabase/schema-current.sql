@@ -561,6 +561,9 @@ BEGIN
     INTO v_require_approval, v_default_pin_duration, v_geo_restriction
     FROM communities WHERE id = NEW.community_id;
 
+  -- New pins always start with a clean score (client cannot pre-inflate it).
+  NEW.vote_count := 0;
+
   IF v_geo_restriction IS NOT NULL THEN
     v_outside_geo := (
       NEW.lat < (v_geo_restriction->>'south')::FLOAT OR
@@ -570,17 +573,16 @@ BEGIN
     );
   END IF;
 
+  -- Status + expiry are always derived from community rules (client values ignored).
   NEW.status := CASE WHEN v_require_approval OR v_outside_geo THEN 'pending' ELSE 'approved' END;
 
-  IF NEW.expires_at IS NULL THEN
-    NEW.expires_at := CASE v_default_pin_duration
-      WHEN '1d'  THEN NOW() + INTERVAL  '1 day'
-      WHEN '7d'  THEN NOW() + INTERVAL  '7 days'
-      WHEN '30d' THEN NOW() + INTERVAL '30 days'
-      WHEN '90d' THEN NOW() + INTERVAL '90 days'
-      ELSE NULL
-    END;
-  END IF;
+  NEW.expires_at := CASE v_default_pin_duration
+    WHEN '1d'  THEN NOW() + INTERVAL  '1 day'
+    WHEN '7d'  THEN NOW() + INTERVAL  '7 days'
+    WHEN '30d' THEN NOW() + INTERVAL '30 days'
+    WHEN '90d' THEN NOW() + INTERVAL '90 days'
+    ELSE NULL -- 'permanent'
+  END;
 
   RETURN NEW;
 END; $$;

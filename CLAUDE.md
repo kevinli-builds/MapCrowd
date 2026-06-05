@@ -95,6 +95,7 @@ supabase/
   23-abuse-and-admin-hardening.sql        # rate limits, auth-based votes, real site-admin RLS
   24-pin-links-and-edit.sql               # pins.url + update_pin() editor RPC
   25-saved-pins.sql                       # saved_pins (private bookmarks) + RLS
+  26-harden-pin-insert.sql                # force vote_count=0 + policy-derived expires_at on insert
   # Superseded — do not run:
   schema.sql
   auth-migration.sql
