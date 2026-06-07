@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    # Dummy Supabase env so the production build (which creates the client at
+    # module load) doesn't fail; no network calls happen during the build.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      # NOTE: `npm run lint` is intentionally not a gate yet — the project has
+      # pre-existing violations (mostly react-hooks/set-state-in-effect) to clean
+      # up first. Add it here once those are resolved.

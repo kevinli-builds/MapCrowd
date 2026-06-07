@@ -18,7 +18,14 @@ A crowd-sourced mapping platform where users drop geo-tagged pins into thematic 
 npm install
 npm run dev        # http://localhost:3000
 npm run build      # production build check
+npm test           # vitest — unit tests for lib/ pure logic
 ```
+
+## Testing & CI
+- **Vitest** unit-tests the pure logic in `lib/` (`lib/*.test.ts` — utils, geo, permissions). Run `npm test`. Keep new pure helpers covered.
+- **GitHub Actions** (`.github/workflows/ci.yml`) runs `npm test` + `npm run build` on push/PR (with dummy Supabase env vars so the module-load client doesn't fail).
+- **`npm run lint` is NOT yet a CI gate** — there's pre-existing lint debt (mostly `react-hooks/set-state-in-effect`). `next build` doesn't enforce it. Clean that up before adding lint to CI.
+- **`app/error.tsx`** is the route-level error boundary (friendly fallback + retry) so a render error never white-screens the map.
 
 `.env.local` needs two variables — get them from Supabase dashboard → Settings → API Keys → Legacy:
 ```
