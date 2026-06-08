@@ -701,35 +701,38 @@ export default function Sidebar({
                     className="mb-0.5 w-full rounded-lg border border-indigo-500 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none"
                   />
                 ) : (
-                  <div key={col.id} className="group relative mb-0.5">
-                    <button
-                      onClick={() => onSelectCollection(col.id)}
-                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
-                        activeCollectionId === col.id
-                          ? 'bg-indigo-500/20 text-indigo-300'
-                          : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                      }`}
-                    >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-300">
-                        <Bookmark className="h-3.5 w-3.5" />
-                      </span>
-                      <span className="flex-1 truncate text-sm font-medium">{col.name}</span>
-                    </button>
-                    <div className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity md:flex md:group-hover:pointer-events-auto md:group-hover:opacity-100">
+                  <div key={col.id} className="group mb-0.5">
+                    <div className={`flex items-center rounded-lg transition-colors ${
+                      activeCollectionId === col.id
+                        ? 'bg-indigo-500/20 text-indigo-300'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`}>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setRenamingCollectionId(col.id); setCollectionRename(col.name) }}
-                        title="Rename"
-                        className="rounded p-1 text-gray-500 transition-colors hover:text-gray-300"
+                        onClick={() => onSelectCollection(col.id)}
+                        className="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3 text-left"
                       >
-                        <Pencil className="h-3.5 w-3.5" />
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-300">
+                          <Bookmark className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">{col.name}</span>
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onDeleteCollection(col.id) }}
-                        title="Delete list"
-                        className="rounded p-1 text-gray-500 transition-colors hover:text-red-400"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {/* In-flow actions (desktop) so a long list name truncates instead of colliding */}
+                      <div className="pointer-events-none hidden shrink-0 items-center gap-0.5 pr-2 opacity-0 transition-opacity md:flex md:group-hover:pointer-events-auto md:group-hover:opacity-100">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setRenamingCollectionId(col.id); setCollectionRename(col.name) }}
+                          title="Rename"
+                          className="rounded p-1 text-gray-500 transition-colors hover:text-gray-300"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onDeleteCollection(col.id) }}
+                          title="Delete list"
+                          className="rounded p-1 text-gray-500 transition-colors hover:text-red-400"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )
