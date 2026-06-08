@@ -363,40 +363,36 @@ export default function Home() {
 
   // ── Interaction handlers ──────────────────────────────────────────────────
 
-  const handleSelectCommunity = (id: string | null) => {
+  // Clear every map-filter dimension. Each filter handler calls this, then sets
+  // its own — so the views stay mutually exclusive and adding a new filter only
+  // needs one line here (not a line in every handler).
+  const resetMapFilters = () => {
     userChoseFilter.current = true
-    setSelectedCommunity(id)
+    setSelectedCommunity(null)
     setShowSubscribedOnly(false)
     setShowSavedOnly(false)
     setActiveCollectionId(null)
-    if (id) { setActiveRouteId(null); setRouteStops([]); setRouteBuildMode(false) } // route panel yields the slot
-    setSelectedTagIds(new Set()) // tags are community-scoped — reset on switch
+    setActiveRouteId(null); setRouteStops([]); setRouteBuildMode(false)
+    setSelectedTagIds(new Set())
+  }
+
+  const handleSelectCommunity = (id: string | null) => {
+    resetMapFilters()
+    setSelectedCommunity(id)
   }
 
   const handleShowSubscribed = () => {
-    userChoseFilter.current = true
-    setSelectedCommunity(null)
+    resetMapFilters()
     setShowSubscribedOnly(true)
-    setShowSavedOnly(false)
-    setActiveCollectionId(null)
-    setSelectedTagIds(new Set())
   }
 
   const handleShowSaved = () => {
-    userChoseFilter.current = true
-    setSelectedCommunity(null)
-    setShowSubscribedOnly(false)
+    resetMapFilters()
     setShowSavedOnly(true)
-    setActiveCollectionId(null)
-    setSelectedTagIds(new Set())
   }
 
   const handleSelectCollection = async (id: string) => {
-    userChoseFilter.current = true
-    setSelectedCommunity(null)
-    setShowSubscribedOnly(false)
-    setShowSavedOnly(false)
-    setSelectedTagIds(new Set())
+    resetMapFilters()
     setActiveCollectionId(id)
     const { data } = await supabase.from('collection_pins').select('pin_id').eq('collection_id', id)
     setActiveCollectionPinIds(new Set((data ?? []).map((r) => r.pin_id)))
