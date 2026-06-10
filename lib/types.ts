@@ -58,6 +58,7 @@ export interface Pin {
   status: 'pending' | 'approved' | 'rejected'
   expires_at: string | null         // ISO timestamp; null = permanent
   url: string | null                // optional external link (http/https)
+  address: string | null            // optional author-set address; overrides live reverse-geocode
   // Event / meetup fields — null means this is a regular pin, not an event
   event_date: string | null         // ISO timestamp of event start
   event_end_date: string | null     // ISO timestamp of event end (optional)

@@ -147,6 +147,8 @@ CREATE TABLE IF NOT EXISTS public.pins (
   -- 'pending' | 'approved' | 'rejected' — set by trigger, not the client
   expires_at     TIMESTAMPTZ,
   url            TEXT             CHECK (url IS NULL OR (char_length(url) <= 500 AND url ~* '^https?://')),
+  address        TEXT             CHECK (address IS NULL OR (char_length(address) <= 200 AND address !~ '[<>]')),
+  -- optional author-supplied address; overrides the live reverse-geocode when set
   -- Event / meetup fields; all null = regular pin
   event_date     TIMESTAMPTZ,
   event_end_date TIMESTAMPTZ,
@@ -839,9 +841,9 @@ END; $$;
 
 GRANT EXECUTE ON FUNCTION public.rename_community TO authenticated;
 
--- Edit a pin (author or community mod/admin) — title / description / url only
+-- Edit a pin (author or community mod/admin) — title / description / url / address only
 CREATE OR REPLACE FUNCTION public.update_pin(
-  p_pin_id UUID, p_title TEXT, p_description TEXT, p_url TEXT
+  p_pin_id UUID, p_title TEXT, p_description TEXT, p_url TEXT, p_address TEXT
 )
 RETURNS public.pins LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE result_pin public.pins;
@@ -855,10 +857,14 @@ BEGIN
   IF p_url IS NOT NULL AND trim(p_url) <> '' AND trim(p_url) !~* '^https?://' THEN
     RAISE EXCEPTION 'Links must start with http:// or https://';
   END IF;
+  IF p_address IS NOT NULL AND char_length(trim(p_address)) > 200 THEN
+    RAISE EXCEPTION 'Address must be 200 characters or fewer';
+  END IF;
   UPDATE pins SET
     title       = trim(p_title),
     description = NULLIF(trim(COALESCE(p_description, '')), ''),
-    url         = NULLIF(trim(COALESCE(p_url, '')), '')
+    url         = NULLIF(trim(COALESCE(p_url, '')), ''),
+    address     = NULLIF(trim(COALESCE(p_address, '')), '')
   WHERE id = p_pin_id
   RETURNING * INTO result_pin;
   RETURN result_pin;

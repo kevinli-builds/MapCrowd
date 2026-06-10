@@ -79,6 +79,7 @@ export default function PinDetailModal({
   const [editTitle, setEditTitle] = useState(pin.title)
   const [editDescription, setEditDescription] = useState(pin.description ?? '')
   const [editUrl, setEditUrl] = useState(pin.url ?? '')
+  const [editAddress, setEditAddress] = useState(pin.address ?? '')
   const [savingEdit, setSavingEdit] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -92,6 +93,7 @@ export default function PinDetailModal({
     setEditTitle(pin.title)
     setEditDescription(pin.description ?? '')
     setEditUrl(pin.url ?? '')
+    setEditAddress(pin.address ?? '')
     setEditError(null)
   }, [pin.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -104,6 +106,7 @@ export default function PinDetailModal({
       p_title: editTitle.trim(),
       p_description: editDescription.trim() || null,
       p_url: editUrl.trim() || null,
+      p_address: editAddress.trim() || null,
     })
     setSavingEdit(false)
     if (error) {
@@ -116,6 +119,7 @@ export default function PinDetailModal({
       title: editTitle.trim(),
       description: editDescription.trim() || null,
       url: editUrl.trim() || null,
+      address: editAddress.trim() || null,
       ...(row ?? {}),
     })
     setEditing(false)
@@ -720,6 +724,16 @@ export default function PinDetailModal({
                   placeholder="https://… (optional link)"
                   className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
+                <div className="relative">
+                  <Navigation className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-600" />
+                  <input
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    maxLength={200}
+                    placeholder="Address (optional — overrides the auto one)"
+                    className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2 pl-9 pr-3 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
                 {editError && <p className="text-xs text-red-400">{editError}</p>}
                 <div className="flex gap-2">
                   <button
@@ -728,6 +742,7 @@ export default function PinDetailModal({
                       setEditTitle(pin.title)
                       setEditDescription(pin.description ?? '')
                       setEditUrl(pin.url ?? '')
+                      setEditAddress(pin.address ?? '')
                       setEditError(null)
                     }}
                     className="flex items-center gap-1 rounded-lg border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-400 transition-colors hover:text-gray-200"
@@ -788,14 +803,14 @@ export default function PinDetailModal({
                   </button>
                 )
               })()}
-              {/* Address / coordinates row */}
+              {/* Address / coordinates row — author-set address wins over the live geocode */}
               <span className="w-full flex items-center gap-1 min-w-0">
-                {loadingAddress ? (
+                {!pin.address && loadingAddress ? (
                   <span className="h-3 rounded bg-gray-800 animate-pulse" style={{ width: '55%' }} />
-                ) : address ? (
+                ) : (pin.address || address) ? (
                   <>
                     <Navigation className="h-3 w-3 shrink-0 text-gray-600" />
-                    <span className="flex-1 truncate text-gray-500">{address}</span>
+                    <span className="flex-1 truncate text-gray-500">{pin.address || address}</span>
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${pin.lat},${pin.lng}`}
                       target="_blank"
