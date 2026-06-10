@@ -134,36 +134,33 @@ export default function CommunitySettingsModal({
     (c) => c.name.toLowerCase() === trimmedNewName.toLowerCase()
   )
 
-  // ── Icon state ───────────────────────────────────────────────────────────
+  // ── Appearance (icon + color) ────────────────────────────────────────────
   const [icon, setIcon] = useState(community.icon)
   const [iconSaved, setIconSaved] = useState(false)
-  const canEditAppearance = isOwner || isAdmin
-
-  const handleSelectIcon = async (emoji: string) => {
-    if (emoji === icon) return
-    const prev = icon
-    setIcon(emoji) // optimistic
-    const { error } = await supabase.from('communities').update({ icon: emoji }).eq('id', community.id)
-    if (error) { setIcon(prev); return } // RLS blocked / failed — revert
-    onSettingsUpdate?.({ icon: emoji })
-    setIconSaved(true)
-    setTimeout(() => setIconSaved(false), 1500)
-  }
-
-  // ── Color state ──────────────────────────────────────────────────────────
   const [color, setColor] = useState(community.color)
   const [colorSaved, setColorSaved] = useState(false)
+  const canEditAppearance = isOwner || isAdmin
 
-  const handleSelectColor = async (hex: string) => {
-    if (hex === color) return
-    const prev = color
-    setColor(hex) // optimistic
-    const { error } = await supabase.from('communities').update({ color: hex }).eq('id', community.id)
-    if (error) { setColor(prev); return } // RLS blocked / failed — revert
-    onSettingsUpdate?.({ color: hex })
-    setColorSaved(true)
-    setTimeout(() => setColorSaved(false), 1500)
+  // Optimistically update one appearance field; revert if the write fails
+  // (RLS blocks non-owners; CHECK constraints bound the values).
+  const updateAppearance = async (
+    field: 'icon' | 'color',
+    value: string,
+    current: string,
+    setValue: (v: string) => void,
+    setSaved: (v: boolean) => void,
+  ) => {
+    if (value === current) return
+    setValue(value)
+    const { error } = await supabase.from('communities').update({ [field]: value }).eq('id', community.id)
+    if (error) { setValue(current); return }
+    onSettingsUpdate?.({ [field]: value })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1500)
   }
+
+  const handleSelectIcon = (emoji: string) => updateAppearance('icon', emoji, icon, setIcon, setIconSaved)
+  const handleSelectColor = (hex: string) => updateAppearance('color', hex, color, setColor, setColorSaved)
 
   const handleRename = async () => {
     if (!trimmedNewName || trimmedNewName === community.name) return

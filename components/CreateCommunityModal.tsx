@@ -6,11 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { useDebounce } from '@/lib/hooks'
 import { DEBOUNCE_MS, LIMITS, COMMUNITY_EMOJIS, COMMUNITY_COLORS } from '@/lib/constants'
 
-// ── Picker data ──────────────────────────────────────────────────────────────
-
-const EMOJIS = COMMUNITY_EMOJIS
-const COLORS = COMMUNITY_COLORS
-
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function toSlug(name: string): string {
@@ -40,8 +35,8 @@ export default function CreateCommunityModal({
 }: CreateCommunityModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [icon, setIcon] = useState(EMOJIS[0])
-  const [color, setColor] = useState(COLORS[0])
+  const [icon, setIcon] = useState(COMMUNITY_EMOJIS[0])
+  const [color, setColor] = useState(COMMUNITY_COLORS[0])
   const [isPrivate, setIsPrivate] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -267,7 +262,7 @@ export default function CreateCommunityModal({
           <div>
             <label className="mb-2 block text-sm text-gray-400">Icon</label>
             <div className="grid grid-cols-8 gap-1 rounded-xl border border-gray-700 bg-gray-800 p-2">
-              {EMOJIS.map((e) => (
+              {COMMUNITY_EMOJIS.map((e) => (
                 <button
                   key={e}
                   type="button"
@@ -288,7 +283,7 @@ export default function CreateCommunityModal({
           <div>
             <label className="mb-2 block text-sm text-gray-400">Color</label>
             <div className="flex flex-wrap gap-2">
-              {COLORS.map((c) => (
+              {COMMUNITY_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
