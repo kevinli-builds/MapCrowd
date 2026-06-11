@@ -12,6 +12,21 @@ body {
   overflow: hidden;
 }
 
+/* Mobile density: the UI sizes off the root font in rem (Tailwind text + spacing),
+   so a smaller root font shrinks text, padding, and controls together — more fits
+   per screen. px-based Leaflet tiles/markers are unaffected, so the map stays crisp.
+   Mobile-first: 15px is the base (phones), restored to 16px at the md breakpoint
+   for tablet/desktop. (A bare html rule + a min-width query survive Tailwind v4's
+   CSS optimizer, where an html font-size inside a max-width query gets dropped.) */
+html {
+  font-size: 15px;
+}
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
 /* Make Leaflet z-index play nicely with our modals */
 .leaflet-pane {
   z-index: 40 !important;
