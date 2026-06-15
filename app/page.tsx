@@ -16,7 +16,7 @@ import AuthModal from '@/components/AuthModal'
 import CreateCommunityModal from '@/components/CreateCommunityModal'
 import CommunitySettingsModal from '@/components/CommunitySettingsModal'
 import CommunityPinsPanel from '@/components/CommunityPinsPanel'
-import RoutePanel from '@/components/RoutePanel'
+import RouteBuilder from '@/components/RouteBuilder'
 import SearchModal from '@/components/SearchModal'
 import BottomNav from '@/components/BottomNav'
 import MapStyleSwitcher from '@/components/MapStyleSwitcher'
@@ -66,7 +66,9 @@ export default function Home() {
   const [routes, setRoutes] = useState<Route[]>([])
   const [activeRouteId, setActiveRouteId] = useState<string | null>(null)
   const [routeStops, setRouteStops] = useState<{ pin: Pin; position: number }[]>([])
-  const [routeBuildMode, setRouteBuildMode] = useState(false)
+  // While the builder is open, which community's pins the map shows (so map taps
+  // add the pins you're browsing). null = show all pins ("From map" tab).
+  const [builderCommunityId, setBuilderCommunityId] = useState<string | null>(null)
   // Current user's profile username (for the bottom-nav Profile link)
   const [myUsername, setMyUsername] = useState<string | null>(null)
   // Which list the sidebar shows — lifted here so the bottom nav can switch it
@@ -273,7 +275,7 @@ export default function Home() {
       setActiveCollectionId(null)
       setActiveRouteId(null)
       setRouteStops([])
-      setRouteBuildMode(false)
+      setBuilderCommunityId(null)
       setSelectedCommunity(null)
       setGroups([])
       setCommunityGroupMap(new Map())
@@ -372,7 +374,7 @@ export default function Home() {
     setShowSubscribedOnly(false)
     setShowSavedOnly(false)
     setActiveCollectionId(null)
-    setActiveRouteId(null); setRouteStops([]); setRouteBuildMode(false)
+    setActiveRouteId(null); setRouteStops([]); setBuilderCommunityId(null)
     setSelectedTagIds(new Set())
   }
 
@@ -467,16 +469,16 @@ export default function Home() {
   }, [])
 
   const handleSelectRoute = (id: string) => {
-    setSelectedCommunity(null)       // route panel takes the side slot
+    setSelectedCommunity(null)       // the builder takes over the map area
     setActiveRouteId(id)
-    setRouteBuildMode(false)
+    setBuilderCommunityId(null)
     loadRouteStops(id)
   }
 
   const handleCloseRoute = () => {
     setActiveRouteId(null)
     setRouteStops([])
-    setRouteBuildMode(false)
+    setBuilderCommunityId(null)
   }
 
   const handleCreateRoute = useCallback(async (name: string): Promise<Route | null> => {
@@ -496,11 +498,16 @@ export default function Home() {
     setRoutes((prev) => prev.map((r) => (r.id === id ? { ...r, name: name.trim() } : r)))
   }, [])
 
+  const handleUpdateRouteColor = useCallback(async (id: string, color: string) => {
+    setRoutes((prev) => prev.map((r) => (r.id === id ? { ...r, color } : r))) // optimistic
+    await supabase.from('routes').update({ color }).eq('id', id)
+  }, [])
+
   const handleDeleteRoute = useCallback(async (id: string) => {
     await supabase.from('routes').delete().eq('id', id)
     setRoutes((prev) => prev.filter((r) => r.id !== id))
     setActiveRouteId((cur) => {
-      if (cur === id) { setRouteStops([]); setRouteBuildMode(false); return null }
+      if (cur === id) { setRouteStops([]); setBuilderCommunityId(null); return null }
       return cur
     })
   }, [])
@@ -547,15 +554,15 @@ export default function Home() {
   }
 
   const handleMapClick = (lat: number, lng: number) => {
-    if (routeBuildMode) return // building a route — only pin taps matter
+    if (activeRouteId) return // builder is open — empty-map taps shouldn't drop a pin
     if (selectedPin) { setSelectedPin(null); return }
     setPendingLatLng([lat, lng])
   }
 
   const handlePinClick = (pin: Pin) => {
-    // In route build mode, tapping a pin appends it to the active route instead
-    // of opening its detail.
-    if (routeBuildMode && activeRouteId) { handleAddPinToRoute(pin); return }
+    // While the route builder is open, tapping a pin appends it to the route
+    // instead of opening its detail.
+    if (activeRouteId) { handleAddPinToRoute(pin); return }
     setPendingLatLng(null)
     setSelectedPin(pin)
   }
@@ -773,15 +780,24 @@ export default function Home() {
   // panelOpen  = the community side panel / bottom sheet (non-blocking on desktop)
   // modalOpen  = a blocking modal/sheet that should own the screen
   // When either is up, the floating map controls hide so nothing overlaps.
-  const panelOpen = !!selectedCommunityObj || !!activeRouteId
+  // The route builder owns the whole map area, so it behaves like a blocking
+  // modal (hides floating controls AND unmounts LocationSearch).
+  const routeBuilderOpen = !!activeRouteId
+  const panelOpen = !!selectedCommunityObj
   const modalOpen =
     !!pendingLatLng || !!selectedPin || showAuthModal || showSearch ||
-    showCreateModal || !!communitySettingsId || showQuickAdd
+    showCreateModal || !!communitySettingsId || showQuickAdd || routeBuilderOpen
   const overlayOpen = panelOpen || modalOpen
 
   // Active route → ordered polyline path for the map
   const activeRoute = activeRouteId ? routes.find((r) => r.id === activeRouteId) ?? null : null
   const routePath = routeStops.map((s) => [s.pin.lat, s.pin.lng] as [number, number])
+
+  // While building, the map shows the community being browsed (so taps add those
+  // pins); on the "From map" tab it shows everything. Otherwise the normal filter.
+  const mapPins = activeRoute
+    ? (builderCommunityId ? pins.filter((p) => p.community_id === builderCommunityId) : pins)
+    : filteredPins
 
   return (
     <div className="flex h-full overflow-hidden bg-gray-950">
@@ -902,7 +918,7 @@ export default function Home() {
         )}
 
         <MapWrapper
-          pins={filteredPins}
+          pins={mapPins}
           communities={communities}
           onMapClick={handleMapClick}
           onPinClick={handlePinClick}
@@ -914,24 +930,21 @@ export default function Home() {
           routeColor={activeRoute?.color}
         />
 
-        {/* Route build-mode banner */}
-        {routeBuildMode && activeRoute && (
-          <div className="absolute left-1/2 top-4 z-[1100] -translate-x-1/2 rounded-full border border-indigo-500/40 bg-gray-900/95 px-4 py-2 text-xs font-medium text-indigo-200 shadow-lg backdrop-blur-sm">
-            Tap pins to add to <span className="font-semibold text-white">{activeRoute.name}</span>
-          </div>
-        )}
-
         {activeRoute && (
-          <RoutePanel
+          <RouteBuilder
             route={activeRoute}
             stops={routeStops}
-            buildMode={routeBuildMode}
-            onToggleBuild={() => setRouteBuildMode((v) => !v)}
-            onClose={handleCloseRoute}
-            onSelectPin={(pin) => { handleFlyTo(pin.lat, pin.lng, 16); setSelectedPin(pin) }}
+            communities={communities}
+            pins={pins}
+            onSelectBuilderCommunity={setBuilderCommunityId}
+            onAddPin={handleAddPinToRoute}
             onRemoveStop={handleRemoveRouteStop}
             onMoveStop={handleMoveRouteStop}
+            onFlyToPin={(pin) => handleFlyTo(pin.lat, pin.lng, 16)}
+            onRename={handleRenameRoute}
+            onUpdateColor={handleUpdateRouteColor}
             onDelete={handleDeleteRoute}
+            onClose={handleCloseRoute}
           />
         )}
 
