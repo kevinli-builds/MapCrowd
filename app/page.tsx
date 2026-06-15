@@ -668,6 +668,7 @@ export default function Home() {
   }, [])
 
   const handleFlyTo = (lat: number, lng: number, zoom: number) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return // ignore bad coords
     flyToCounter.current += 1
     setFlyToTarget({ lat, lng, zoom, id: flyToCounter.current })
   }

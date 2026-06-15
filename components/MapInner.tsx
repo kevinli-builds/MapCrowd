@@ -56,6 +56,9 @@ function FlyToController({ target }: { target: FlyToTarget | null }) {
   const map = useMap()
   useEffect(() => {
     if (!target) return
+    // Guard against bad coords — Leaflet throws "Invalid LatLng (NaN, NaN)" on a
+    // non-finite value, which would crash the map into the error boundary.
+    if (!Number.isFinite(target.lat) || !Number.isFinite(target.lng)) return
     map.flyTo([target.lat, target.lng], target.zoom, { duration: 1.5 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target]) // new object reference = new fly request
