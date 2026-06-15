@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase'
 import { Pin, Comment, PinPhoto, CommunityTag, Collection } from '@/lib/types'
 import { getSessionId } from '@/lib/session'
 import { timeAgo, timeUntil, formatEventDate, voteColorClass, formatVoteCount } from '@/lib/utils'
+import { reverseGeocode, formatAddress } from '@/lib/geo'
 import Avatar from '@/components/Avatar'
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -303,33 +304,19 @@ export default function PinDetailModal({
   const [loadingAddress, setLoadingAddress] = useState(true)
 
   useEffect(() => {
+    // An author-set address overrides the geocode — skip the network call entirely
+    if (pin.address) { setAddress(null); setLoadingAddress(false); return }
     setAddress(null)
     setLoadingAddress(true)
+    let cancelled = false
     const ctrl = new AbortController()
-    fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${pin.lat}&lon=${pin.lng}&format=json`,
-      { signal: ctrl.signal, headers: { 'Accept-Language': 'en' } }
-    )
-      .then((r) => r.json())
-      .then((data: { address?: Record<string, string>; display_name?: string }) => {
-        if (!data?.address) { setAddress(null); return }
-        const a = data.address
-        const street = [a.house_number, a.road ?? a.pedestrian ?? a.footway ?? a.path]
-          .filter(Boolean).join(' ')
-        const neighbourhood = a.suburb ?? a.quarter ?? a.neighbourhood ?? a.city_district
-        const city = a.city ?? a.town ?? a.village ?? a.municipality
-        const region = a.state ?? a.county
-        const parts = [street, neighbourhood, city, region].filter(Boolean)
-        setAddress(
-          parts.slice(0, 3).join(', ') ||
-          data.display_name?.split(', ').slice(0, 3).join(', ') ||
-          null
-        )
-      })
-      .catch(() => setAddress(null))
-      .finally(() => setLoadingAddress(false))
-    return () => ctrl.abort()
-  }, [pin.id, pin.lat, pin.lng])
+    reverseGeocode(pin.lat, pin.lng, ctrl.signal).then((data) => {
+      if (cancelled) return
+      setAddress(formatAddress(data))
+      setLoadingAddress(false)
+    })
+    return () => { cancelled = true; ctrl.abort() }
+  }, [pin.id, pin.lat, pin.lng, pin.address])
 
   // ── Photos ────────────────────────────────────────────────────────────────
   const [photos, setPhotos] = useState<PinPhoto[]>([])
