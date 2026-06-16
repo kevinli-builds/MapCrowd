@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Route as RouteIcon, ArrowLeft, Trash2, Plus, Check, X,
   ChevronUp, ChevronDown, MapPinned, Search, ListOrdered, Map as MapIcon, Globe,
+  MoreHorizontal, Palette,
 } from 'lucide-react'
 import { Pin, Route, Community, TravelMode } from '@/lib/types'
 import { COMMUNITY_COLORS } from '@/lib/constants'
@@ -45,9 +46,7 @@ export default function RouteBuilder({
   const [search, setSearch] = useState('')
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState(route.name)
-  const [colorOpen, setColorOpen] = useState(false)
-  const [publishOpen, setPublishOpen] = useState(false)
-  const [modeOpen, setModeOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const activeMode = TRAVEL_MODES.find((m) => m.id === route.travel_mode) ?? TRAVEL_MODES[0]
 
   // Keep the map's shown pins in sync with the active tab (so map taps add the
@@ -59,6 +58,19 @@ export default function RouteBuilder({
   useEffect(() => { setNameDraft(route.name) }, [route.id, route.name])
 
   const addedIds = useMemo(() => new Set(steps.flatMap((g) => g.pins.map((p) => p.id))), [steps])
+
+  // Close the route-options menu on outside click / Escape.
+  const menuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!menuOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
+  }, [menuOpen])
 
   // Switch to the "From community" tab to add an alternative to a specific step.
   const startAddAlternative = (step: number) => { onSetTargetStep(step); setTab('community') }
@@ -265,24 +277,22 @@ export default function RouteBuilder({
 
   const publishedCommunity = communities.find((c) => c.id === route.community_id) ?? null
 
-  // ── Top bar (shared) ──────────────────────────────────────────────────────
+  // ── Top bar — anchored to the left column on desktop (w-96), full width on mobile ──
   const topBar = (
     <div
-      className="pointer-events-auto relative flex shrink-0 items-center gap-2 border-b border-gray-800 bg-gray-900/95 px-3 py-2.5 backdrop-blur-sm"
+      className="pointer-events-auto relative flex w-full shrink-0 items-center gap-2 border-b border-gray-800 bg-gray-900/95 px-3 py-2.5 backdrop-blur-sm md:w-96"
       style={{ boxShadow: `inset 0 -2px 0 ${route.color}` }}
     >
       <button onClick={onClose} title="Back to map"
         className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-white">
         <ArrowLeft className="h-4 w-4" />
       </button>
-      <button
-        onClick={() => canEdit && setColorOpen((v) => !v)}
-        title={canEdit ? 'Route color' : undefined}
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${canEdit ? '' : 'cursor-default'}`}
+      <span
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
         style={{ backgroundColor: route.color + '22', border: `2px solid ${route.color}` }}
       >
         <RouteIcon className="h-4 w-4" style={{ color: route.color }} />
-      </button>
+      </span>
       <div className="min-w-0 flex-1">
         {canEdit && editingName ? (
           <input
@@ -295,7 +305,7 @@ export default function RouteBuilder({
             className="w-full rounded border border-gray-700 bg-gray-800 px-2 py-1 text-sm font-bold text-white focus:border-indigo-500 focus:outline-none"
           />
         ) : canEdit ? (
-          <button onClick={() => setEditingName(true)} className="block max-w-full truncate text-left text-sm font-bold text-white hover:text-indigo-300">
+          <button onClick={() => setEditingName(true)} title="Rename" className="block max-w-full truncate text-left text-sm font-bold text-white hover:text-indigo-300">
             {route.name}
           </button>
         ) : (
@@ -305,83 +315,83 @@ export default function RouteBuilder({
           {activeMode.emoji} {activeMode.label} · {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
           {!canEdit && authorName && <> · by {authorName}</>}
           {!canEdit && publishedCommunity && <> · {publishedCommunity.icon} {publishedCommunity.name}</>}
+          {canEdit && route.is_public && publishedCommunity && <> · <span className="text-green-500">public</span></>}
         </p>
       </div>
 
+      {/* One labeled menu for all route actions */}
       {canEdit && (
-        <button onClick={() => setModeOpen((v) => !v)} title={`Travel mode: ${activeMode.label}`}
-          className="flex h-8 items-center gap-1 rounded-lg px-2 text-sm text-gray-300 transition-colors hover:bg-gray-800">
-          <span className="text-base leading-none">{activeMode.emoji}</span>
+        <div ref={menuRef} className="relative shrink-0">
+        <button onClick={() => setMenuOpen((v) => !v)} title="Route options"
+          className={`rounded-lg p-1.5 transition-colors ${menuOpen ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+          <MoreHorizontal className="h-4 w-4" />
         </button>
-      )}
-      {canEdit && (
-        <button onClick={() => setPublishOpen((v) => !v)} title={route.is_public ? 'Published — edit' : 'Publish to a community'}
-          className={`rounded-lg p-1.5 transition-colors ${route.is_public ? 'text-green-400 hover:bg-green-600/10' : 'text-gray-500 hover:bg-gray-800 hover:text-white'}`}>
-          <Globe className="h-4 w-4" />
-        </button>
-      )}
-      {canEdit && (
-        <button onClick={() => onDelete(route.id)} title="Delete route"
-          className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-600/10 hover:text-red-400">
-          <Trash2 className="h-4 w-4" />
-        </button>
-      )}
 
-      {canEdit && modeOpen && (
-        <div className="absolute right-2 top-full z-10 mt-1 w-44 rounded-xl border border-gray-700 bg-gray-900 p-1.5 shadow-2xl">
-          <p className="px-2 py-1 text-xs font-semibold text-gray-500">Follow…</p>
-          {TRAVEL_MODES.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => { onUpdateMode(route.id, m.id); setModeOpen(false) }}
-              className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors ${
-                route.travel_mode === m.id ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800'
-              }`}
+        {menuOpen && (
+          <div className="absolute right-0 top-full z-10 mt-1 w-72 rounded-xl border border-gray-700 bg-gray-900 p-3 shadow-2xl">
+            {/* Travel mode */}
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">Route follows</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {TRAVEL_MODES.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => onUpdateMode(route.id, m.id)}
+                  className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors ${
+                    route.travel_mode === m.id ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800'
+                  }`}
+                >
+                  <span className="text-base leading-none">{m.emoji}</span> {m.label}
+                  {route.travel_mode === m.id && <Check className="ml-auto h-3.5 w-3.5" />}
+                </button>
+              ))}
+            </div>
+
+            {/* Color */}
+            <p className="mb-1.5 mt-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <Palette className="h-3.5 w-3.5" /> Color
+            </p>
+            <div className="grid grid-cols-6 gap-1.5">
+              {COMMUNITY_COLORS.map((hex) => (
+                <button
+                  key={hex}
+                  onClick={() => onUpdateColor(route.id, hex)}
+                  className={`flex h-7 w-7 items-center justify-center rounded-full border-2 ${route.color === hex ? 'border-white' : 'border-transparent'}`}
+                  style={{ backgroundColor: hex }}
+                >
+                  {route.color === hex && <Check className="h-3.5 w-3.5 text-white" />}
+                </button>
+              ))}
+            </div>
+
+            {/* Publish */}
+            <p className="mb-1.5 mt-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <Globe className="h-3.5 w-3.5" /> Publish to a community
+            </p>
+            <select
+              value={route.community_id ?? ''}
+              onChange={(e) => onPublish(route.id, e.target.value || null)}
+              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
             >
-              <span className="text-base leading-none">{m.emoji}</span> {m.label}
-              {route.travel_mode === m.id && <Check className="ml-auto h-3.5 w-3.5" />}
-            </button>
-          ))}
-        </div>
-      )}
+              <option value="">Private (only you)</option>
+              {communities.map((c) => (
+                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-600">
+              {route.is_public ? '✓ Anyone can view it; only you can edit.' : 'Only you can see this route.'}
+            </p>
 
-      {canEdit && colorOpen && (
-        <div className="absolute left-12 top-full z-10 mt-1 grid grid-cols-6 gap-1.5 rounded-xl border border-gray-700 bg-gray-900 p-2 shadow-2xl">
-          {COMMUNITY_COLORS.map((hex) => (
-            <button
-              key={hex}
-              onClick={() => { onUpdateColor(route.id, hex); setColorOpen(false) }}
-              className={`flex h-7 w-7 items-center justify-center rounded-full border-2 ${route.color === hex ? 'border-white' : 'border-transparent'}`}
-              style={{ backgroundColor: hex }}
-            >
-              {route.color === hex && <Check className="h-3.5 w-3.5 text-white" />}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {canEdit && publishOpen && (
-        <div className="absolute right-2 top-full z-10 mt-1 w-72 rounded-xl border border-gray-700 bg-gray-900 p-3 shadow-2xl">
-          <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-white">
-            <Globe className="h-4 w-4 text-green-400" /> Publish route
-          </p>
-          <p className="mb-3 text-xs text-gray-500">
-            Share this route on a community page. Anyone can view it; only you can edit it.
-          </p>
-          <label className="mb-1 block text-xs text-gray-400">Community</label>
-          <select
-            value={route.community_id ?? ''}
-            onChange={(e) => onPublish(route.id, e.target.value || null)}
-            className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
-          >
-            <option value="">Private (not published)</option>
-            {communities.map((c) => (
-              <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-            ))}
-          </select>
-          <p className="mt-2 text-xs text-gray-600">
-            {route.is_public ? '✓ Public' : 'Currently private'}
-          </p>
+            {/* Delete */}
+            <div className="mt-3 border-t border-gray-800 pt-2">
+              <button
+                onClick={() => { if (confirm(`Delete the route “${route.name}”? This can't be undone.`)) { setMenuOpen(false); onDelete(route.id) } }}
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-600/10"
+              >
+                <Trash2 className="h-4 w-4" /> Delete route
+              </button>
+            </div>
+          </div>
+        )}
         </div>
       )}
     </div>
