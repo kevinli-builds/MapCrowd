@@ -912,14 +912,21 @@ export default function Home() {
     }
   })
 
-  // While building (owner), the map shows the community being browsed (so taps add
-  // those pins); on "From map" it shows everything. A read-only viewer shows just
-  // the route's own stops. Otherwise the normal filter.
-  const mapPins = activeRoute
-    ? routeCanEdit
-      ? (builderCommunityId ? pins.filter((p) => p.community_id === builderCommunityId) : pins)
-      : routeStops.map((s) => s.pin)
-    : filteredPins
+  // While a route is open, ALWAYS show its stop pins as markers (so the line never
+  // points at invisible pins) — unioned with whatever else is browsable: the
+  // selected community (owner "From community"), everything (owner otherwise), or
+  // nothing extra (read-only viewer).
+  const mapPins = useMemo(() => {
+    if (!activeRoute) return filteredPins
+    const stopPins = routeStops.map((s) => s.pin)
+    const base = !routeCanEdit
+      ? []
+      : builderCommunityId
+        ? pins.filter((p) => p.community_id === builderCommunityId)
+        : pins
+    const seen = new Set(base.map((p) => p.id))
+    return [...base, ...stopPins.filter((p) => !seen.has(p.id))]
+  }, [activeRoute, routeCanEdit, builderCommunityId, pins, routeStops, filteredPins])
 
   return (
     <div className="flex h-full overflow-hidden bg-gray-950">
@@ -940,6 +947,7 @@ export default function Home() {
         activeRouteId={activeRouteId}
         onSelectRoute={handleSelectRoute}
         onCreateRoute={handleCreateRoute}
+        onDeleteRoute={handleDeleteRoute}
         subscribedIds={subscribedIds}
         hiddenCommunityIds={hiddenCommunityIds}
         onToggleCommunityVisibility={handleToggleCommunityVisibility}

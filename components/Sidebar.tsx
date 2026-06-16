@@ -44,6 +44,7 @@ interface SidebarProps {
   activeRouteId: string | null
   onSelectRoute: (id: string) => void
   onCreateRoute: (name: string) => Promise<Route | null>
+  onDeleteRoute: (id: string) => void
   subscribedIds: Set<string>
   ownedCommunityIds: Set<string>
   modCommunityIds: Set<string>
@@ -99,6 +100,7 @@ export default function Sidebar({
   activeRouteId,
   onSelectRoute,
   onCreateRoute,
+  onDeleteRoute,
   subscribedIds,
   ownedCommunityIds,
   modCommunityIds,
@@ -774,22 +776,36 @@ export default function Sidebar({
                 </p>
               )}
               {routes.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => onSelectRoute(r.id)}
-                  className={`mb-0.5 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
+                <div key={r.id} className="group mb-0.5">
+                  <div className={`flex items-center rounded-lg transition-colors ${
                     activeRouteId === r.id ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  }`}
-                >
-                  <span
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                    style={{ backgroundColor: r.color + '22', border: `2px solid ${r.color}` }}
-                  >
-                    <RouteIcon className="h-3.5 w-3.5" style={{ color: r.color }} />
-                  </span>
-                  <span className="flex-1 truncate text-sm font-medium">{r.name}</span>
-                  {r.is_public && <Globe className="h-3.5 w-3.5 shrink-0 text-green-500" aria-label="Public" />}
-                </button>
+                  }`}>
+                    <button
+                      onClick={() => onSelectRoute(r.id)}
+                      className="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3 text-left"
+                    >
+                      <span
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: r.color + '22', border: `2px solid ${r.color}` }}
+                      >
+                        <RouteIcon className="h-3.5 w-3.5" style={{ color: r.color }} />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{r.name}</span>
+                      {r.is_public && <Globe className="h-3.5 w-3.5 shrink-0 text-green-500" aria-label="Public" />}
+                    </button>
+                    {/* Delete — always tappable on mobile, on hover for desktop */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (confirm(`Delete the route “${r.name}”? This can't be undone.`)) onDeleteRoute(r.id)
+                      }}
+                      title="Delete route"
+                      className="shrink-0 p-1 pr-2 text-gray-500 transition-opacity hover:text-red-400 md:opacity-0 md:group-hover:opacity-100"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
               ))}
               {creatingRoute ? (
                 <input
