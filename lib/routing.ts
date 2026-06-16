@@ -23,7 +23,7 @@ export async function fetchRouteGeometry(
     // Only signed-in route owners recompute geometry; send the JWT so the
     // (auth-gated) proxy accepts the request.
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return null
+    if (!session) { console.warn('[route] no session — straight lines'); return null }
     const res = await fetch('/api/route', {
       method: 'POST',
       headers: {
@@ -33,12 +33,16 @@ export async function fetchRouteGeometry(
       body: JSON.stringify({ coordinates: coords, profile: mode }),
       signal,
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      console.warn(`[route] proxy ${res.status} — ${res.status === 503 ? 'ORS_API_KEY not set in this env' : res.status === 401 ? 'auth rejected' : 'routing failed'}; straight lines`)
+      return null
+    }
     const data = (await res.json()) as { geometry?: [number, number][] }
-    if (!Array.isArray(data.geometry) || data.geometry.length < 2) return null
+    if (!Array.isArray(data.geometry) || data.geometry.length < 2) { console.warn('[route] empty geometry'); return null }
     cache.set(key, data.geometry)
     return data.geometry
-  } catch {
+  } catch (e) {
+    if ((e as Error)?.name !== 'AbortError') console.warn('[route] request error', e)
     return null
   }
 }
