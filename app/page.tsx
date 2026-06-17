@@ -561,6 +561,24 @@ export default function Home() {
     loadRouteStops(id)
   }
 
+  // Open any route by id (e.g. a community's published route from the panel):
+  // your own → editable builder; someone else's public route → read-only viewer.
+  const handleOpenRouteById = async (id: string) => {
+    if (routes.some((r) => r.id === id)) { handleSelectRoute(id); return }
+    const { data } = await supabase
+      .from('routes')
+      .select('*, profile:profiles(username, avatar_url)')
+      .eq('id', id)
+      .maybeSingle()
+    if (!data) return
+    setExternalRoute(data as Route)
+    setSelectedCommunity(null)
+    setActiveRouteId(id)
+    setBuilderCommunityId(null)
+    setRouteTargetStep(null)
+    loadRouteStops(id)
+  }
+
   const handleCloseRoute = () => {
     setActiveRouteId(null)
     setRouteStops([])
@@ -592,9 +610,11 @@ export default function Home() {
     setRoutes((prev) => prev.map((r) => (r.id === id ? { ...r, name: name.trim() } : r)))
   }, [])
 
-  // Publish (community set) or unpublish (null) a route. Owner-only via RLS.
-  const handlePublishRoute = useCallback(async (id: string, communityId: string | null) => {
-    const patch = { is_public: !!communityId, community_id: communityId }
+  // Set a route's visibility. Owner-only via RLS. Three states:
+  //   private (isPublic=false), public link (isPublic=true, communityId=null),
+  //   community route (isPublic=true, communityId set — all stops in that community).
+  const handlePublishRoute = useCallback(async (id: string, isPublic: boolean, communityId: string | null) => {
+    const patch = { is_public: isPublic, community_id: isPublic ? communityId : null }
     setRoutes((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r))) // optimistic
     await supabase.from('routes').update(patch).eq('id', id)
   }, [])
@@ -1141,6 +1161,7 @@ export default function Home() {
             onClose={() => handleSelectCommunity(null)}
             onPinClick={handlePinClick}
             onAddPin={handleAddPinForCommunity}
+            onOpenRoute={handleOpenRouteById}
           />
         )}
 

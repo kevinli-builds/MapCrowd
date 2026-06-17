@@ -298,9 +298,8 @@ CREATE TABLE IF NOT EXISTS public.routes (
                  CHECK (travel_mode IN ('foot-walking','foot-hiking','cycling-regular','driving-car')),
   geometry     JSONB,      -- cached [[lat,lng],…] snapped path (OpenRouteService)
   folder_id    UUID,       -- sidebar folder (route_folders); NULL = ungrouped (FK added below)
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  -- a public route must name the community it belongs to
-  CONSTRAINT routes_public_has_community CHECK (NOT is_public OR community_id IS NOT NULL)
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  -- is_public + community_id set → community route; is_public + NULL → public link route
 );
 
 CREATE INDEX IF NOT EXISTS routes_user_idx ON routes (user_id);

@@ -1,10 +1,10 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
-import { X, ThumbsUp, ThumbsDown, Clock, ArrowUpRight, Lock, Plus, MapPin, Search } from 'lucide-react'
+import { X, ThumbsUp, ThumbsDown, Clock, ArrowUpRight, Lock, Plus, MapPin, Search, Route as RouteIcon } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Community, CommunityTag, Pin } from '@/lib/types'
+import { Community, CommunityTag, Pin, Route } from '@/lib/types'
 import { timeAgo, voteColorClass, formatVoteCount } from '@/lib/utils'
 
 interface CommunityPinsPanelProps {
@@ -15,6 +15,7 @@ interface CommunityPinsPanelProps {
   onClose: () => void
   onPinClick: (pin: Pin) => void
   onAddPin: (communityId: string) => void
+  onOpenRoute: (routeId: string) => void
 }
 
 export default function CommunityPinsPanel({
@@ -25,6 +26,7 @@ export default function CommunityPinsPanel({
   onClose,
   onPinClick,
   onAddPin,
+  onOpenRoute,
 }: CommunityPinsPanelProps) {
   // Community tag vocabulary — drives the filter chips
   const [tags, setTags] = useState<CommunityTag[]>([])
@@ -36,6 +38,19 @@ export default function CommunityPinsPanel({
       .eq('community_id', community.id)
       .order('name')
       .then(({ data }) => { if (data) setTags(data as CommunityTag[]) })
+  }, [community.id])
+
+  // Public routes published to this community (RLS allows anon read)
+  const [routes, setRoutes] = useState<(Route & { route_pins?: { count: number }[] })[]>([])
+  useEffect(() => {
+    setRoutes([])
+    supabase
+      .from('routes')
+      .select('*, profile:profiles(username, avatar_url), route_pins(count)')
+      .eq('community_id', community.id)
+      .eq('is_public', true)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { if (data) setRoutes(data as (Route & { route_pins?: { count: number }[] })[]) })
   }, [community.id])
   // Sort by vote count desc, then newest first for ties
   const sorted = useMemo(
@@ -184,8 +199,41 @@ export default function CommunityPinsPanel({
         </div>
       )}
 
-      {/* ── Pin list ─────────────────────────────────────────────────── */}
+      {/* ── Pin list (+ routes) ──────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
+        {/* Routes published to this community */}
+        {routes.length > 0 && (
+          <div className="border-b border-gray-800/60 px-3 py-2.5">
+            <p className="mb-1.5 flex items-center gap-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+              <RouteIcon className="h-3 w-3" /> Routes
+            </p>
+            <ul className="space-y-1">
+              {routes.map((r) => {
+                const stops = r.route_pins?.[0]?.count ?? 0
+                return (
+                  <li key={r.id}>
+                    <button
+                      onClick={() => onOpenRoute(r.id)}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-gray-800"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: r.color + '22', border: `2px solid ${r.color}` }}>
+                        <RouteIcon className="h-3.5 w-3.5" style={{ color: r.color }} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-white">{r.name}</span>
+                        <span className="block truncate text-xs text-gray-500">
+                          {stops} {stops === 1 ? 'stop' : 'stops'}{r.profile?.username && <> · by {r.profile.username}</>}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
+
         {sorted.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
             <span className="text-5xl opacity-30">{community.icon}</span>

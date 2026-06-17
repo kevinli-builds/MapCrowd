@@ -29,7 +29,7 @@ interface RouteBuilderProps {
   onRename: (id: string, name: string) => void
   onUpdateColor: (id: string, color: string) => void
   onUpdateMode: (id: string, mode: TravelMode) => void
-  onPublish: (id: string, communityId: string | null) => void
+  onPublish: (id: string, isPublic: boolean, communityId: string | null) => void
   onDelete: (id: string) => void
   onClose: () => void
 }
@@ -276,6 +276,11 @@ export default function RouteBuilder({
     !canEdit || tab === 'stops' ? renderStops() : tab === 'community' ? renderCommunityPicker() : renderMapHint()
 
   const publishedCommunity = communities.find((c) => c.id === route.community_id) ?? null
+  // A route can be published to a community only if ALL its stops are in that one
+  // community; otherwise it can only be published publicly (link).
+  const stopCommunityIds = new Set(steps.flatMap((g) => g.pins).map((p) => p.community_id))
+  const singleCommunityId = stopCommunityIds.size === 1 ? [...stopCommunityIds][0] : null
+  const publishCommunity = singleCommunityId ? communities.find((c) => c.id === singleCommunityId) ?? null : null
 
   // ── Top bar — anchored to the left column on desktop (w-96), full width on mobile ──
   const topBar = (
@@ -363,23 +368,42 @@ export default function RouteBuilder({
               ))}
             </div>
 
-            {/* Publish */}
+            {/* Visibility */}
             <p className="mb-1.5 mt-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              <Globe className="h-3.5 w-3.5" /> Publish to a community
+              <Globe className="h-3.5 w-3.5" /> Visibility
             </p>
-            <select
-              value={route.community_id ?? ''}
-              onChange={(e) => onPublish(route.id, e.target.value || null)}
-              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
-            >
-              <option value="">Private (only you)</option>
-              {communities.map((c) => (
-                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-600">
-              {route.is_public ? '✓ Anyone can view it; only you can edit.' : 'Only you can see this route.'}
-            </p>
+            {(() => {
+              const isPrivate = !route.is_public
+              const isPublicLink = route.is_public && !route.community_id
+              const isCommunity = route.is_public && !!route.community_id
+              const opt = (active: boolean, onClick: () => void, label: React.ReactNode, hint: string) => (
+                <button onClick={onClick}
+                  className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors ${active ? 'bg-indigo-600/15' : 'hover:bg-gray-800'}`}>
+                  <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${active ? 'border-indigo-400' : 'border-gray-600'}`}>
+                    {active && <span className="h-2 w-2 rounded-full bg-indigo-400" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className={`block text-sm ${active ? 'font-semibold text-white' : 'text-gray-300'}`}>{label}</span>
+                    <span className="block text-xs text-gray-600">{hint}</span>
+                  </span>
+                </button>
+              )
+              return (
+                <div className="space-y-0.5">
+                  {opt(isPrivate, () => onPublish(route.id, false, null), 'Private', 'Only you can see it')}
+                  {opt(isPublicLink, () => onPublish(route.id, true, null), 'Public link', 'Anyone with the link can view')}
+                  {publishCommunity
+                    ? opt(isCommunity, () => onPublish(route.id, true, publishCommunity.id),
+                        <>Publish to {publishCommunity.icon} {publishCommunity.name}</>,
+                        'Shown on that community')
+                    : (
+                      <div className="rounded-lg px-2 py-1.5 text-xs text-gray-600">
+                        Stops span multiple communities — use <span className="text-gray-400">Public link</span> to share, or keep all stops in one community to publish there.
+                      </div>
+                    )}
+                </div>
+              )
+            })()}
 
             {/* Delete */}
             <div className="mt-3 border-t border-gray-800 pt-2">
