@@ -30,15 +30,14 @@ export async function POST(req: NextRequest) {
   // this keeps the endpoint (and our ORS quota) from being an open proxy, and
   // doesn't leak config status to anonymous callers.
   const authHeader = req.headers.get('authorization') ?? ''
-  if (!authHeader.startsWith('Bearer ') || !SUPABASE_URL || !ANON_KEY) {
-    return json({ error: 'Unauthorized' }, 401)
-  }
+  if (!authHeader.startsWith('Bearer ')) return json({ error: 'Unauthorized', reason: 'no_token' }, 401)
+  if (!SUPABASE_URL || !ANON_KEY) return json({ error: 'Unauthorized', reason: 'server_env_missing' }, 401)
   // Validate the JWT explicitly — on the server there's no stored session, so
   // getUser() with no argument fails; the token must be passed directly.
   const token = authHeader.slice('Bearer '.length)
   const caller = createClient(SUPABASE_URL, ANON_KEY)
   const { data: { user }, error: authErr } = await caller.auth.getUser(token)
-  if (authErr || !user) return json({ error: 'Unauthorized' }, 401)
+  if (authErr || !user) return json({ error: 'Unauthorized', reason: 'token_rejected', detail: authErr?.message }, 401)
 
   if (!ORS_KEY) return json({ error: 'Routing not configured' }, 503)
 

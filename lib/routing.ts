@@ -34,7 +34,14 @@ export async function fetchRouteGeometry(
       signal,
     })
     if (!res.ok) {
-      console.warn(`[route] proxy ${res.status} — ${res.status === 503 ? 'ORS_API_KEY not set in this env' : res.status === 401 ? 'auth rejected' : 'routing failed'}; straight lines`)
+      const info = await res.json().catch(() => ({})) as { reason?: string; detail?: string }
+      console.warn(
+        `[route] proxy ${res.status}` +
+        (res.status === 503 ? ' — ORS_API_KEY not set in this env' :
+         res.status === 401 ? ` — auth rejected (${info.reason ?? '?'}${info.detail ? ': ' + info.detail : ''})` :
+         res.status === 502 ? ' — ORS refused this route (too far / unroutable for the mode?)' : '') +
+        '; straight lines',
+      )
       return null
     }
     const data = (await res.json()) as { geometry?: [number, number][] }
