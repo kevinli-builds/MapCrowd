@@ -129,7 +129,7 @@ export default function CommunityPage() {
     // 4. Public routes published to this community (RLS allows anon read)
     const { data: routeData } = await supabase
       .from('routes')
-      .select('*, profile:profiles(username, avatar_url), route_pins(count)')
+      .select('*, route_pins(count)')
       .eq('community_id', comm.id)
       .eq('is_public', true)
       .order('created_at', { ascending: false })
@@ -321,7 +321,6 @@ export default function CommunityPage() {
                       <p className="truncate text-sm font-semibold text-white">{r.name}</p>
                       <p className="truncate text-xs text-gray-500">
                         {stopCount} {stopCount === 1 ? 'stop' : 'stops'}
-                        {r.profile?.username && <> · by {r.profile.username}</>}
                       </p>
                     </div>
                   </Link>

@@ -40,13 +40,14 @@ export default function CommunityPinsPanel({
       .then(({ data }) => { if (data) setTags(data as CommunityTag[]) })
   }, [community.id])
 
-  // Public routes published to this community (RLS allows anon read)
+  // Public routes published to this community (RLS allows anon read).
+  // No profiles embed — routes.user_id isn't FK'd to profiles, so embedding 400s.
   const [routes, setRoutes] = useState<(Route & { route_pins?: { count: number }[] })[]>([])
   useEffect(() => {
     setRoutes([])
     supabase
       .from('routes')
-      .select('*, profile:profiles(username, avatar_url), route_pins(count)')
+      .select('*, route_pins(count)')
       .eq('community_id', community.id)
       .eq('is_public', true)
       .order('created_at', { ascending: false })
@@ -203,9 +204,10 @@ export default function CommunityPinsPanel({
       <div className="flex-1 overflow-y-auto">
         {/* Routes published to this community */}
         {routes.length > 0 && (
-          <div className="border-b border-gray-800/60 px-3 py-2.5">
-            <p className="mb-1.5 flex items-center gap-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-              <RouteIcon className="h-3 w-3" /> Routes
+          <div className="border-b-4 border-gray-800 bg-gray-900/40 px-3 py-3">
+            <p className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-indigo-300/80">
+              <RouteIcon className="h-3.5 w-3.5" /> Routes
+              <span className="rounded-full bg-gray-800 px-1.5 text-[10px] font-semibold text-gray-400">{routes.length}</span>
             </p>
             <ul className="space-y-1">
               {routes.map((r) => {
@@ -223,7 +225,7 @@ export default function CommunityPinsPanel({
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-white">{r.name}</span>
                         <span className="block truncate text-xs text-gray-500">
-                          {stops} {stops === 1 ? 'stop' : 'stops'}{r.profile?.username && <> · by {r.profile.username}</>}
+                          {stops} {stops === 1 ? 'stop' : 'stops'}
                         </span>
                       </span>
                     </button>
@@ -232,6 +234,14 @@ export default function CommunityPinsPanel({
               })}
             </ul>
           </div>
+        )}
+
+        {/* Pins heading — only when routes are also shown, so the two sections read distinctly */}
+        {routes.length > 0 && sorted.length > 0 && (
+          <p className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-500">
+            <MapPin className="h-3.5 w-3.5" /> Pins
+            <span className="rounded-full bg-gray-800 px-1.5 text-[10px] font-semibold text-gray-400">{sorted.length}</span>
+          </p>
         )}
 
         {sorted.length === 0 ? (

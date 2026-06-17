@@ -406,7 +406,7 @@ export default function Home() {
     if (!routeId) return
     supabase
       .from('routes')
-      .select('*, profile:profiles(username, avatar_url)')
+      .select('*')
       .eq('id', routeId)
       .maybeSingle()
       .then(({ data }) => {
@@ -567,7 +567,7 @@ export default function Home() {
     if (routes.some((r) => r.id === id)) { handleSelectRoute(id); return }
     const { data } = await supabase
       .from('routes')
-      .select('*, profile:profiles(username, avatar_url)')
+      .select('*')
       .eq('id', id)
       .maybeSingle()
     if (!data) return
