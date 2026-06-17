@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
-import { Community, CommunityGroup, Pin, PendingInvite, Collection, Route, RouteFolder } from '@/lib/types'
+import { Community, CommunityGroup, Pin, PendingInvite, Route, RouteFolder } from '@/lib/types'
 import Avatar from '@/components/Avatar'
 import ActivityFeed from '@/components/ActivityFeed'
 
@@ -34,12 +34,9 @@ interface SidebarProps {
   /** Communities whose pins are hidden from the map (device preference) */
   hiddenCommunityIds: Set<string>
   onToggleCommunityVisibility: (id: string) => void
-  collections: Collection[]
-  activeCollectionId: string | null
-  onSelectCollection: (id: string) => void
-  onCreateCollection: (name: string) => Promise<Collection | null>
-  onRenameCollection: (id: string, name: string) => void
-  onDeleteCollection: (id: string) => void
+  /** Custom community folder currently filtering the map (null = none) */
+  activeFolderId: string | null
+  onSelectFolder: (id: string) => void
   routes: Route[]
   activeRouteId: string | null
   onSelectRoute: (id: string) => void
@@ -95,12 +92,8 @@ export default function Sidebar({
   savedCount,
   hiddenCommunityIds,
   onToggleCommunityVisibility,
-  collections,
-  activeCollectionId,
-  onSelectCollection,
-  onCreateCollection,
-  onRenameCollection,
-  onDeleteCollection,
+  activeFolderId,
+  onSelectFolder,
   routes,
   activeRouteId,
   onSelectRoute,
@@ -145,6 +138,10 @@ export default function Sidebar({
 }: SidebarProps) {
   // ── Local UI state ──────────────────────────────────────────────────────
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  // Auto-folders (All Communities / My Subscriptions / All Routes) — collapsed by default
+  const [allOpen, setAllOpen] = useState(false)
+  const [subsOpen, setSubsOpen] = useState(false)
+  const [allRoutesOpen, setAllRoutesOpen] = useState(false)
   const [groupPicker, setGroupPicker]         = useState<string | null>(null) // communityId
   const [pickerCreating, setPickerCreating]   = useState(false)
   const [pickerNewName, setPickerNewName]     = useState('')
@@ -152,25 +149,6 @@ export default function Sidebar({
   const [newGroupName, setNewGroupName]       = useState('')
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null)
   const [renameValue, setRenameValue]         = useState('')
-  // Collections inline-create / rename
-  const [creatingCollection, setCreatingCollection]     = useState(false)
-  const [newCollectionName, setNewCollectionName]       = useState('')
-  const [renamingCollectionId, setRenamingCollectionId] = useState<string | null>(null)
-  const [collectionRename, setCollectionRename]         = useState('')
-
-  const submitNewCollection = async () => {
-    const name = newCollectionName.trim()
-    setCreatingCollection(false)
-    setNewCollectionName('')
-    if (name) await onCreateCollection(name)
-  }
-  const commitCollectionRename = (id: string) => {
-    const original = collections.find((c) => c.id === id)?.name
-    if (collectionRename.trim() && collectionRename.trim() !== original) {
-      onRenameCollection(id, collectionRename.trim())
-    }
-    setRenamingCollectionId(null)
-  }
   // Routes inline-create
   const [creatingRoute, setCreatingRoute] = useState(false)
   const [newRouteName, setNewRouteName]   = useState('')
@@ -561,6 +539,34 @@ export default function Sidebar({
     )
   }
 
+  // Auto-folder row: a leading chevron (expand) + a body button (filter the map).
+  // `icon` is the full colored icon span; children render when open.
+  const renderAutoFolder = (
+    open: boolean, onToggle: () => void,
+    active: boolean, onClick: () => void,
+    icon: React.ReactNode, label: string, count: number,
+    activeRow: string, activeBadge: string,
+    children: React.ReactNode,
+  ) => (
+    <div className="mb-1">
+      <div className={`flex items-center rounded-lg transition-colors ${active ? activeRow : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle() }}
+          title={open ? 'Collapse' : 'Expand'}
+          className="flex h-9 shrink-0 items-center pl-2 pr-0.5 text-gray-500 transition-colors hover:text-gray-300"
+        >
+          {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        </button>
+        <button onClick={onClick} className="flex min-w-0 flex-1 items-center gap-2.5 py-2 pr-3 text-left">
+          {icon}
+          <span className="min-w-0 flex-1 truncate text-sm font-medium">{label}</span>
+          <span className={`rounded-full px-2 py-0.5 text-xs ${active ? activeBadge : 'bg-gray-800 text-gray-500'}`}>{count}</span>
+        </button>
+      </div>
+      {open && <div className="mb-1 pl-2">{children}</div>}
+    </div>
+  )
+
   // ── Render ──────────────────────────────────────────────────────────────
   return (
     <>
@@ -700,24 +706,29 @@ export default function Sidebar({
             </div>
           )}
 
-          {/* Global filters */}
-          <button
-            onClick={() => { setGroupPicker(null); onSelectCommunity(null) }}
-            className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
-              !selectedCommunity && !showSubscribedOnly && !showSavedOnly
-                ? 'bg-indigo-600 text-white'
-                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-            }`}
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-700 text-sm">🌍</span>
-            <span className="flex-1 text-sm font-medium">All Communities</span>
-            <span className={`rounded-full px-2 py-0.5 text-xs ${
-              !selectedCommunity && !showSubscribedOnly && !showSavedOnly ? 'bg-indigo-700 text-indigo-200' : 'bg-gray-800 text-gray-500'
-            }`}>
-              {pins.length}
-            </span>
-          </button>
+          {/* All Communities — auto-folder: click filters to everything, chevron lists all */}
+          {renderAutoFolder(
+            allOpen, () => setAllOpen((v) => !v),
+            !selectedCommunity && !showSubscribedOnly && !showSavedOnly && !activeFolderId,
+            () => { setGroupPicker(null); onSelectCommunity(null) },
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-700 text-sm">🌍</span>,
+            'All Communities', pins.length,
+            'bg-indigo-600 text-white', 'bg-indigo-700 text-indigo-200',
+            [...communities].sort((a, b) => a.name.localeCompare(b.name)).map((c) => renderRow(c, true)),
+          )}
 
+          {/* My Subscriptions — auto-folder */}
+          {user && subscribedIds.size > 0 && renderAutoFolder(
+            subsOpen, () => setSubsOpen((v) => !v),
+            showSubscribedOnly,
+            () => { setGroupPicker(null); onShowSubscribed() },
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-yellow-500/10 text-sm">⭐</span>,
+            'My Subscriptions', pins.filter((p) => subscribedIds.has(p.community_id)).length,
+            'bg-yellow-500/20 text-yellow-300', 'bg-yellow-500/20 text-yellow-400',
+            communities.filter((c) => subscribedIds.has(c.id)).sort((a, b) => a.name.localeCompare(b.name)).map((c) => renderRow(c, true)),
+          )}
+
+          {/* Saved — a pin filter, not a folder */}
           {user && savedCount > 0 && (
             <button
               onClick={() => { setGroupPicker(null); onShowSaved() }}
@@ -739,25 +750,6 @@ export default function Sidebar({
             </button>
           )}
 
-          {user && subscribedIds.size > 0 && (
-            <button
-              onClick={() => { setGroupPicker(null); onShowSubscribed() }}
-              className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
-                showSubscribedOnly
-                  ? 'bg-yellow-500/20 text-yellow-300'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              }`}
-            >
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-yellow-500/10 text-sm">⭐</span>
-              <span className="flex-1 text-sm font-medium">My Subscriptions</span>
-              <span className={`rounded-full px-2 py-0.5 text-xs ${
-                showSubscribedOnly ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-800 text-gray-500'
-              }`}>
-                {pins.filter((p) => subscribedIds.has(p.community_id)).length}
-              </span>
-            </button>
-          )}
-
           {/* ── Group folders ── */}
           {user && groups.map((group) => {
             const collapsed  = !expandedGroups.has(group.id)
@@ -766,38 +758,43 @@ export default function Sidebar({
 
             return (
               <div key={group.id} className="mb-1">
-                {/* Group header */}
+                {/* Group header — chevron expands, name filters the map */}
                 <div
-                  className="group/grp mb-0.5 flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-gray-800/50"
+                  className={`group/grp mb-0.5 flex items-center gap-1.5 rounded-lg px-2 py-1.5 ${
+                    activeFolderId === group.id ? 'bg-indigo-600/20' : 'hover:bg-gray-800/50'
+                  }`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
                     onClick={() => toggleCollapse(group.id)}
-                    className="flex min-w-0 flex-1 items-center gap-1.5"
+                    title={collapsed ? 'Expand' : 'Collapse'}
+                    className="shrink-0 text-gray-600 transition-colors hover:text-gray-300"
                   >
-                    {collapsed
-                      ? <ChevronRight className="h-3 w-3 shrink-0 text-gray-600" />
-                      : <ChevronDown className="h-3 w-3 shrink-0 text-gray-600" />}
-                    {isRenaming ? (
-                      <input
-                        // eslint-disable-next-line jsx-a11y/no-autofocus
-                        autoFocus
-                        value={renameValue}
-                        onChange={(e) => setRenameValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') commitRename(group.id)
-                          if (e.key === 'Escape') setRenamingGroupId(null)
-                        }}
-                        onBlur={() => commitRename(group.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-full bg-transparent text-xs font-semibold uppercase tracking-wider text-gray-400 outline-none"
-                      />
-                    ) : (
-                      <span className="truncate text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </button>
+                  {isRenaming ? (
+                    <input
+                      // eslint-disable-next-line jsx-a11y/no-autofocus
+                      autoFocus
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') commitRename(group.id)
+                        if (e.key === 'Escape') setRenamingGroupId(null)
+                      }}
+                      onBlur={() => commitRename(group.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="min-w-0 flex-1 bg-transparent text-xs font-semibold uppercase tracking-wider text-gray-400 outline-none"
+                    />
+                  ) : (
+                    <button onClick={() => onSelectFolder(group.id)} className="min-w-0 flex-1 text-left">
+                      <span className={`block truncate text-xs font-semibold uppercase tracking-wider ${
+                        activeFolderId === group.id ? 'text-indigo-300' : 'text-gray-500'
+                      }`}>
                         {group.name}
                       </span>
-                    )}
-                  </button>
+                    </button>
+                  )}
 
                   <span className="shrink-0 text-[10px] text-gray-700">{comms.length}</span>
 
@@ -852,94 +849,6 @@ export default function Sidebar({
           {unsubscribedVisible.map((c) => renderRow(c, false))}
 
           <div className="my-2 border-t border-gray-800" />
-
-          {/* ── Collections ── */}
-          {user && (
-            <div className="mb-1" onClick={(e) => e.stopPropagation()}>
-              {(collections.length > 0 || creatingCollection) && (
-                <p className="px-2 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-gray-600">
-                  Collections
-                </p>
-              )}
-              {collections.map((col) =>
-                renamingCollectionId === col.id ? (
-                  <input
-                    key={col.id}
-                    // eslint-disable-next-line jsx-a11y/no-autofocus
-                    autoFocus
-                    value={collectionRename}
-                    onChange={(e) => setCollectionRename(e.target.value)}
-                    onBlur={() => commitCollectionRename(col.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') commitCollectionRename(col.id)
-                      if (e.key === 'Escape') setRenamingCollectionId(null)
-                    }}
-                    className="mb-0.5 w-full rounded-lg border border-indigo-500 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none"
-                  />
-                ) : (
-                  <div key={col.id} className="group mb-0.5">
-                    <div className={`flex items-center rounded-lg transition-colors ${
-                      activeCollectionId === col.id
-                        ? 'bg-indigo-500/20 text-indigo-300'
-                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                    }`}>
-                      <button
-                        onClick={() => onSelectCollection(col.id)}
-                        className="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3 text-left"
-                      >
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-300">
-                          <Bookmark className="h-3.5 w-3.5" />
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium">{col.name}</span>
-                      </button>
-                      {/* In-flow actions (desktop) so a long list name truncates instead of colliding */}
-                      <div className="pointer-events-none hidden shrink-0 items-center gap-0.5 pr-2 opacity-0 transition-opacity md:flex md:group-hover:pointer-events-auto md:group-hover:opacity-100">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setRenamingCollectionId(col.id); setCollectionRename(col.name) }}
-                          title="Rename"
-                          className="rounded p-1 text-gray-500 transition-colors hover:text-gray-300"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onDeleteCollection(col.id) }}
-                          title="Delete list"
-                          className="rounded p-1 text-gray-500 transition-colors hover:text-red-400"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              )}
-              {creatingCollection ? (
-                <input
-                  // eslint-disable-next-line jsx-a11y/no-autofocus
-                  autoFocus
-                  value={newCollectionName}
-                  onChange={(e) => setNewCollectionName(e.target.value)}
-                  onBlur={submitNewCollection}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') submitNewCollection()
-                    if (e.key === 'Escape') { setCreatingCollection(false); setNewCollectionName('') }
-                  }}
-                  placeholder="List name…"
-                  className="mb-0.5 w-full rounded-lg border border-indigo-500 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none"
-                />
-              ) : (
-                <button
-                  onClick={() => { setCreatingCollection(true); setNewCollectionName('') }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300"
-                >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-800">
-                    <Plus className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="flex-1 text-sm font-medium">New list</span>
-                </button>
-              )}
-            </div>
-          )}
 
           {/* ── Routes ── */}
           {user && (
@@ -997,6 +906,16 @@ export default function Sidebar({
                   placeholder="Folder name…"
                   className="mb-1 w-full rounded-lg border border-indigo-500 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none"
                 />
+              )}
+
+              {/* All Routes — auto-folder (expands to every route; no map filter) */}
+              {routes.length > 0 && renderAutoFolder(
+                allRoutesOpen, () => setAllRoutesOpen((v) => !v),
+                false, () => setAllRoutesOpen((v) => !v),
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-800"><RouteIcon className="h-3.5 w-3.5 text-gray-400" /></span>,
+                'All Routes', routes.length,
+                '', '',
+                [...routes].sort((a, b) => a.name.localeCompare(b.name)).map(renderRouteRow),
               )}
 
               {/* Folders (collapsed by default) */}

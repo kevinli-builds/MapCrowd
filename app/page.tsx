@@ -5,7 +5,7 @@ import { Menu, Zap, LocateFixed, Loader2 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { ADMIN_USER_ID } from '@/lib/constants'
-import { Community, Pin, PendingInvite, CommunityGroup, Collection, Route, RouteFolder, TravelMode } from '@/lib/types'
+import { Community, Pin, PendingInvite, CommunityGroup, Route, RouteFolder, TravelMode } from '@/lib/types'
 import { fetchRouteGeometry } from '@/lib/routing'
 import type { FlyToTarget } from '@/components/MapInner'
 import Sidebar from '@/components/Sidebar'
@@ -73,10 +73,8 @@ export default function Home() {
   const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set())
   // Pin IDs the current user has saved (private bookmarks)
   const [savedPinIds, setSavedPinIds] = useState<Set<string>>(new Set())
-  // Named collections + the currently-filtered collection
-  const [collections, setCollections] = useState<Collection[]>([])
-  const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null)
-  const [activeCollectionPinIds, setActiveCollectionPinIds] = useState<Set<string>>(new Set())
+  // The custom community folder currently filtering the map (null = none)
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null)
   // Routes/trails — the open route, its ordered stops, and build mode
   const [routes, setRoutes] = useState<Route[]>([])
   const [routeFolders, setRouteFolders] = useState<RouteFolder[]>([])
@@ -229,15 +227,6 @@ export default function Home() {
     if (data) setSavedPinIds(new Set(data.map((s) => s.pin_id)))
   }, [user])
 
-  const fetchCollections = useCallback(async () => {
-    if (!user) { setCollections([]); return }
-    const { data } = await supabase
-      .from('collections')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at')
-    if (data) setCollections(data as Collection[])
-  }, [user])
 
   const fetchRoutes = useCallback(async () => {
     if (!user) { setRoutes([]); return }
@@ -297,7 +286,6 @@ export default function Home() {
   useEffect(() => { fetchGroups() }, [fetchGroups])
   useEffect(() => { fetchFollowing() }, [fetchFollowing])
   useEffect(() => { fetchSaved() }, [fetchSaved])
-  useEffect(() => { fetchCollections() }, [fetchCollections])
   useEffect(() => { fetchRoutes() }, [fetchRoutes])
   useEffect(() => { fetchRouteFolders() }, [fetchRouteFolders])
   useEffect(() => { fetchMyUsername() }, [fetchMyUsername])
@@ -308,7 +296,7 @@ export default function Home() {
     if (!user) {
       setShowSubscribedOnly(false)
       setShowSavedOnly(false)
-      setActiveCollectionId(null)
+      setActiveFolderId(null)
       setActiveRouteId(null)
       setRouteStops([])
       setBuilderCommunityId(null)
@@ -446,7 +434,7 @@ export default function Home() {
     setSelectedCommunity(null)
     setShowSubscribedOnly(false)
     setShowSavedOnly(false)
-    setActiveCollectionId(null)
+    setActiveFolderId(null)
     setActiveRouteId(null); setRouteStops([]); setBuilderCommunityId(null)
     setSelectedTagIds(new Set())
   }
@@ -469,21 +457,29 @@ export default function Home() {
     setShowSavedOnly(true)
   }
 
-  const handleSelectCollection = async (id: string) => {
+  // Filter the map to a custom community folder (the union of its communities' pins).
+  const handleSelectFolder = (id: string) => {
     resetMapFilters()
-    setActiveCollectionId(id)
-    const { data } = await supabase.from('collection_pins').select('pin_id').eq('collection_id', id)
-    setActiveCollectionPinIds(new Set((data ?? []).map((r) => r.pin_id)))
+    setActiveFolderId(id)
+    setShowMobileSidebar(false)
   }
+
+  // Community ids belonging to the active folder (via the community→group map).
+  const activeFolderCommunityIds = useMemo(() => {
+    if (!activeFolderId) return null
+    const ids = new Set<string>()
+    for (const [cid, gid] of communityGroupMap) if (gid === activeFolderId) ids.add(cid)
+    return ids
+  }, [activeFolderId, communityGroupMap])
 
   const filteredPins = useMemo(() => {
     let result: Pin[]
-    // Explicit selections (a single community, a collection, or saved) show exactly
-    // what was asked for; the per-community visibility toggle only mutes the broad
+    // Explicit selections (a single community, a folder, or saved) show exactly what
+    // was asked for; the per-community visibility toggle only mutes the broad
     // "All" / "My Subscriptions" aggregate views.
-    const explicit = !!selectedCommunity || !!activeCollectionId || showSavedOnly
+    const explicit = !!selectedCommunity || !!activeFolderId || showSavedOnly
     if (selectedCommunity) result = pins.filter((p) => p.community_id === selectedCommunity)
-    else if (activeCollectionId) result = pins.filter((p) => activeCollectionPinIds.has(p.id))
+    else if (activeFolderCommunityIds) result = pins.filter((p) => activeFolderCommunityIds.has(p.community_id))
     else if (showSavedOnly) result = pins.filter((p) => savedPinIds.has(p.id))
     else if (showSubscribedOnly && subscribedIds.size > 0)
       result = pins.filter((p) => subscribedIds.has(p.community_id))
@@ -501,31 +497,7 @@ export default function Home() {
       )
     }
     return result
-  }, [pins, selectedCommunity, showSubscribedOnly, subscribedIds, showSavedOnly, savedPinIds, activeCollectionId, activeCollectionPinIds, hiddenCommunityIds, selectedTagIds])
-
-  // ── Collection CRUD ────────────────────────────────────────────────────────
-  const handleCreateCollection = useCallback(async (name: string): Promise<Collection | null> => {
-    if (!user) return null
-    const { data, error } = await supabase
-      .from('collections')
-      .insert({ user_id: user.id, name: name.trim() })
-      .select()
-      .single()
-    if (error || !data) return null
-    setCollections((prev) => [...prev, data as Collection])
-    return data as Collection
-  }, [user])
-
-  const handleRenameCollection = useCallback(async (id: string, name: string) => {
-    await supabase.from('collections').update({ name: name.trim() }).eq('id', id)
-    setCollections((prev) => prev.map((c) => (c.id === id ? { ...c, name: name.trim() } : c)))
-  }, [])
-
-  const handleDeleteCollection = useCallback(async (id: string) => {
-    await supabase.from('collections').delete().eq('id', id)
-    setCollections((prev) => prev.filter((c) => c.id !== id))
-    setActiveCollectionId((cur) => (cur === id ? null : cur))
-  }, [])
+  }, [pins, selectedCommunity, activeFolderId, activeFolderCommunityIds, showSubscribedOnly, subscribedIds, showSavedOnly, savedPinIds, hiddenCommunityIds, selectedTagIds])
 
   // ── Route CRUD + stop editing ──────────────────────────────────────────────
   const loadRouteStops = useCallback(async (routeId: string) => {
@@ -992,12 +964,8 @@ export default function Home() {
         showSubscribedOnly={showSubscribedOnly}
         showSavedOnly={showSavedOnly}
         savedCount={savedPinIds.size}
-        collections={collections}
-        activeCollectionId={activeCollectionId}
-        onSelectCollection={handleSelectCollection}
-        onCreateCollection={handleCreateCollection}
-        onRenameCollection={handleRenameCollection}
-        onDeleteCollection={handleDeleteCollection}
+        activeFolderId={activeFolderId}
+        onSelectFolder={handleSelectFolder}
         routes={routes}
         activeRouteId={activeRouteId}
         onSelectRoute={handleSelectRoute}
@@ -1241,8 +1209,6 @@ export default function Home() {
             onToggleFollow={handleToggleFollow}
             isSaved={savedPinIds.has(selectedPin.id)}
             onToggleSave={handleToggleSave}
-            collections={collections}
-            onCreateCollection={handleCreateCollection}
           />
         )}
 
