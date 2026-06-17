@@ -33,10 +33,11 @@ export async function POST(req: NextRequest) {
   if (!authHeader.startsWith('Bearer ') || !SUPABASE_URL || !ANON_KEY) {
     return json({ error: 'Unauthorized' }, 401)
   }
-  const caller = createClient(SUPABASE_URL, ANON_KEY, {
-    global: { headers: { authorization: authHeader } },
-  })
-  const { data: { user }, error: authErr } = await caller.auth.getUser()
+  // Validate the JWT explicitly — on the server there's no stored session, so
+  // getUser() with no argument fails; the token must be passed directly.
+  const token = authHeader.slice('Bearer '.length)
+  const caller = createClient(SUPABASE_URL, ANON_KEY)
+  const { data: { user }, error: authErr } = await caller.auth.getUser(token)
   if (authErr || !user) return json({ error: 'Unauthorized' }, 401)
 
   if (!ORS_KEY) return json({ error: 'Routing not configured' }, 503)
