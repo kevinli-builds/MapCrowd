@@ -289,7 +289,7 @@ ALTER TABLE collection_pins ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.routes (
   id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id      UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,  -- profiles(id) so PostgREST can embed the author
   name         TEXT        NOT NULL CHECK (char_length(trim(name)) BETWEEN 1 AND 60),
   color        TEXT        NOT NULL DEFAULT '#6366f1' CHECK (color ~ '^#[0-9a-fA-F]{3,8}$'),
   is_public    BOOLEAN     NOT NULL DEFAULT false,
