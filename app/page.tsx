@@ -442,19 +442,20 @@ export default function Home() {
   const handleSelectCommunity = (id: string | null) => {
     resetMapFilters()
     setSelectedCommunity(id)
-    // On mobile, close the sidebar drawer so the community panel it opened (which
-    // sits behind the drawer) is visible.
-    if (id) setShowMobileSidebar(false)
+    // On mobile, any deliberate view choice closes the drawer so the map/panel shows.
+    setShowMobileSidebar(false)
   }
 
   const handleShowSubscribed = () => {
     resetMapFilters()
     setShowSubscribedOnly(true)
+    setShowMobileSidebar(false)
   }
 
   const handleShowSaved = () => {
     resetMapFilters()
     setShowSavedOnly(true)
+    setShowMobileSidebar(false)
   }
 
   // Filter the map to a custom community folder (the union of its communities' pins).
