@@ -7,29 +7,9 @@ import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import type { Community, Pin } from '@/lib/types'
-
-// ── Sanitizers ────────────────────────────────────────────────────────────────
 // Marker icons are rendered as raw HTML (Leaflet divIcon → innerHTML), so any
-// DB-sourced value interpolated below MUST be sanitized. community.color/icon
-// are only constrained by the create-form UI, not by RLS — a crafted insert
-// could otherwise smuggle markup onto every viewer's map (stored XSS).
-
-const COLOR_RE = /^#[0-9a-fA-F]{3,8}$/
-
-/** Return the color only if it's a plain hex literal; otherwise a safe default. */
-function safeColor(c: string | null | undefined): string {
-  return c && COLOR_RE.test(c.trim()) ? c.trim() : '#6366f1'
-}
-
-/** Escape the 5 HTML-significant characters so an icon string can't inject markup. */
-function escapeHtml(s: string | null | undefined): string {
-  return (s ?? '').replace(/[&<>"']/g, (ch) =>
-    ch === '&' ? '&amp;' :
-    ch === '<' ? '&lt;'  :
-    ch === '>' ? '&gt;'  :
-    ch === '"' ? '&quot;' : '&#39;'
-  )
-}
+// DB-sourced value interpolated below MUST be sanitized — see lib/sanitize.ts.
+import { safeColor, escapeHtml } from '@/lib/sanitize'
 
 // ── Icon builders ─────────────────────────────────────────────────────────────
 

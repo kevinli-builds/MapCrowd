@@ -6,6 +6,7 @@ import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { ADMIN_USER_ID } from '@/lib/constants'
 import { Community, Pin, PendingInvite, CommunityGroup, Route, RouteFolder, TravelMode } from '@/lib/types'
+import { selectVisiblePins } from '@/lib/pin-filters'
 import { fetchRouteGeometry } from '@/lib/routing'
 import { buildRouteLegs, stepsToLegSteps, normalizeSolidSegments } from '@/lib/route-legs'
 import type { FlyToTarget } from '@/components/MapInner'
@@ -499,32 +500,21 @@ export default function Home() {
     return ids
   }, [activeFolderId, communityGroupMap])
 
-  const filteredPins = useMemo(() => {
-    let result: Pin[]
-    // Explicit selections (a single community, a folder, or saved) show exactly what
-    // was asked for; the per-community visibility toggle only mutes the broad
-    // "All" / "My Subscriptions" aggregate views.
-    const explicit = !!selectedCommunity || !!activeFolderId || showSavedOnly
-    if (selectedCommunity) result = pins.filter((p) => p.community_id === selectedCommunity)
-    else if (activeFolderCommunityIds) result = pins.filter((p) => activeFolderCommunityIds.has(p.community_id))
-    else if (showSavedOnly) result = pins.filter((p) => savedPinIds.has(p.id))
-    else if (showSubscribedOnly && subscribedIds.size > 0)
-      result = pins.filter((p) => subscribedIds.has(p.community_id))
-    else result = pins
-
-    if (!explicit && hiddenCommunityIds.size > 0) {
-      result = result.filter((p) => !hiddenCommunityIds.has(p.community_id))
-    }
-
-    // Tag filter (only meaningful inside a selected community) — pin must carry
-    // ALL selected tags
-    if (selectedTagIds.size > 0) {
-      result = result.filter((p) =>
-        p.tag_ids ? Array.from(selectedTagIds).every((id) => p.tag_ids!.includes(id)) : false
-      )
-    }
-    return result
-  }, [pins, selectedCommunity, activeFolderId, activeFolderCommunityIds, showSubscribedOnly, subscribedIds, showSavedOnly, savedPinIds, hiddenCommunityIds, selectedTagIds])
+  const filteredPins = useMemo(
+    () => selectVisiblePins({
+      pins,
+      selectedCommunity,
+      activeFolderId,
+      activeFolderCommunityIds,
+      showSubscribedOnly,
+      subscribedIds,
+      showSavedOnly,
+      savedPinIds,
+      hiddenCommunityIds,
+      selectedTagIds,
+    }),
+    [pins, selectedCommunity, activeFolderId, activeFolderCommunityIds, showSubscribedOnly, subscribedIds, showSavedOnly, savedPinIds, hiddenCommunityIds, selectedTagIds]
+  )
 
   // ── Route CRUD + stop editing ──────────────────────────────────────────────
   const loadRouteStops = useCallback(async (routeId: string) => {

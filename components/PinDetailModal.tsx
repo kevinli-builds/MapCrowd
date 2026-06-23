@@ -14,6 +14,7 @@ import { Pin, Comment, PinPhoto, CommunityTag } from '@/lib/types'
 import { getSessionId } from '@/lib/session'
 import { timeAgo, timeUntil, formatEventDate, voteColorClass, formatVoteCount } from '@/lib/utils'
 import { reverseGeocode, formatAddress } from '@/lib/geo'
+import { safeHttpUrl } from '@/lib/sanitize'
 import Avatar from '@/components/Avatar'
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -80,7 +81,7 @@ export default function PinDetailModal({
   const [copied, setCopied] = useState(false)
 
   // Only render external links that are genuinely http(s)
-  const safeUrl = pin.url && /^https?:\/\//i.test(pin.url) ? pin.url : null
+  const safeUrl = safeHttpUrl(pin.url)
 
   useEffect(() => {
     // Reset edit state whenever the pin changes

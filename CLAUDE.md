@@ -6,7 +6,7 @@
 A crowd-sourced mapping platform where users drop geo-tagged pins into thematic communities (like "Birds", "Street Art", "Free WiFi"). Think Reddit meets Google Maps. Built with Next.js 16 + Supabase.
 
 ## Local workspace
-This repo lives at **`C:\Users\snoww\Mapper+Tracker\mapcrowd\`** — a gitignored subfolder of the user's `Mapper+Tracker` workspace (renamed from `Map` in June 2026), which is itself the `personal-site` portfolio repo. The sibling **Tracker** app (`../tracker/`, github `snowwarrior1-alt/Tracker`, live `dailytally.vercel.app`) is a separate repo in the same workspace. MapCrowd and Tracker **share this one Supabase project** (named "Mapper+Tracker", ref `tmycdgnofvmbyrmpqohw`) to stay under the free-tier 2-project cap; Tracker owns its own `trackers`/`entries`/`day_notes` tables with per-user RLS and never touches MapCrowd's data.
+This repo lives at **`C:\Users\snoww\Mapper-Tracker\mapcrowd\`** — a gitignored subfolder of the user's `Mapper-Tracker` workspace (renamed from `Map` → `Mapper + Tracker` → `Mapper-Tracker`; the `+`/space in the old name broke Turbopack's `next dev` HMR — keep the path free of `+`/spaces), which is itself the `personal-site` portfolio repo. The sibling **Tracker** app (`../tracker/`, github `snowwarrior1-alt/Tracker`, live `dailytally.vercel.app`) is a separate repo in the same workspace. MapCrowd and Tracker **share this one Supabase project** (named "Mapper+Tracker", ref `tmycdgnofvmbyrmpqohw`) to stay under the free-tier 2-project cap; Tracker owns its own `trackers`/`entries`/`day_notes` tables with per-user RLS and never touches MapCrowd's data.
 
 ## Tech stack
 - **Framework**: Next.js 16.2.6 (App Router, Turbopack)
