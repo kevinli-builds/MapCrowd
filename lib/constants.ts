@@ -22,10 +22,23 @@ export const BUCKETS = {
   pinPhotos: 'pin-photos',
 } as const
 
+/** Accepted image MIME types for pin photo uploads. */
+export const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const
+
+/** Map an accepted MIME type to a safe file extension (never trust file.name). */
+export const PHOTO_EXT_BY_TYPE: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+}
+
 // ── Hard limits ───────────────────────────────────────────────────────────────
 
 export const LIMITS = {
   photosPerPin: 5,
+  /** Max bytes per uploaded photo (5 MB) */
+  photoBytes: 5 * 1024 * 1024,
   /** Max results returned by the Cmd+K pin search */
   pinSearchResults: 5,
   /** Max results returned by username searches */

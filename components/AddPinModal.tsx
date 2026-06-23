@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { X, MapPin, Loader2, Lock, Clock, CheckCircle2, ImagePlus, XCircle, Search, AlertTriangle, LogIn, Calendar, Users, Check, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Community, CommunityTag, WHO_CAN_PIN_LABELS, GeoRestriction } from '@/lib/types'
-import { LIMITS, DEBOUNCE_MS } from '@/lib/constants'
+import { LIMITS, DEBOUNCE_MS, ALLOWED_PHOTO_TYPES, PHOTO_EXT_BY_TYPE } from '@/lib/constants'
 import { useDebounce } from '@/lib/hooks'
 import { canUserPinInCommunity } from '@/lib/utils'
 
@@ -214,8 +214,27 @@ export default function AddPinModal({
   // ── Photo selection ───────────────────────────────────────────────────────
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? [])
+    const picked = Array.from(e.target.files ?? [])
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    if (!picked.length) return
+
+    // Reject anything that isn't an accepted image type or is too large — the
+    // accept="image/*" attribute is only a hint and is trivially bypassed.
+    const rejected: string[] = []
+    const files = picked.filter((f) => {
+      if (!(ALLOWED_PHOTO_TYPES as readonly string[]).includes(f.type)) {
+        rejected.push(`${f.name} (unsupported type)`)
+        return false
+      }
+      if (f.size > LIMITS.photoBytes) {
+        rejected.push(`${f.name} (over ${LIMITS.photoBytes / (1024 * 1024)}MB)`)
+        return false
+      }
+      return true
+    })
+    setError(rejected.length ? `Skipped: ${rejected.join(', ')}` : null)
     if (!files.length) return
+
     const combined = [...photos, ...files].slice(0, LIMITS.photosPerPin)
     // Generate previews first, then update both states together to keep them in sync
     Promise.all(
@@ -231,8 +250,6 @@ export default function AddPinModal({
       setPhotos(combined)
       setPhotoPreviews(previews)
     })
-    // Reset the input so the same file can be re-selected if removed
-    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const removePhoto = (index: number) => {
@@ -286,7 +303,9 @@ export default function AddPinModal({
       for (let i = 0; i < photos.length; i++) {
         const file = photos[i]
         setUploadProgress(`Uploading photo ${i + 1} of ${photos.length}…`)
-        const ext = file.name.split('.').pop() ?? 'jpg'
+        // Derive the extension from the validated MIME type, never from
+        // file.name (which could carry path separators or a bogus extension).
+        const ext = PHOTO_EXT_BY_TYPE[file.type] ?? 'jpg'
         const path = `${userId}/${pinId}/${randomHex()}.${ext}`
 
         const { error: storageErr } = await supabase.storage

@@ -87,6 +87,27 @@ export async function POST(req: NextRequest) {
     return json({ error: 'You cannot invite yourself' }, 400)
   }
 
+  // ── Rate-limit per owner ────────────────────────────────────────────────
+  // Each invite can trigger a Supabase invite email to an arbitrary address, so
+  // an unbounded endpoint is an email-bomb / spam relay. Cap how many invites a
+  // single user can issue across both tables (in-app + email) per window.
+  const HOUR_CAP = 50
+  const MINUTE_CAP = 10
+  const since1h = new Date(Date.now() - 3_600_000).toISOString()
+  const oneMinAgo = Date.now() - 60_000
+  const [recentMembers, recentEmails] = await Promise.all([
+    admin.from('community_members').select('created_at').eq('invited_by', user.id).gte('created_at', since1h),
+    admin.from('community_email_invites').select('created_at').eq('invited_by', user.id).gte('created_at', since1h),
+  ])
+  const stamps = [...(recentMembers.data ?? []), ...(recentEmails.data ?? [])]
+    .map((r) => new Date(r.created_at as string).getTime())
+  if (stamps.length >= HOUR_CAP) {
+    return json({ error: 'Invite limit reached for this hour — please try again later.' }, 429)
+  }
+  if (stamps.filter((t) => t > oneMinAgo).length >= MINUTE_CAP) {
+    return json({ error: 'Too many invites — please slow down.' }, 429)
+  }
+
   // ── Look up whether the email already has an account ───────────────────
   const { data: found } = await admin
     .rpc('find_profile_by_email', { p_email: email })
@@ -111,10 +132,12 @@ export async function POST(req: NextRequest) {
       return json({ error: 'Could not create invite' }, 500)
     }
 
+    // Note: we deliberately do NOT return the username. `type` is enough for the
+    // UI, and echoing the profile name back would confirm *which* account owns a
+    // probed email address (account-enumeration oracle).
     return json({
-      success:  true,
-      type:     'existing_user',
-      username: existingProfile.username ?? null,
+      success: true,
+      type:    'existing_user',
     })
   }
 
