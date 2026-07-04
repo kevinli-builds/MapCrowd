@@ -24,6 +24,7 @@ import SearchModal from '@/components/SearchModal'
 import BottomNav from '@/components/BottomNav'
 import MapStyleSwitcher from '@/components/MapStyleSwitcher'
 import QuickAddSheet from '@/components/QuickAddSheet'
+import WelcomeModal from '@/components/WelcomeModal'
 import type { MapStyle } from '@/components/MapInner'
 
 // Group flat route stops into ordered steps; pins sharing a step are alternatives.
@@ -55,6 +56,7 @@ export default function Home() {
   const [communitySettingsId, setCommunitySettingsId] = useState<string | null>(null)
   const [showSearch, setShowSearch] = useState(false)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(false)
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   const [flyToTarget, setFlyToTarget] = useState<FlyToTarget | null>(null)
   const flyToCounter = useRef(0)
@@ -378,6 +380,25 @@ export default function Home() {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [fetchPins])
+
+  // First visit: one-time welcome (localStorage), unless the visitor arrived on
+  // a ?pin=/?route= deep link — never cover what someone was sent to see.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('pin') || params.get('route')) return
+    try {
+      if (!localStorage.getItem('mapcrowd.welcomeSeen')) setShowWelcome(true)
+    } catch {
+      // storage unavailable — skip rather than show on every visit
+    }
+  }, [])
+
+  const closeWelcome = useCallback(() => {
+    setShowWelcome(false)
+    try {
+      localStorage.setItem('mapcrowd.welcomeSeen', '1')
+    } catch {}
+  }, [])
 
   // Deep link: /?pin=<id> opens that pin and flies to it (once, on mount)
   useEffect(() => {
@@ -946,7 +967,8 @@ export default function Home() {
   const panelOpen = !!selectedCommunityObj
   const modalOpen =
     !!pendingLatLng || !!selectedPin || showAuthModal || showSearch ||
-    showCreateModal || !!communitySettingsId || showQuickAdd || routeBuilderOpen
+    showCreateModal || !!communitySettingsId || showQuickAdd || routeBuilderOpen ||
+    showWelcome
   const overlayOpen = panelOpen || modalOpen
 
   // Active route → ordered polyline path for the map
@@ -1032,6 +1054,7 @@ export default function Home() {
         onDeclineInvite={handleDeclineInvite}
         mobileOpen={showMobileSidebar}
         onMobileClose={() => setShowMobileSidebar(false)}
+        onShowWelcome={() => { setShowMobileSidebar(false); setShowWelcome(true) }}
         user={user}
         authReady={authReady}
         onSignIn={() => setShowAuthModal(true)}
@@ -1172,6 +1195,8 @@ export default function Home() {
             }}
           />
         )}
+
+        {showWelcome && <WelcomeModal onClose={closeWelcome} />}
 
         {showAuthModal && !user && (
           <AuthModal

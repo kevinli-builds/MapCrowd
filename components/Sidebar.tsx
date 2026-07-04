@@ -5,7 +5,7 @@ import {
   Bookmark, BookmarkCheck, Check, ChevronDown, ChevronRight,
   Compass, Folder, FolderPlus, LogOut, Lock, MapPin, Pencil, Plus,
   Search, Settings, Shield, Trash2, User2, ArrowUpRight, X, Newspaper, Route as RouteIcon,
-  Eye, EyeOff, Globe,
+  Eye, EyeOff, Globe, HelpCircle,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
@@ -81,6 +81,7 @@ interface SidebarProps {
   mobileOpen: boolean
   onMobileClose: () => void
   isAdmin?: boolean
+  onShowWelcome?: () => void
 }
 
 export default function Sidebar({
@@ -135,6 +136,7 @@ export default function Sidebar({
   mobileOpen,
   onMobileClose,
   isAdmin = false,
+  onShowWelcome,
 }: SidebarProps) {
   // ── Local UI state ──────────────────────────────────────────────────────
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
@@ -1052,6 +1054,17 @@ export default function Sidebar({
             Discover communities
             <ArrowUpRight className="ml-auto h-3 w-3 opacity-50" />
           </Link>
+
+          {/* Reopen the first-visit welcome */}
+          {onShowWelcome && (
+            <button
+              onClick={onShowWelcome}
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300"
+            >
+              <HelpCircle className="h-3.5 w-3.5 shrink-0" />
+              How MapCrowd works
+            </button>
+          )}
 
           {/* Live indicator */}
           <div className="flex items-center gap-2 px-2">
