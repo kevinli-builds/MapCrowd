@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import {
   X, Shield, UserPlus, UserMinus, Search, Loader2,
-  CheckCircle2, XCircle, Clock, Settings, Pencil, Users, Inbox, Lock, Mail, Trash2, AlertTriangle, AlertCircle, Globe, MapPin, Tag, Plus,
+  CheckCircle2, XCircle, Clock, Settings, Pencil, Users, Inbox, Lock, Mail, Trash2, AlertTriangle, AlertCircle, Globe, MapPin, Tag, Plus, Flag,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useDebounce } from '@/lib/hooks'
@@ -24,6 +24,25 @@ interface PendingPin {
   created_at: string
   user_id: string | null
   profile: { username: string; avatar_url: string | null } | null
+}
+
+interface ReportRow {
+  id: string
+  target_type: 'pin' | 'comment' | 'photo'
+  target_id: string
+  reason: string
+  detail: string | null
+  created_at: string
+  reporter: { username: string } | null
+  /** Snippet of the reported content, resolved client-side */
+  preview: string | null
+}
+
+const REPORT_REASON_LABELS: Record<string, string> = {
+  spam: 'Spam',
+  inappropriate: 'Inappropriate',
+  wrong_location: 'Wrong location',
+  other: 'Other',
 }
 
 interface CommunitySettingsModalProps {
@@ -277,6 +296,82 @@ export default function CommunitySettingsModal({
     const { error } = await supabase.from('pins').update({ status: 'rejected' }).eq('id', pinId)
     if (!error) setPendingPins((prev) => prev.filter((p) => p.id !== pinId))
     setActingOnPin(null)
+  }
+
+  // ── Reports (abuse queue) ──────────────────────────────────────────────────
+  const [reports, setReports] = useState<ReportRow[]>([])
+  const [loadingReports, setLoadingReports] = useState(true)
+  const [actingReportId, setActingReportId] = useState<string | null>(null)
+
+  const fetchReports = async () => {
+    setLoadingReports(true)
+    const { data } = await supabase
+      .from('reports')
+      .select('id, target_type, target_id, reason, detail, created_at, reporter:profiles!reports_reporter_id_fkey(username)')
+      .eq('community_id', community.id)
+      .is('resolved_at', null)
+      .order('created_at', { ascending: false })
+
+    const rows = ((data ?? []) as unknown as Array<Omit<ReportRow, 'reporter' | 'preview'> & {
+      reporter: { username: string } | { username: string }[] | null
+    }>).map((r) => ({
+      ...r,
+      reporter: Array.isArray(r.reporter) ? r.reporter[0] ?? null : r.reporter,
+      preview: null as string | null,
+    }))
+
+    // Resolve a short preview of each reported item so mods know what they're judging
+    const idsBy = (t: ReportRow['target_type']) => rows.filter((r) => r.target_type === t).map((r) => r.target_id)
+    const pinIds = idsBy('pin')
+    const commentIds = idsBy('comment')
+    const photoIds = idsBy('photo')
+    const emptyRes = Promise.resolve({ data: [] as { id: string; text: string | null }[] })
+    const [pinsR, commentsR, photosR] = await Promise.all([
+      pinIds.length ? supabase.from('pins').select('id, title').in('id', pinIds) : emptyRes,
+      commentIds.length ? supabase.from('comments').select('id, body').in('id', commentIds) : emptyRes,
+      photoIds.length ? supabase.from('pin_photos').select('id, caption').in('id', photoIds) : emptyRes,
+    ])
+    const previews = new Map<string, string>()
+    ;((pinsR.data ?? []) as { id: string; title: string }[]).forEach((p) => previews.set(p.id, p.title))
+    ;((commentsR.data ?? []) as { id: string; body: string }[]).forEach((c) => previews.set(c.id, c.body))
+    ;((photosR.data ?? []) as { id: string; caption: string | null }[]).forEach((p) => previews.set(p.id, p.caption ?? 'Photo'))
+
+    setReports(rows.map((r) => ({ ...r, preview: previews.get(r.target_id) ?? null })))
+    setLoadingReports(false)
+  }
+
+  useEffect(() => { fetchReports() }, [community.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Mark a report handled without touching the content (not a violation)
+  const handleDismissReport = async (id: string) => {
+    setActingReportId(id)
+    const { error } = await supabase
+      .from('reports')
+      .update({ resolved_at: new Date().toISOString(), resolved_by: currentUserId })
+      .eq('id', id)
+    if (!error) setReports((prev) => prev.filter((r) => r.id !== id))
+    setActingReportId(null)
+  }
+
+  // Delete the reported content, then resolve the report
+  const handleRemoveReported = async (report: ReportRow) => {
+    setActingReportId(report.id)
+    const table =
+      report.target_type === 'pin' ? 'pins'
+      : report.target_type === 'comment' ? 'comments'
+      : 'pin_photos'
+    const { error } = await supabase.from(table).delete().eq('id', report.target_id)
+    if (!error) {
+      await supabase
+        .from('reports')
+        .update({ resolved_at: new Date().toISOString(), resolved_by: currentUserId })
+        .eq('id', report.id)
+      setReports((prev) => prev.filter((r) => r.id !== report.id))
+      if (report.target_type === 'pin') {
+        setPendingPins((prev) => prev.filter((p) => p.id !== report.target_id))
+      }
+    }
+    setActingReportId(null)
   }
 
   // ── Rules state ──────────────────────────────────────────────────────────
@@ -660,7 +755,7 @@ export default function CommunitySettingsModal({
             onClick={() => setActiveTab('queue')}
             icon={<Inbox className="h-3.5 w-3.5" />}
             label="Queue"
-            badge={pendingPins.length}
+            badge={pendingPins.length + reports.length}
           />
           {(isOwner || isAdmin) && (
             <>
@@ -951,18 +1046,25 @@ export default function CommunitySettingsModal({
 
           {/* ── QUEUE tab ──────────────────────────────────────────────────── */}
           {activeTab === 'queue' && (
-            <div className="p-5">
+            <div className="p-5 space-y-6">
+              {/* ── Pending pins ── */}
+              <section>
+                <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <Inbox className="h-3.5 w-3.5" />
+                  Pending pins
+                  {pendingPins.length > 0 && (
+                    <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                      {pendingPins.length}
+                    </span>
+                  )}
+                </h3>
               {loadingQueue ? (
                 <div className="flex items-center gap-2 py-6 text-sm text-gray-600">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading queue…
                 </div>
               ) : pendingPins.length === 0 ? (
-                <div className="py-8 text-center">
-                  <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-green-600" />
-                  <p className="text-sm font-medium text-gray-400">All clear!</p>
-                  <p className="mt-1 text-xs text-gray-600">No pins waiting for review.</p>
-                </div>
+                <p className="py-2 text-xs text-gray-600">No pins waiting for review.</p>
               ) : (
                 <ul className="space-y-3">
                   {pendingPins.map((pin) => (
@@ -1022,6 +1124,84 @@ export default function CommunitySettingsModal({
                   ))}
                 </ul>
               )}
+              </section>
+
+              {/* ── Reports ── */}
+              <section className="border-t border-gray-800 pt-6">
+                <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <Flag className="h-3.5 w-3.5" />
+                  Reports
+                  {reports.length > 0 && (
+                    <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                      {reports.length}
+                    </span>
+                  )}
+                </h3>
+                {loadingReports ? (
+                  <div className="flex items-center gap-2 py-6 text-sm text-gray-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading reports…
+                  </div>
+                ) : reports.length === 0 ? (
+                  <p className="py-2 text-xs text-gray-600">No open reports.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {reports.map((report) => (
+                      <li
+                        key={report.id}
+                        className="rounded-xl border border-gray-800 bg-gray-800/40 p-4"
+                      >
+                        <div className="mb-1 flex items-start justify-between gap-2">
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+                            <Flag className="h-3 w-3" />
+                            {REPORT_REASON_LABELS[report.reason] ?? report.reason}
+                            <span className="font-normal text-gray-600">· {report.target_type}</span>
+                          </span>
+                          <span className="shrink-0 text-xs text-gray-600">{timeAgo(report.created_at)}</span>
+                        </div>
+                        <p className="mb-1 text-sm text-gray-300 line-clamp-2">
+                          {report.preview ?? <span className="italic text-gray-600">(content already removed)</span>}
+                        </p>
+                        {report.detail && (
+                          <p className="mb-2 text-xs italic text-gray-500 line-clamp-2">&ldquo;{report.detail}&rdquo;</p>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-600">
+                            Reported by {report.reporter?.username ?? 'anonymous'}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleDismissReport(report.id)}
+                              disabled={actingReportId === report.id}
+                              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-400 transition-colors hover:bg-gray-700 hover:text-gray-200 disabled:opacity-40"
+                            >
+                              {actingReportId === report.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              )}
+                              Dismiss
+                            </button>
+                            <button
+                              onClick={() => handleRemoveReported(report)}
+                              disabled={actingReportId === report.id || !report.preview}
+                              title={report.preview ? `Delete this ${report.target_type}` : 'Content already removed — dismiss instead'}
+                              className="flex items-center gap-1 rounded-lg bg-red-700/20 px-2.5 py-1 text-xs font-medium text-red-400 transition-colors hover:bg-red-600 hover:text-white disabled:opacity-40"
+                            >
+                              {actingReportId === report.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
             </div>
           )}
 

@@ -336,6 +336,23 @@ ALTER TABLE routes DROP CONSTRAINT IF EXISTS routes_folder_fk;
 ALTER TABLE routes ADD CONSTRAINT routes_folder_fk
   FOREIGN KEY (folder_id) REFERENCES route_folders(id) ON DELETE SET NULL;
 
+-- ── reports (abuse reports on a pin / comment / photo) ────────────────────────
+-- reporter_id nullable (anonymous). community_id is denormalised on insert by
+-- set_report_community() (SECTION 4) so mods can query + RLS can gate by community.
+CREATE TABLE IF NOT EXISTS public.reports (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id  UUID        REFERENCES profiles(id) ON DELETE SET NULL,
+  target_type  TEXT        NOT NULL CHECK (target_type IN ('pin', 'comment', 'photo')),
+  target_id    UUID        NOT NULL,
+  community_id UUID        REFERENCES communities(id) ON DELETE CASCADE,
+  reason       TEXT        NOT NULL CHECK (reason IN ('spam', 'inappropriate', 'wrong_location', 'other')),
+  detail       TEXT        CHECK (detail IS NULL OR char_length(detail) <= 500),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  resolved_at  TIMESTAMPTZ,
+  resolved_by  UUID        REFERENCES profiles(id) ON DELETE SET NULL
+);
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- SECTION 2 — SHARED HELPER FUNCTIONS
@@ -593,6 +610,17 @@ CREATE POLICY "route_pins_update_own" ON route_pins FOR UPDATE
   USING (EXISTS (SELECT 1 FROM routes r WHERE r.id = route_id AND r.user_id = auth.uid()));
 CREATE POLICY "route_pins_delete_own" ON route_pins FOR DELETE
   USING (EXISTS (SELECT 1 FROM routes r WHERE r.id = route_id AND r.user_id = auth.uid()));
+
+-- reports (anyone files; only mods of the target community read/resolve/delete)
+CREATE POLICY "reports_insert_anyone" ON reports FOR INSERT
+  WITH CHECK (reporter_id IS NULL OR reporter_id = auth.uid());
+CREATE POLICY "reports_select_mod" ON reports FOR SELECT
+  USING (public.is_site_admin() OR public.is_community_mod(community_id));
+CREATE POLICY "reports_update_mod" ON reports FOR UPDATE
+  USING      (public.is_site_admin() OR public.is_community_mod(community_id))
+  WITH CHECK (public.is_site_admin() OR public.is_community_mod(community_id));
+CREATE POLICY "reports_delete_mod" ON reports FOR DELETE
+  USING (public.is_site_admin() OR public.is_community_mod(community_id));
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -925,6 +953,34 @@ END; $$;
 
 GRANT EXECUTE ON FUNCTION public.add_mod_by_email TO authenticated;
 
+-- Resolve a report's community on insert (SECURITY DEFINER: reads pins/comments/
+-- pin_photos past RLS) and forbid pre-setting resolved_*.
+CREATE OR REPLACE FUNCTION public.set_report_community()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  NEW.community_id := CASE NEW.target_type
+    WHEN 'pin'     THEN (SELECT community_id FROM pins WHERE id = NEW.target_id)
+    WHEN 'comment' THEN (SELECT p.community_id FROM comments c JOIN pins p ON p.id = c.pin_id WHERE c.id = NEW.target_id)
+    WHEN 'photo'   THEN (SELECT p.community_id FROM pin_photos ph JOIN pins p ON p.id = ph.pin_id WHERE ph.id = NEW.target_id)
+  END;
+  IF NEW.community_id IS NULL THEN
+    RAISE EXCEPTION 'report target not found';
+  END IF;
+  NEW.resolved_at := NULL;
+  NEW.resolved_by := NULL;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_set_report_community ON reports;
+CREATE TRIGGER trg_set_report_community
+  BEFORE INSERT ON reports
+  FOR EACH ROW EXECUTE FUNCTION public.set_report_community();
+
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- SECTION 5 — INDEXES
@@ -943,6 +999,8 @@ CREATE INDEX IF NOT EXISTS community_tags_community_idx ON community_tags (commu
 CREATE INDEX IF NOT EXISTS pin_tags_tag_idx             ON pin_tags (tag_id);
 CREATE INDEX IF NOT EXISTS follows_follower_idx         ON follows (follower_id);
 CREATE INDEX IF NOT EXISTS follows_followee_idx         ON follows (followee_id);
+CREATE INDEX IF NOT EXISTS reports_open_idx   ON reports (community_id, created_at) WHERE resolved_at IS NULL;
+CREATE INDEX IF NOT EXISTS reports_target_idx ON reports (target_type, target_id);
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
