@@ -204,3 +204,44 @@ A one-time welcome overlay for brand-new visitors, per the site-wide pattern.
 - Signed-in users who already subscribe to ≥1 community should never see it
   (they are not new — check after subscriptions load, or just gate on the
   localStorage flag which covers the practical case).
+
+---
+
+## 6. Wave 2 — after the cold open (written 2026-07-04)
+
+_State at writing: abuse reporting (P0) and the welcome modal (section 5) are
+LIVE. Notifications, invite links, and PWA from section 1 remain. Verify
+state before building._
+
+### W1 — The retention pair (do together, refactor first)
+1. **Refactor precondition**: split `app/page.tsx` (~1,200 lines) into hooks
+   (`usePins`, `useCommunities`, `useRouteBuilder`, `useMapFilters`) per
+   section 3 — notifications add too much state to bolt onto the monolith.
+2. **Notifications + bell** (section 1 P1 spec) — triggers written in SQL so
+   clients can't forge rows; in-app center first, web push later.
+
+### W2 — Growth loop: invite links + Google Maps import ⭐
+- **Invite links** (section 1 P2 spec) — the viral join mechanism.
+- **NEW — Import your Google Maps saved places**: Google Takeout exports
+  saved lists as CSV/GeoJSON. An importer (client-side parse → bulk insert
+  into a private "Imported" community, then offer per-pin "publish to…")
+  converts years of accumulated personal geodata into MapCrowd content in
+  one sitting. This is the single best acquisition feature available —
+  everyone has a saved-places list and no way to share it as a map.
+  Respect rate limits (bulk insert via one RPC, not N inserts, to clear the
+  10/min pin trigger — add a SECURITY DEFINER `import_pins()` that batches).
+
+### W3 — Delights, in value order
+D2 scavenger hunts (route check-ins — the most on-mission) →
+D1 surprise-me dice → D6 community year-in-review → D4 pin postcards →
+D3 time-capsule pins → D5 one-year-ago feed items.
+
+### W4 — Embeddable community map (distribution)
+`/embed/[slug]` chrome-less route (map + pins only, "made with MapCrowd"
+footer) + an iframe snippet in community settings. Requires loosening
+`frame-ancestors` for that route only. Every blog embed is a live ad.
+
+### Tentative / parked
+- Web push (after in-app notifications prove engagement).
+- City ambassador program (ops, not code — starter-kit doc + seeded communities).
+- Algorithmic feed ranking; DMs — still no.
