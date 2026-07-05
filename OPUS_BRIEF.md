@@ -245,3 +245,51 @@ footer) + an iframe snippet in community settings. Requires loosening
 - Web push (after in-app notifications prove engagement).
 - City ambassador program (ops, not code — starter-kit doc + seeded communities).
 - Algorithmic feed ranking; DMs — still no.
+
+---
+
+## 7. Fable design notes — page.tsx decomposition blueprint (2026-07-04)
+
+_The §3/§6 refactor precondition, made concrete so it can be executed as a
+sequence of small, always-green PRs (parallel-session safe: each step is
+minutes, not hours, of uncommitted state)._
+
+Target: `app/page.tsx` (~1,240 lines) becomes <400 lines of orchestration.
+Extract in THIS order — each step independently shippable, build+tests green:
+
+1. **`hooks/useMapStyle.ts`** — mapStyle + localStorage persistence.
+   Trivial; proves the pattern and the import layout.
+2. **`hooks/useAuthUser.ts`** — user, authReady, myUsername, isAdmin, the
+   onAuthStateChange subscription. Everything downstream takes `user` as an
+   argument, not from context.
+3. **`hooks/useCommunities.ts`** — communities, subscribedIds,
+   modCommunityIds/ownedCommunityIds, pendingInvites, groups,
+   communityGroupMap + their fetchers and accept/decline/subscribe
+   handlers. Exposes `refetch` for modals to call.
+4. **`hooks/usePins.ts`** — pins, fetchPins, the realtime channel
+   (subscribe/cleanup lives HERE), savedPinIds + toggleSave, followedUserIds
+   + toggleFollow.
+5. **`hooks/useRouteBuilder.ts`** — the biggest and most isolated cluster:
+   routes, routeFolders, activeRouteId, routeStops, builderCommunityId,
+   routeTargetStep, externalRoute, routeGeometry/branchGeometry + the
+   debounced ORS recompute effect and every route handler. Nothing else
+   touches these; this step alone removes ~⅓ of the file.
+6. **`hooks/useMapFilters.ts`** — selectedCommunity, showSubscribedOnly,
+   showSavedOnly, hiddenCommunityIds (+persistence), activeFolderId,
+   selectedTagIds, and the `filteredPins` / `mapPins` derivations (wrap the
+   already-tested `selectVisiblePins`).
+
+Cross-cutting rules:
+- `selectedPin`, `flyToTarget`, and modal-visibility state STAY in page.tsx
+  — they are the coordination layer; hooks never import each other and
+  never own navigation.
+- Hooks communicate via arguments + returned handlers only (e.g.
+  `usePins(user)`), no shared context yet. Add a context/provider ONLY if
+  component prop counts still hurt afterwards — try grouped prop objects
+  (`sidebarProps`) first; Sidebar's 40-prop signature shrinks to ~6 groups.
+- The `overlayOpen`/`modalOpen` derivation stays in page.tsx and must list
+  every modal — grep for `setShow.*Modal|setShowWelcome|setShowQuickAdd`
+  when done to confirm none were orphaned.
+- After extraction, run the full manual loop once on the preview server:
+  select community → open pin → vote path → build a route → welcome modal
+  reopen. Then (and only then) tackle §3's Sidebar/PinDetailModal splits.
