@@ -165,28 +165,28 @@ export default function QuickAddSheet({
       className="absolute inset-0 z-[1200] flex items-end bg-black/50 sm:items-center sm:justify-center sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex w-full flex-col overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl sm:max-w-md sm:rounded-2xl" style={{ maxHeight: '90dvh' }}>
+      <div className="flex w-full flex-col overflow-hidden rounded-t-2xl border border-gray-200 bg-white shadow-2xl sm:max-w-md sm:rounded-2xl" style={{ maxHeight: '90dvh' }}>
         {/* Drag handle — mobile */}
         <div className="flex shrink-0 justify-center pt-3 pb-1 sm:hidden">
-          <div className="h-1 w-10 rounded-full bg-gray-700" />
+          <div className="h-1 w-10 rounded-full bg-gray-200" />
         </div>
 
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-800 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4">
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-indigo-400" />
-            <h2 className="font-semibold text-white">Quick add</h2>
+            <Zap className="h-4 w-4 text-indigo-600" />
+            <h2 className="font-semibold text-gray-900">Quick add</h2>
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setShowHelp(true)}
               title="How quick-add works"
               aria-label="How quick-add works"
-              className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-800 hover:text-indigo-400"
+              className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-indigo-600"
             >
               <HelpCircle className="h-4 w-4" />
             </button>
-            <button onClick={onClose} className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-800 hover:text-white">
+            <button onClick={onClose} className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -196,8 +196,8 @@ export default function QuickAddSheet({
         {showHelp ? (
           <div className="flex-1 overflow-y-auto p-5">
             <div className="mb-4 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-indigo-400" />
-              <h3 className="text-base font-semibold text-white">How quick-add works</h3>
+              <Sparkles className="h-5 w-5 text-indigo-600" />
+              <h3 className="text-base font-semibold text-gray-900">How quick-add works</h3>
             </div>
             <ol className="space-y-3">
               {[
@@ -207,17 +207,17 @@ export default function QuickAddSheet({
                 { icon: <Plus className="h-4 w-4" />, t: 'Tap Add — done', d: 'Need photos, an event, or a link? Use “More options” to open the full form, pre-filled with everything you chose.' },
               ].map((step, i) => (
                 <li key={i} className="flex gap-3">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 text-indigo-300">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 text-indigo-700">
                     {step.icon}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-white">{step.t}</p>
+                    <p className="text-sm font-medium text-gray-900">{step.t}</p>
                     <p className="text-xs leading-relaxed text-gray-500">{step.d}</p>
                   </div>
                 </li>
               ))}
             </ol>
-            <p className="mt-4 text-xs text-gray-600">
+            <p className="mt-4 text-xs text-gray-400">
               Tip: location works best outdoors / on mobile. You can always drop a pin by tapping the map instead.
             </p>
             <button
@@ -232,8 +232,8 @@ export default function QuickAddSheet({
           {/* No pinnable communities */}
           {pinnable.length === 0 ? (
             <div className="py-6 text-center">
-              <Lock className="mx-auto mb-2 h-7 w-7 text-gray-600" />
-              <p className="text-sm text-gray-400">
+              <Lock className="mx-auto mb-2 h-7 w-7 text-gray-400" />
+              <p className="text-sm text-gray-600">
                 {userId ? 'You can’t pin in any community yet — subscribe to one first.' : 'Sign in to drop pins.'}
               </p>
               {!userId && (
@@ -246,7 +246,7 @@ export default function QuickAddSheet({
             <>
               {/* Community */}
               <div>
-                <label className="mb-1.5 block text-sm text-gray-400">Community</label>
+                <label className="mb-1.5 block text-sm text-gray-600">Community</label>
                 <div className="flex flex-wrap gap-2">
                   {pinnable.map((c) => {
                     const active = c.id === communityId
@@ -270,14 +270,14 @@ export default function QuickAddSheet({
 
               {/* Where are you? */}
               <div>
-                <label className="mb-1.5 block text-sm text-gray-400">Where are you?</label>
+                <label className="mb-1.5 block text-sm text-gray-600">Where are you?</label>
 
                 {locating ? (
-                  <div className="flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-800 px-3 py-3 text-sm text-gray-400">
+                  <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-100 px-3 py-3 text-sm text-gray-600">
                     <Loader2 className="h-4 w-4 animate-spin" /> Finding your location…
                   </div>
                 ) : geoError ? (
-                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-400">
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-500">
                     {geoError}
                   </div>
                 ) : (
@@ -287,20 +287,20 @@ export default function QuickAddSheet({
                       type="button"
                       onClick={chooseMyLocation}
                       className={`flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors ${
-                        chosenKey === 'me' ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-700 hover:border-gray-600'
+                        chosenKey === 'me' ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <LocateFixed className={`h-4 w-4 shrink-0 ${chosenKey === 'me' ? 'text-indigo-400' : 'text-gray-500'}`} />
+                      <LocateFixed className={`h-4 w-4 shrink-0 ${chosenKey === 'me' ? 'text-indigo-600' : 'text-gray-500'}`} />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-white">My exact location</p>
+                        <p className="text-sm font-medium text-gray-900">My exact location</p>
                         <p className="truncate text-xs text-gray-500">{address ?? 'Dropped at your GPS position'}</p>
                       </div>
-                      {chosenKey === 'me' && <Check className="h-4 w-4 shrink-0 text-indigo-400" />}
+                      {chosenKey === 'me' && <Check className="h-4 w-4 shrink-0 text-indigo-600" />}
                     </button>
 
                     {/* Nearby suggestions */}
                     {loadingSuggestions && suggestions.length === 0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 text-xs text-gray-600">
+                      <div className="flex items-center gap-2 px-3 py-2 text-xs text-gray-400">
                         <Loader2 className="h-3.5 w-3.5 animate-spin" /> Looking for places nearby…
                       </div>
                     )}
@@ -312,15 +312,15 @@ export default function QuickAddSheet({
                           type="button"
                           onClick={() => chooseSuggestion(s)}
                           className={`flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors ${
-                            active ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-700 hover:border-gray-600'
+                            active ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          <MapPin className={`h-4 w-4 shrink-0 ${active ? 'text-indigo-400' : 'text-gray-500'}`} />
+                          <MapPin className={`h-4 w-4 shrink-0 ${active ? 'text-indigo-600' : 'text-gray-500'}`} />
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-white">{s.name}</p>
+                            <p className="truncate text-sm font-medium text-gray-900">{s.name}</p>
                             <p className="truncate text-xs capitalize text-gray-500">{s.category} · {formatDistance(s.dist)}</p>
                           </div>
-                          {active && <Check className="h-4 w-4 shrink-0 text-indigo-400" />}
+                          {active && <Check className="h-4 w-4 shrink-0 text-indigo-600" />}
                         </button>
                       )
                     })}
@@ -330,8 +330,8 @@ export default function QuickAddSheet({
 
               {/* Title */}
               <div>
-                <label className="mb-1 block text-sm text-gray-400">
-                  Title <span className="text-red-400">*</span>
+                <label className="mb-1 block text-sm text-gray-600">
+                  Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   ref={titleRef}
@@ -340,14 +340,14 @@ export default function QuickAddSheet({
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={selectedCommunity ? `What’s here? (${selectedCommunity.name})` : 'What is here?'}
                   maxLength={100}
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
               {!userId && selectedCommunity && (
                 <p className="text-xs text-gray-500">Posting anonymously.</p>
               )}
-              {error && <p className="text-sm text-red-400">{error}</p>}
+              {error && <p className="text-sm text-red-500">{error}</p>}
             </>
           )}
         </div>
@@ -355,7 +355,7 @@ export default function QuickAddSheet({
 
         {/* Footer */}
         {!showHelp && pinnable.length > 0 && (
-          <div className="shrink-0 border-t border-gray-800 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div className="shrink-0 border-t border-gray-200 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
@@ -367,7 +367,7 @@ export default function QuickAddSheet({
             <button
               onClick={() => onMoreOptions(targetLat ?? 0, targetLng ?? 0, title.trim(), communityId || null)}
               disabled={targetLat == null}
-              className="mt-2 flex w-full items-center justify-center gap-1 py-1.5 text-xs text-gray-500 transition-colors hover:text-gray-300 disabled:opacity-40"
+              className="mt-2 flex w-full items-center justify-center gap-1 py-1.5 text-xs text-gray-500 transition-colors hover:text-gray-700 disabled:opacity-40"
             >
               More options (photos, event, details)
               <ChevronRight className="h-3.5 w-3.5" />

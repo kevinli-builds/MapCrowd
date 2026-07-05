@@ -104,13 +104,13 @@ export default function SearchModal({
 
   return (
     <div
-      className="absolute inset-0 z-[1300] flex items-start justify-center bg-black/60 pt-[12vh] backdrop-blur-sm"
+      className="absolute inset-0 z-[1300] flex items-start justify-center bg-black/30 pt-[12vh] backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="mx-4 w-full max-w-xl overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl">
+      <div className="mx-4 w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
 
         {/* ── Search input ───────────────────────────────────────────────── */}
-        <div className="flex items-center gap-3 border-b border-gray-800 px-4 py-3.5">
+        <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3.5">
           <Search className="h-4 w-4 shrink-0 text-gray-500" />
           <input
             ref={inputRef}
@@ -118,10 +118,10 @@ export default function SearchModal({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search pins and communities…"
-            className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 outline-none"
+            className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
           />
-          {loading && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-gray-600" />}
-          <button onClick={onClose} className="shrink-0 text-gray-600 transition-colors hover:text-gray-400">
+          {loading && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-gray-400" />}
+          <button onClick={onClose} className="shrink-0 text-gray-400 transition-colors hover:text-gray-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -130,20 +130,20 @@ export default function SearchModal({
         <div className="max-h-[50vh] overflow-y-auto">
           {query.trim().length < 1 ? (
             /* Empty state */
-            <div className="px-4 py-10 text-center text-sm text-gray-600">
+            <div className="px-4 py-10 text-center text-sm text-gray-400">
               Type to search pins and communities
             </div>
           ) : communityResults.length === 0 && pinResults.length === 0 && !loading ? (
             /* No results */
-            <div className="px-4 py-10 text-center text-sm text-gray-600">
-              No results for &ldquo;<span className="text-gray-400">{query}</span>&rdquo;
+            <div className="px-4 py-10 text-center text-sm text-gray-400">
+              No results for &ldquo;<span className="text-gray-600">{query}</span>&rdquo;
             </div>
           ) : (
             <>
               {/* Community results */}
               {communityResults.length > 0 && (
                 <div>
-                  <p className="flex items-center gap-1.5 px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                  <p className="flex items-center gap-1.5 px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
                     <Users className="h-3 w-3" /> Communities
                   </p>
                   {communityResults.map((c, i) => (
@@ -152,7 +152,7 @@ export default function SearchModal({
                       onClick={() => handleSelect(i)}
                       onMouseEnter={() => setActiveIndex(i)}
                       className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                        activeIndex === i ? 'bg-gray-800' : 'hover:bg-gray-800/50'
+                        activeIndex === i ? 'bg-gray-100' : 'hover:bg-gray-100/50'
                       }`}
                     >
                       <span
@@ -162,10 +162,10 @@ export default function SearchModal({
                         {c.icon}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-white">{c.name}</p>
-                        <p className="text-xs text-gray-600">c/{c.slug}</p>
+                        <p className="truncate text-sm font-medium text-gray-900">{c.name}</p>
+                        <p className="text-xs text-gray-400">c/{c.slug}</p>
                       </div>
-                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-600" />
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-400" />
                     </button>
                   ))}
                 </div>
@@ -174,7 +174,7 @@ export default function SearchModal({
               {/* Pin results */}
               {pinResults.length > 0 && (
                 <div>
-                  <p className="flex items-center gap-1.5 px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                  <p className="flex items-center gap-1.5 px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
                     <MapPin className="h-3 w-3" /> Pins
                   </p>
                   {pinResults.map((pin, i) => {
@@ -186,7 +186,7 @@ export default function SearchModal({
                         onClick={() => handleSelect(idx)}
                         onMouseEnter={() => setActiveIndex(idx)}
                         className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                          activeIndex === idx ? 'bg-gray-800' : 'hover:bg-gray-800/50'
+                          activeIndex === idx ? 'bg-gray-100' : 'hover:bg-gray-100/50'
                         }`}
                       >
                         {comm ? (
@@ -197,17 +197,17 @@ export default function SearchModal({
                             {comm.icon}
                           </span>
                         ) : (
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-base">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-base">
                             📍
                           </span>
                         )}
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-white">{pin.title}</p>
-                          <p className="truncate text-xs text-gray-600">
+                          <p className="truncate text-sm font-medium text-gray-900">{pin.title}</p>
+                          <p className="truncate text-xs text-gray-400">
                             {comm?.name ?? 'Unknown'} · {pin.lat.toFixed(3)}, {pin.lng.toFixed(3)}
                           </p>
                         </div>
-                        <span className={`shrink-0 text-xs font-bold tabular-nums ${voteColorClass(pin.vote_count, 'text-gray-600')}`}>
+                        <span className={`shrink-0 text-xs font-bold tabular-nums ${voteColorClass(pin.vote_count, 'text-gray-400')}`}>
                           {formatVoteCount(pin.vote_count)}
                         </span>
                       </button>
@@ -221,10 +221,10 @@ export default function SearchModal({
                 <div className="space-y-1 px-4 py-3">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="flex animate-pulse items-center gap-3 py-1.5">
-                      <div className="h-8 w-8 rounded-lg bg-gray-800" />
+                      <div className="h-8 w-8 rounded-lg bg-gray-100" />
                       <div className="flex-1 space-y-1.5">
-                        <div className="h-3 w-2/3 rounded bg-gray-800" />
-                        <div className="h-2.5 w-1/3 rounded bg-gray-800" />
+                        <div className="h-3 w-2/3 rounded bg-gray-100" />
+                        <div className="h-2.5 w-1/3 rounded bg-gray-100" />
                       </div>
                     </div>
                   ))}
@@ -235,10 +235,10 @@ export default function SearchModal({
         </div>
 
         {/* ── Keyboard hints ─────────────────────────────────────────────── */}
-        <div className="flex items-center gap-4 border-t border-gray-800 px-4 py-2.5 text-xs text-gray-700">
-          <span><kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-500">↑↓</kbd> navigate</span>
-          <span><kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-500">↵</kbd> select</span>
-          <span><kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-500">esc</kbd> close</span>
+        <div className="flex items-center gap-4 border-t border-gray-200 px-4 py-2.5 text-xs text-gray-700">
+          <span><kbd className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-500">↑↓</kbd> navigate</span>
+          <span><kbd className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-500">↵</kbd> select</span>
+          <span><kbd className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-500">esc</kbd> close</span>
         </div>
       </div>
     </div>

@@ -8,10 +8,10 @@ import type { FlyToTarget, MapStyle } from './MapInner'
 const MapInner = dynamic(() => import('./MapInner'), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-gray-800">
+    <div className="flex h-full w-full items-center justify-center bg-gray-100">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-600 border-t-indigo-500" />
-        <span className="text-sm text-gray-400">Loading map…</span>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-indigo-500" />
+        <span className="text-sm text-gray-600">Loading map…</span>
       </div>
     </div>
   ),

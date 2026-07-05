@@ -1007,7 +1007,7 @@ export default function Home() {
   }, [activeRoute, routeCanEdit, builderCommunityId, pins, routeStops, filteredPins])
 
   return (
-    <div className="flex h-full overflow-hidden bg-gray-950">
+    <div className="flex h-full overflow-hidden bg-gray-50">
       <Sidebar
         communities={communities}
         pins={pins}
@@ -1067,7 +1067,7 @@ export default function Home() {
         {/* Hamburger — mobile only; hidden whenever any overlay owns the screen */}
         <button
           onClick={() => setShowMobileSidebar(true)}
-          className={`fixed left-4 top-4 z-[1100] flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 shadow-lg border border-gray-700 text-gray-300 hover:text-white transition-colors ${overlayOpen ? 'hidden' : 'md:hidden'}`}
+          className={`fixed left-4 top-4 z-[1100] flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-lg border border-gray-200 text-gray-700 hover:text-gray-900 transition-colors ${overlayOpen ? 'hidden' : 'md:hidden'}`}
           aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
@@ -1103,7 +1103,7 @@ export default function Home() {
         {!overlayOpen && (
           <div className="absolute right-4 bottom-20 z-[1100] flex flex-col items-end gap-2 md:bottom-8">
             {locationError && (
-              <div className="rounded-lg border border-red-500/30 bg-gray-900 px-3 py-1.5 text-xs text-red-400 shadow-lg">
+              <div className="rounded-lg border border-red-500/30 bg-white px-3 py-1.5 text-xs text-red-500 shadow-lg">
                 {locationError}
               </div>
             )}
@@ -1111,7 +1111,7 @@ export default function Home() {
               onClick={handleNearMe}
               disabled={locating}
               title="Fly to my location"
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-700 bg-gray-900 text-gray-300 shadow-lg transition-colors hover:border-indigo-500 hover:text-white disabled:opacity-50"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-lg transition-colors hover:border-indigo-500 hover:text-gray-900 disabled:opacity-50"
             >
               {locating
                 ? <Loader2 className="h-4 w-4 animate-spin" />

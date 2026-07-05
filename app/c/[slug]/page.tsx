@@ -19,7 +19,7 @@ function PinCard({ pin }: { pin: Pin & { comment_count?: number } }) {
   const voteColor = voteColorClass(pin.vote_count)
 
   return (
-    <li className="rounded-xl border border-gray-800 bg-gray-800/30 p-4 transition-colors hover:border-gray-700 hover:bg-gray-800/60">
+    <li className="rounded-xl border border-gray-200 bg-gray-100/30 p-4 transition-colors hover:border-gray-200 hover:bg-gray-100/60">
       <div className="flex items-start gap-3">
         {/* Vote score */}
         <div className={`shrink-0 text-center ${voteColor}`}>
@@ -30,18 +30,18 @@ function PinCard({ pin }: { pin: Pin & { comment_count?: number } }) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-white leading-snug">{pin.title}</h3>
+          <h3 className="font-semibold text-gray-900 leading-snug">{pin.title}</h3>
           {pin.description && (
             <p className="mt-1 text-sm text-gray-500 line-clamp-2">{pin.description}</p>
           )}
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
             {pin.profile?.username && (
               <span>
                 by{' '}
                 <Link
                   href={`/u/${pin.profile.username}`}
-                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                  className="text-gray-600 hover:text-indigo-600 transition-colors"
                 >
                   {pin.profile.username}
                 </Link>
@@ -179,7 +179,7 @@ export default function CommunityPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-950">
+      <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
       </div>
     )
@@ -187,16 +187,16 @@ export default function CommunityPage() {
 
   if (notFound || !community) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-950 text-gray-400">
-        <AlertCircle className="h-12 w-12 text-gray-600" />
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-50 text-gray-600">
+        <AlertCircle className="h-12 w-12 text-gray-400" />
         <p className="text-lg font-medium">Community not found</p>
-        <Link href="/" className="text-indigo-400 hover:underline">← Back to map</Link>
+        <Link href="/" className="text-indigo-600 hover:underline">← Back to map</Link>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* ── Color banner header ─────────────────────────────────────────── */}
       <div
         className="relative"
@@ -206,7 +206,7 @@ export default function CommunityPage() {
         <div className="mx-auto max-w-2xl px-4 pt-5">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-white"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-600 transition-colors hover:text-gray-900"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to map
@@ -223,25 +223,25 @@ export default function CommunityPage() {
               {community.icon}
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">{community.name}</h1>
-              <p className="mt-0.5 text-sm text-gray-400">c/{community.slug}</p>
+              <h1 className="text-3xl font-bold text-gray-900">{community.name}</h1>
+              <p className="mt-0.5 text-sm text-gray-600">c/{community.slug}</p>
             </div>
           </div>
 
           {community.description && (
-            <p className="mb-6 text-gray-300 leading-relaxed">{community.description}</p>
+            <p className="mb-6 text-gray-700 leading-relaxed">{community.description}</p>
           )}
 
           {/* Stats row */}
           <div className="flex flex-wrap items-center gap-6 mb-6">
             <div className="text-center">
-              <p className="text-2xl font-bold text-white">{formatCount(pinCount)}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCount(pinCount)}</p>
               <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                 <MapPin className="h-3 w-3" /> Pins
               </p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-white">{formatCount(subscriberCount)}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCount(subscriberCount)}</p>
               <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                 <Users className="h-3 w-3" /> Subscribers
               </p>
@@ -271,17 +271,17 @@ export default function CommunityPage() {
       </div>
 
       {/* ── Community rules ─────────────────────────────────────────────── */}
-      <div className="border-b border-gray-800 bg-gray-900">
+      <div className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-2xl px-4 py-4">
           <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
             <span className="flex items-center gap-1.5">
               <Lock className="h-3.5 w-3.5" />
-              <span className="font-medium text-gray-300">Who can pin:</span>
+              <span className="font-medium text-gray-700">Who can pin:</span>
               {WHO_CAN_PIN_LABELS[community.who_can_pin]}
             </span>
             <span className="flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5" />
-              <span className="font-medium text-gray-300">Pin lifespan:</span>
+              <span className="font-medium text-gray-700">Pin lifespan:</span>
               {PIN_DURATION_LABELS[community.default_pin_duration]}
             </span>
             {community.require_approval && (
@@ -300,7 +300,7 @@ export default function CommunityPage() {
           <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
             <RouteIcon className="h-4 w-4" />
             Routes
-            <span className="rounded-full bg-gray-800 px-2 py-0.5 text-gray-400">{routes.length}</span>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">{routes.length}</span>
           </h2>
           <ul className="grid gap-3 sm:grid-cols-2">
             {routes.map((r) => {
@@ -309,7 +309,7 @@ export default function CommunityPage() {
                 <li key={r.id}>
                   <Link
                     href={`/?route=${r.id}`}
-                    className="flex items-center gap-3 rounded-xl border border-gray-800 bg-gray-900/60 p-3 transition-colors hover:border-gray-700 hover:bg-gray-900"
+                    className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white/60 p-3 transition-colors hover:border-gray-200 hover:bg-white"
                   >
                     <span
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
@@ -318,7 +318,7 @@ export default function CommunityPage() {
                       <RouteIcon className="h-4 w-4" style={{ color: r.color }} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-white">{r.name}</p>
+                      <p className="truncate text-sm font-semibold text-gray-900">{r.name}</p>
                       <p className="truncate text-xs text-gray-500">
                         {stopCount} {stopCount === 1 ? 'stop' : 'stops'}
                       </p>
@@ -336,16 +336,16 @@ export default function CommunityPage() {
         <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
           <MapPin className="h-4 w-4" />
           Recent Pins
-          <span className="rounded-full bg-gray-800 px-2 py-0.5 text-gray-400">{pinCount}</span>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">{pinCount}</span>
         </h2>
 
         {pins.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-800 py-16 text-center">
+          <div className="rounded-xl border border-dashed border-gray-200 py-16 text-center">
             <MapPin className="mx-auto mb-3 h-8 w-8 text-gray-700" />
             <p className="text-gray-500">No pins yet — be the first to drop one!</p>
             <Link
               href="/"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm text-indigo-400 hover:underline"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:underline"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Go to the map
             </Link>

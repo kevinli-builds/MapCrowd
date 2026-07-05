@@ -349,10 +349,10 @@ export default function AddPinModal({
   if (submitted) {
     return (
       <div className="absolute inset-0 z-[1200] flex items-center justify-center bg-black/50 p-4">
-        <div className="w-full max-w-md rounded-2xl border border-gray-700 bg-gray-900 p-8 text-center shadow-2xl">
-          <CheckCircle2 className="mx-auto mb-4 h-10 w-10 text-amber-400" />
-          <h3 className="mb-2 text-lg font-bold text-white">Pin submitted!</h3>
-          <p className="text-sm text-gray-400">
+        <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-2xl">
+          <CheckCircle2 className="mx-auto mb-4 h-10 w-10 text-amber-500" />
+          <h3 className="mb-2 text-lg font-bold text-gray-900">Pin submitted!</h3>
+          <p className="text-sm text-gray-600">
             Your pin is in the moderation queue. It will appear on the map once a mod approves it.
           </p>
         </div>
@@ -365,20 +365,20 @@ export default function AddPinModal({
       className="absolute inset-0 z-[1200] flex items-end bg-black/50 sm:items-center sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex w-full flex-col overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl sm:max-w-md sm:rounded-2xl" style={{ maxHeight: '90dvh' }}>
+      <div className="flex w-full flex-col overflow-hidden rounded-t-2xl border border-gray-200 bg-white shadow-2xl sm:max-w-md sm:rounded-2xl" style={{ maxHeight: '90dvh' }}>
         {/* Drag handle — visible on mobile only */}
         <div className="flex shrink-0 justify-center pt-3 pb-1 sm:hidden">
-          <div className="h-1 w-10 rounded-full bg-gray-700" />
+          <div className="h-1 w-10 rounded-full bg-gray-200" />
         </div>
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-800 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4">
           <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-indigo-400" />
-            <h2 className="font-semibold text-white">Drop a Pin</h2>
+            <MapPin className="h-4 w-4 text-indigo-600" />
+            <h2 className="font-semibold text-gray-900">Drop a Pin</h2>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-800 hover:text-white"
+            className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
             <X className="h-4 w-4" />
           </button>
@@ -389,7 +389,7 @@ export default function AddPinModal({
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {/* Location search */}
             <div className="relative">
-              <label className="mb-1.5 block text-sm text-gray-400">Location</label>
+              <label className="mb-1.5 block text-sm text-gray-600">Location</label>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
                 {locationFetching && (
@@ -406,22 +406,22 @@ export default function AddPinModal({
                   onFocus={() => { if (!suppressLocationSearch.current && locationResults.length > 0) setLocationOpen(true) }}
                   onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
                   placeholder="Search address or place name…"
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2.5 pl-9 pr-9 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-100 py-2.5 pl-9 pr-9 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
               {/* Dropdown */}
               {locationOpen && locationResults.length > 0 && (
-                <ul className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-lg border border-gray-700 bg-gray-900 shadow-xl">
+                <ul className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl">
                   {locationResults.map((result) => (
                     <li key={result.place_id}>
                       <button
                         type="button"
                         onMouseDown={(e) => { e.preventDefault(); handleLocationSelect(result) }}
-                        className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-800"
+                        className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-100"
                       >
-                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-400" />
-                        <span className="text-gray-300 leading-snug">{result.display_name}</span>
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-600" />
+                        <span className="text-gray-700 leading-snug">{result.display_name}</span>
                       </button>
                     </li>
                   ))}
@@ -429,7 +429,7 @@ export default function AddPinModal({
               )}
 
               {/* Coordinate readout */}
-              <p className="mt-1.5 font-mono text-xs text-gray-600">
+              <p className="mt-1.5 font-mono text-xs text-gray-400">
                 📍 {pinLat.toFixed(4)}, {pinLng.toFixed(4)}
                 {!selectedPlace && (
                   <span className="ml-2 not-italic text-gray-700 font-sans">(map click)</span>
@@ -439,7 +439,7 @@ export default function AddPinModal({
 
             {/* Community picker */}
             <div>
-              <label className="mb-2 block text-sm text-gray-400">Community</label>
+              <label className="mb-2 block text-sm text-gray-600">Community</label>
 
               {/* Filter — shown once there are enough communities to be worth it */}
               {communities.length > 8 && (
@@ -450,7 +450,7 @@ export default function AddPinModal({
                     value={communityQuery}
                     onChange={(e) => setCommunityQuery(e.target.value)}
                     placeholder={`Filter ${communities.length} communities…`}
-                    className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2 pl-9 pr-3 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-100 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
               )}
@@ -478,7 +478,7 @@ export default function AddPinModal({
                     >
                       <span className="text-lg">{c.icon}</span>
                       <span className="flex-1 truncate">{c.name}</span>
-                      {!allowed && <Lock className="h-3 w-3 shrink-0 text-gray-600" />}
+                      {!allowed && <Lock className="h-3 w-3 shrink-0 text-gray-400" />}
                     </button>
                   )
                 })}
@@ -488,7 +488,7 @@ export default function AddPinModal({
                   <button
                     type="button"
                     onClick={onCreateCommunity}
-                    className="flex items-center gap-2 rounded-lg border border-dashed border-gray-700 p-2.5 text-left text-sm font-medium text-gray-400 transition-colors hover:border-indigo-500 hover:text-indigo-300"
+                    className="flex items-center gap-2 rounded-lg border border-dashed border-gray-200 p-2.5 text-left text-sm font-medium text-gray-600 transition-colors hover:border-indigo-500 hover:text-indigo-700"
                   >
                     <Plus className="h-4 w-4 shrink-0" />
                     <span className="flex-1 truncate">New community</span>
@@ -497,7 +497,7 @@ export default function AddPinModal({
               </div>
 
               {selectedCommunity && selectedCommunity.who_can_pin !== 'anyone' && (
-                <p className="mt-2 flex items-center gap-1 text-xs text-gray-600">
+                <p className="mt-2 flex items-center gap-1 text-xs text-gray-400">
                   <Lock className="h-3 w-3" />
                   {userCanPin
                     ? `Open to ${WHO_CAN_PIN_LABELS[selectedCommunity.who_can_pin].toLowerCase()}`
@@ -509,11 +509,11 @@ export default function AddPinModal({
             {/* Tag picker — shown only when the community has tags defined */}
             {(loadingTags || availableTags.length > 0) && (
               <div>
-                <label className="mb-2 block text-sm text-gray-400">
-                  Tags <span className="text-gray-600">(optional)</span>
+                <label className="mb-2 block text-sm text-gray-600">
+                  Tags <span className="text-gray-400">(optional)</span>
                 </label>
                 {loadingTags ? (
-                  <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                  <div className="flex items-center gap-1.5 text-xs text-gray-400">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading tags…
                   </div>
                 ) : (
@@ -544,8 +544,8 @@ export default function AddPinModal({
 
             {/* Title */}
             <div>
-              <label className="mb-1 block text-sm text-gray-400">
-                Title <span className="text-red-400">*</span>
+              <label className="mb-1 block text-sm text-gray-600">
+                Title <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -554,14 +554,14 @@ export default function AddPinModal({
                 placeholder={selectedCommunity ? `Title for your ${selectedCommunity.name} pin…` : 'What is here?'}
                 maxLength={100}
                 required
-                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="mb-1 block text-sm text-gray-400">
-                Details <span className="text-gray-600">(optional)</span>
+              <label className="mb-1 block text-sm text-gray-600">
+                Details <span className="text-gray-400">(optional)</span>
               </label>
               <textarea
                 value={description}
@@ -569,14 +569,14 @@ export default function AddPinModal({
                 placeholder="Add more info…"
                 rows={3}
                 maxLength={500}
-                className="w-full resize-none rounded-lg border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full resize-none rounded-lg border border-gray-200 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
 
             {/* Link */}
             <div>
-              <label className="mb-1 block text-sm text-gray-400">
-                Link <span className="text-gray-600">(optional)</span>
+              <label className="mb-1 block text-sm text-gray-600">
+                Link <span className="text-gray-400">(optional)</span>
               </label>
               <input
                 type="url"
@@ -585,23 +585,23 @@ export default function AddPinModal({
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://…"
                 maxLength={500}
-                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
 
             {/* Address */}
             <div>
-              <label className="mb-1 block text-sm text-gray-400">
-                Address <span className="text-gray-600">(optional)</span>
+              <label className="mb-1 block text-sm text-gray-600">
+                Address <span className="text-gray-400">(optional)</span>
               </label>
               <div className="relative">
-                <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+                <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Auto-filled from the place — refine it if needed"
                   maxLength={200}
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2.5 pl-9 pr-3 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-100 py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -616,8 +616,8 @@ export default function AddPinModal({
                 }}
                 className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
                   isEvent
-                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300'
-                    : 'border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400'
+                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-700'
+                    : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-600'
                 }`}
               >
                 <Calendar className="h-4 w-4 shrink-0" />
@@ -630,8 +630,8 @@ export default function AddPinModal({
               {isEvent && (
                 <div className="mt-3 space-y-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-gray-400">
-                      Start date &amp; time <span className="text-red-400">*</span>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-600">
+                      Start date &amp; time <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="datetime-local"
@@ -639,12 +639,12 @@ export default function AddPinModal({
                       onChange={(e) => setEventDate(e.target.value)}
                       required={isEvent}
                       style={{ colorScheme: 'dark' }}
-                      className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-gray-400">
-                      End time <span className="text-gray-600">(optional)</span>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-600">
+                      End time <span className="text-gray-400">(optional)</span>
                     </label>
                     <input
                       type="datetime-local"
@@ -652,14 +652,14 @@ export default function AddPinModal({
                       onChange={(e) => setEventEndDate(e.target.value)}
                       min={eventDate || undefined}
                       style={{ colorScheme: 'dark' }}
-                      className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-gray-400">
+                    <label className="mb-1.5 block text-xs font-medium text-gray-600">
                       <span className="flex items-center gap-1.5">
                         <Users className="h-3.5 w-3.5" />
-                        Capacity <span className="text-gray-600">(optional)</span>
+                        Capacity <span className="text-gray-400">(optional)</span>
                       </span>
                     </label>
                     <input
@@ -668,7 +668,7 @@ export default function AddPinModal({
                       onChange={(e) => setEventCapacity(e.target.value)}
                       min={1}
                       placeholder="No limit"
-                      className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
                 </div>
@@ -678,7 +678,7 @@ export default function AddPinModal({
             {/* Sign-in prompt for anonymous users in restricted communities */}
             {!userId && selectedCommunity && selectedCommunity.who_can_pin !== 'anyone' && (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3">
-                <p className="text-sm text-indigo-300">
+                <p className="text-sm text-indigo-700">
                   Sign in to pin in <strong className="font-semibold">{selectedCommunity.name}</strong>
                 </p>
                 {onSignIn && (
@@ -696,8 +696,8 @@ export default function AddPinModal({
 
             {/* Photo upload — authenticated users only */}
             {userId && <div>
-              <label className="mb-2 block text-sm text-gray-400">
-                Photos <span className="text-gray-600">(optional, up to 5)</span>
+              <label className="mb-2 block text-sm text-gray-600">
+                Photos <span className="text-gray-400">(optional, up to 5)</span>
               </label>
 
               {photoPreviews.length > 0 && (
@@ -708,12 +708,12 @@ export default function AddPinModal({
                       <img
                         src={src}
                         alt=""
-                        className="h-20 w-20 rounded-lg object-cover border border-gray-700"
+                        className="h-20 w-20 rounded-lg object-cover border border-gray-200"
                       />
                       <button
                         type="button"
                         onClick={() => removePhoto(i)}
-                        className="absolute -right-1.5 -top-1.5 rounded-full bg-gray-900 text-gray-400 hover:text-red-400"
+                        className="absolute -right-1.5 -top-1.5 rounded-full bg-white text-gray-600 hover:text-red-500"
                       >
                         <XCircle className="h-4 w-4" />
                       </button>
@@ -735,7 +735,7 @@ export default function AddPinModal({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-700 py-3 text-sm text-gray-500 transition-colors hover:border-indigo-500 hover:text-indigo-400"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-200 py-3 text-sm text-gray-500 transition-colors hover:border-indigo-500 hover:text-indigo-600"
                   >
                     <ImagePlus className="h-4 w-4" />
                     {photos.length === 0 ? 'Add photos' : 'Add more photos'}
@@ -749,11 +749,11 @@ export default function AddPinModal({
               <div className="space-y-1.5">
                 {/* Anonymous posting notice */}
                 {!userId && selectedCommunity.who_can_pin === 'anyone' && (
-                  <div className="flex items-center gap-2 rounded-lg bg-gray-800 px-3 py-2 text-xs text-gray-400">
+                  <div className="flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-xs text-gray-600">
                     <LogIn className="h-3.5 w-3.5 shrink-0" />
                     Posting anonymously
                     {onSignIn && (
-                      <button type="button" onClick={onSignIn} className="ml-auto text-indigo-400 underline hover:text-indigo-300">
+                      <button type="button" onClick={onSignIn} className="ml-auto text-indigo-600 underline hover:text-indigo-700">
                         Sign in instead
                       </button>
                     )}
@@ -761,7 +761,7 @@ export default function AddPinModal({
                 )}
                 {/* Geo restriction: pin is outside the area → warn + explain approval */}
                 {isOutsideGeo && geoRestriction && (
-                  <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
+                  <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     <span>
                       This location is outside{' '}
@@ -771,7 +771,7 @@ export default function AddPinModal({
                   </div>
                 )}
                 {hasDuration && durationLabel && (
-                  <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
+                  <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
                     <Clock className="h-3.5 w-3.5 shrink-0" />
                     This pin will auto-expire in {durationLabel}
                   </div>
@@ -786,15 +786,15 @@ export default function AddPinModal({
               </div>
             )}
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="text-sm text-red-500">{error}</p>}
           </div>
 
           {/* Actions */}
-          <div className="shrink-0 flex gap-3 border-t border-gray-800 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div className="shrink-0 flex gap-3 border-t border-gray-200 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-xl border border-gray-700 py-3 text-sm font-medium text-gray-400 transition-colors hover:border-gray-600 hover:text-gray-300"
+              className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:text-gray-700"
             >
               Cancel
             </button>

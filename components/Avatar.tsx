@@ -35,7 +35,7 @@ export default function Avatar({
     />
   ) : (
     <div
-      className={`shrink-0 flex items-center justify-center font-bold text-white ${className}`}
+      className={`shrink-0 flex items-center justify-center font-bold text-gray-900 ${className}`}
       style={{ backgroundColor: avatarColor(userId) }}
     >
       {username.slice(0, chars).toUpperCase()}

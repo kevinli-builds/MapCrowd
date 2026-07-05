@@ -14,12 +14,12 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   }, [error])
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-950 px-6 text-center">
+    <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-50 px-6 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/15">
-        <AlertTriangle className="h-6 w-6 text-red-400" />
+        <AlertTriangle className="h-6 w-6 text-red-500" />
       </div>
       <div>
-        <h1 className="text-lg font-bold text-white">Something went wrong</h1>
+        <h1 className="text-lg font-bold text-gray-900">Something went wrong</h1>
         <p className="mt-1 max-w-sm text-sm text-gray-500">
           The map hit an unexpected error. Trying again usually fixes it — your data is safe.
         </p>
@@ -34,7 +34,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         </button>
         <a
           href="/"
-          className="rounded-xl border border-gray-700 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-gray-600 hover:text-white"
+          className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-gray-300 hover:text-gray-900"
         >
           Reload map
         </a>

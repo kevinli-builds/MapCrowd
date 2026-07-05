@@ -97,8 +97,8 @@ function ReportControl({
       <span
         className={
           compact
-            ? 'flex items-center gap-1 text-[10px] text-gray-600'
-            : 'flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-600'
+            ? 'flex items-center gap-1 text-[10px] text-gray-400'
+            : 'flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-400'
         }
         title="Thanks — a moderator will review this"
       >
@@ -115,8 +115,8 @@ function ReportControl({
         title="Report to moderators"
         className={
           compact
-            ? 'shrink-0 rounded p-0.5 text-gray-700 transition-colors hover:text-amber-400 disabled:opacity-40'
-            : 'flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-800 hover:text-amber-400 disabled:opacity-40'
+            ? 'shrink-0 rounded p-0.5 text-gray-700 transition-colors hover:text-amber-500 disabled:opacity-40'
+            : 'flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-amber-500 disabled:opacity-40'
         }
       >
         {state === 'sending'
@@ -125,7 +125,7 @@ function ReportControl({
         {!compact && <span className="hidden sm:inline">Report</span>}
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-10 mt-1 w-44 overflow-hidden rounded-lg border border-gray-700 bg-gray-800 py-1 shadow-xl">
+        <div className="absolute right-0 top-full z-10 mt-1 w-44 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 py-1 shadow-xl">
           <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
             Report this {targetType}
           </p>
@@ -133,7 +133,7 @@ function ReportControl({
             <button
               key={r.value}
               onClick={() => submit(r.value)}
-              className="block w-full px-3 py-1.5 text-left text-xs text-gray-300 transition-colors hover:bg-gray-700 hover:text-white"
+              className="block w-full px-3 py-1.5 text-left text-xs text-gray-700 transition-colors hover:bg-gray-200 hover:text-gray-900"
             >
               {r.label}
             </button>
@@ -518,16 +518,16 @@ export default function PinDetailModal({
   return (
     /* Full-screen backdrop — bottom sheet on mobile, centred modal on sm+ */
     <div
-      className="absolute inset-0 z-[1200] flex items-end bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
+      className="absolute inset-0 z-[1200] flex items-end bg-black/30 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="flex w-full flex-col overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl sm:max-w-lg sm:rounded-2xl"
+        className="flex w-full flex-col overflow-hidden rounded-t-2xl border border-gray-200 bg-white shadow-2xl sm:max-w-lg sm:rounded-2xl"
         style={{ maxHeight: '90dvh' }}
       >
         {/* Drag handle — mobile only */}
         <div className="flex shrink-0 justify-center pt-3 pb-1 sm:hidden">
-          <div className="h-1 w-10 rounded-full bg-gray-700" />
+          <div className="h-1 w-10 rounded-full bg-gray-200" />
         </div>
         {/* ── Community banner (sticky) ────────────────────────────────── */}
         <div
@@ -547,7 +547,7 @@ export default function PinDetailModal({
                 onClick={() => onToggleSave(pin.id)}
                 title={isSaved ? 'Saved — tap to remove' : 'Save pin'}
                 className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors ${
-                  isSaved ? 'text-indigo-400' : 'text-gray-500 hover:bg-gray-800 hover:text-indigo-400'
+                  isSaved ? 'text-indigo-600' : 'text-gray-500 hover:bg-gray-100 hover:text-indigo-600'
                 }`}
               >
                 {isSaved ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
@@ -559,7 +559,7 @@ export default function PinDetailModal({
               onClick={handleCopyLink}
               title="Copy link to this pin"
               className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors ${
-                copied ? 'text-green-400' : 'text-gray-500 hover:bg-gray-800 hover:text-indigo-400'
+                copied ? 'text-green-600' : 'text-gray-500 hover:bg-gray-100 hover:text-indigo-600'
               }`}
             >
               {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
@@ -573,7 +573,7 @@ export default function PinDetailModal({
               <button
                 onClick={() => setEditing(true)}
                 title="Edit pin"
-                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-800 hover:text-indigo-400"
+                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-indigo-600"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Edit</span>
@@ -588,7 +588,7 @@ export default function PinDetailModal({
                 className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium transition-all ${
                   confirmDelete
                     ? 'bg-red-600 text-white'
-                    : 'text-gray-500 hover:bg-red-600/10 hover:text-red-400'
+                    : 'text-gray-500 hover:bg-red-600/10 hover:text-red-500'
                 }`}
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -599,7 +599,7 @@ export default function PinDetailModal({
               <button
                 onClick={() => { onGoToPin(); onClose() }}
                 title="Go to pin on map"
-                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-400 transition-colors hover:bg-gray-800 hover:text-indigo-400"
+                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-indigo-600"
               >
                 <Navigation className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Go to pin</span>
@@ -607,7 +607,7 @@ export default function PinDetailModal({
             )}
             <button
               onClick={onClose}
-              className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-800 hover:text-white"
+              className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
             >
               <X className="h-4 w-4" />
             </button>
@@ -627,7 +627,7 @@ export default function PinDetailModal({
                 onError={() => setPhotoError(true)}
               />
             ) : (
-              <div className="flex h-full items-center justify-center gap-2 text-gray-600">
+              <div className="flex h-full items-center justify-center gap-2 text-gray-400">
                 <ImageOff className="h-6 w-6" />
                 <span className="text-sm">Photo unavailable</span>
               </div>
@@ -638,14 +638,14 @@ export default function PinDetailModal({
                 <button
                   onClick={() => { setPhotoIndex((i) => Math.max(0, i - 1)); setPhotoError(false) }}
                   disabled={photoIndex === 0}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-black/70 disabled:opacity-30"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-gray-900 backdrop-blur-sm transition-colors hover:bg-black/30 disabled:opacity-30"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => { setPhotoIndex((i) => Math.min(photos.length - 1, i + 1)); setPhotoError(false) }}
                   disabled={photoIndex === photos.length - 1}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-black/70 disabled:opacity-30"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-gray-900 backdrop-blur-sm transition-colors hover:bg-black/30 disabled:opacity-30"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -676,7 +676,7 @@ export default function PinDetailModal({
                   onChange={(e) => setEditTitle(e.target.value)}
                   maxLength={100}
                   placeholder="Title"
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm font-semibold text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
                 <textarea
                   value={editDescription}
@@ -684,7 +684,7 @@ export default function PinDetailModal({
                   rows={3}
                   maxLength={500}
                   placeholder="Details (optional)"
-                  className="w-full resize-none rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full resize-none rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
                 <input
                   type="url"
@@ -693,19 +693,19 @@ export default function PinDetailModal({
                   onChange={(e) => setEditUrl(e.target.value)}
                   maxLength={500}
                   placeholder="https://… (optional link)"
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
                 <div className="relative">
-                  <Navigation className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-600" />
+                  <Navigation className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
                   <input
                     value={editAddress}
                     onChange={(e) => setEditAddress(e.target.value)}
                     maxLength={200}
                     placeholder="Address (optional — overrides the auto one)"
-                    className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2 pl-9 pr-3 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-100 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
-                {editError && <p className="text-xs text-red-400">{editError}</p>}
+                {editError && <p className="text-xs text-red-500">{editError}</p>}
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
@@ -716,7 +716,7 @@ export default function PinDetailModal({
                       setEditAddress(pin.address ?? '')
                       setEditError(null)
                     }}
-                    className="flex items-center gap-1 rounded-lg border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-400 transition-colors hover:text-gray-200"
+                    className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:text-gray-800"
                   >
                     <X className="h-3.5 w-3.5" /> Cancel
                   </button>
@@ -731,7 +731,7 @@ export default function PinDetailModal({
                 </div>
               </div>
             ) : (
-              <h3 className="text-lg font-semibold text-white">{pin.title}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{pin.title}</h3>
             )}
             <div className="mt-1 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
               <span className="flex items-center gap-1">
@@ -746,7 +746,7 @@ export default function PinDetailModal({
                     by{' '}
                     <Link
                       href={`/u/${pin.profile.username}`}
-                      className="font-medium text-gray-400 hover:text-indigo-400 transition-colors"
+                      className="font-medium text-gray-600 hover:text-indigo-600 transition-colors"
                     >
                       {pin.profile.username}
                     </Link>
@@ -764,8 +764,8 @@ export default function PinDetailModal({
                     }}
                     className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${
                       following
-                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-400 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400'
-                        : 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20'
+                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-500 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-500'
+                        : 'border-indigo-500/40 bg-indigo-500/10 text-indigo-700 hover:bg-indigo-500/20'
                     }`}
                   >
                     {following
@@ -777,17 +777,17 @@ export default function PinDetailModal({
               {/* Address / coordinates row — author-set address wins over the live geocode */}
               <span className="w-full flex items-center gap-1 min-w-0">
                 {!pin.address && loadingAddress ? (
-                  <span className="h-3 rounded bg-gray-800 animate-pulse" style={{ width: '55%' }} />
+                  <span className="h-3 rounded bg-gray-100 animate-pulse" style={{ width: '55%' }} />
                 ) : (pin.address || address) ? (
                   <>
-                    <Navigation className="h-3 w-3 shrink-0 text-gray-600" />
+                    <Navigation className="h-3 w-3 shrink-0 text-gray-400" />
                     <span className="flex-1 truncate text-gray-500">{pin.address || address}</span>
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${pin.lat},${pin.lng}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="shrink-0 ml-1 flex items-center gap-0.5 text-indigo-400 hover:text-indigo-300 transition-colors"
+                      className="shrink-0 ml-1 flex items-center gap-0.5 text-indigo-600 hover:text-indigo-700 transition-colors"
                     >
                       <ExternalLink className="h-3 w-3" />
                       <span>Maps</span>
@@ -803,7 +803,7 @@ export default function PinDetailModal({
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="shrink-0 ml-1 flex items-center gap-0.5 text-indigo-400 hover:text-indigo-300 transition-colors"
+                      className="shrink-0 ml-1 flex items-center gap-0.5 text-indigo-600 hover:text-indigo-700 transition-colors"
                     >
                       <ExternalLink className="h-3 w-3" />
                       <span>Maps</span>
@@ -828,7 +828,7 @@ export default function PinDetailModal({
                   {canDelete && (
                     <button
                       onClick={() => setEditingTags((v) => !v)}
-                      className="ml-auto flex items-center gap-1 text-xs text-gray-600 transition-colors hover:text-indigo-400"
+                      className="ml-auto flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-indigo-600"
                     >
                       {editingTags ? (
                         <><Check className="h-3 w-3" /> Done</>
@@ -842,11 +842,11 @@ export default function PinDetailModal({
                 {/* Editor mode: all community tags as toggle chips */}
                 {editingTags ? (
                   loadingCommunityTags ? (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
                     </div>
                   ) : communityTags.length === 0 ? (
-                    <p className="text-xs italic text-gray-600">
+                    <p className="text-xs italic text-gray-400">
                       No tags defined for this community yet. Ask a mod to add some in Community Settings → Tags.
                     </p>
                   ) : (
@@ -897,13 +897,13 @@ export default function PinDetailModal({
                   </div>
                 ) : (
                   /* canDelete but no tags and not editing: nothing shown in the chip area */
-                  <p className="text-xs italic text-gray-600">None — click &ldquo;Add tags&rdquo; to tag this pin</p>
+                  <p className="text-xs italic text-gray-400">None — click &ldquo;Add tags&rdquo; to tag this pin</p>
                 )}
               </div>
             )}
 
             {!editing && pin.description && (
-              <p className="mb-4 text-sm leading-relaxed text-gray-400">{pin.description}</p>
+              <p className="mb-4 text-sm leading-relaxed text-gray-600">{pin.description}</p>
             )}
 
             {/* External link */}
@@ -913,7 +913,7 @@ export default function PinDetailModal({
                 target="_blank"
                 rel="noopener noreferrer nofollow"
                 onClick={(e) => e.stopPropagation()}
-                className="mb-4 flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-sm font-medium text-indigo-300 transition-colors hover:bg-indigo-500/20"
+                className="mb-4 flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-500/20"
               >
                 <Link2 className="h-4 w-4 shrink-0" />
                 <span className="flex-1 truncate">{safeUrl.replace(/^https?:\/\/(www\.)?/i, '')}</span>
@@ -925,9 +925,9 @@ export default function PinDetailModal({
             {pin.event_date && (
               <div className="mb-4 rounded-xl border border-indigo-500/25 bg-indigo-500/5 p-4">
                 <div className="flex items-start gap-3">
-                  <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-indigo-400" />
+                  <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white leading-snug">
+                    <p className="text-sm font-medium text-gray-900 leading-snug">
                       {formatEventDate(pin.event_date, pin.event_end_date)}
                     </p>
                     {isEventPast && (
@@ -936,10 +936,10 @@ export default function PinDetailModal({
 
                     <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
                       {/* Attendee count */}
-                      <span className="flex items-center gap-1.5 text-sm text-gray-400">
+                      <span className="flex items-center gap-1.5 text-sm text-gray-600">
                         <Users className="h-3.5 w-3.5 shrink-0" />
                         {rsvpLoading ? (
-                          <span className="h-3 w-16 rounded bg-gray-800 animate-pulse inline-block" />
+                          <span className="h-3 w-16 rounded bg-gray-100 animate-pulse inline-block" />
                         ) : pin.event_capacity ? (
                           <>{rsvpCount} / {pin.event_capacity} going</>
                         ) : (
@@ -957,8 +957,8 @@ export default function PinDetailModal({
                               userGoing
                                 ? 'bg-indigo-600 text-white hover:bg-indigo-500'
                                 : (!pin.event_capacity || rsvpCount < pin.event_capacity)
-                                  ? 'bg-gray-800 text-gray-300 hover:bg-indigo-600/20 hover:text-indigo-300'
-                                  : 'cursor-not-allowed bg-gray-800 text-gray-600'
+                                  ? 'bg-gray-100 text-gray-700 hover:bg-indigo-600/20 hover:text-indigo-700'
+                                  : 'cursor-not-allowed bg-gray-100 text-gray-400'
                             }`}
                           >
                             {rsvpToggling ? (
@@ -974,7 +974,7 @@ export default function PinDetailModal({
                         ) : (
                           <button
                             onClick={() => onSignIn?.()}
-                            className="flex items-center gap-1.5 rounded-lg bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-400 transition-colors hover:bg-indigo-600/20 hover:text-indigo-300"
+                            className="flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-indigo-600/20 hover:text-indigo-700"
                           >
                             Sign in to RSVP
                           </button>
@@ -983,7 +983,7 @@ export default function PinDetailModal({
                     </div>
 
                     {rsvpError && (
-                      <p className="mt-2 text-xs text-red-400">{rsvpError}</p>
+                      <p className="mt-2 text-xs text-red-500">{rsvpError}</p>
                     )}
                   </div>
                 </div>
@@ -991,8 +991,8 @@ export default function PinDetailModal({
             )}
 
             {/* Voting row */}
-            <div className="flex items-center gap-3 border-t border-gray-800 pt-4">
-              <span className="text-sm text-gray-400">Helpful?</span>
+            <div className="flex items-center gap-3 border-t border-gray-200 pt-4">
+              <span className="text-sm text-gray-600">Helpful?</span>
               <div className="ml-auto flex items-center gap-2">
                 {user ? (
                   <>
@@ -1002,7 +1002,7 @@ export default function PinDetailModal({
                       className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                         userVote === 1
                           ? 'bg-green-600 text-white'
-                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-green-400'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-green-600'
                       } disabled:opacity-60`}
                     >
                       <ThumbsUp className="h-4 w-4" />
@@ -1017,7 +1017,7 @@ export default function PinDetailModal({
                       className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                         userVote === -1
                           ? 'bg-red-600 text-white'
-                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-red-400'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-red-500'
                       } disabled:opacity-60`}
                     >
                       <ThumbsDown className="h-4 w-4" />
@@ -1031,7 +1031,7 @@ export default function PinDetailModal({
                     </span>
                     <button
                       onClick={() => onSignIn?.()}
-                      className="flex items-center gap-1.5 rounded-lg bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-400 transition-colors hover:bg-indigo-600/20 hover:text-indigo-300"
+                      className="flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-indigo-600/20 hover:text-indigo-700"
                     >
                       <ThumbsUp className="h-4 w-4" />
                       Sign in to vote
@@ -1042,7 +1042,7 @@ export default function PinDetailModal({
             </div>
 
             {/* ── Comments ──────────────────────────────────────────────── */}
-            <div className="mt-5 border-t border-gray-800 pt-5">
+            <div className="mt-5 border-t border-gray-200 pt-5">
               <h4 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                 <MessageSquare className="h-3.5 w-3.5" />
                 {loadingComments ? 'Comments' : `${comments.length} Comment${comments.length !== 1 ? 's' : ''}`}
@@ -1052,16 +1052,16 @@ export default function PinDetailModal({
                 <div className="space-y-3">
                   {[1, 2].map((i) => (
                     <div key={i} className="flex gap-3 animate-pulse">
-                      <div className="h-7 w-7 shrink-0 rounded-full bg-gray-800" />
+                      <div className="h-7 w-7 shrink-0 rounded-full bg-gray-100" />
                       <div className="flex-1 space-y-1.5">
-                        <div className="h-3 w-24 rounded bg-gray-800" />
-                        <div className="h-3 w-full rounded bg-gray-800" />
+                        <div className="h-3 w-24 rounded bg-gray-100" />
+                        <div className="h-3 w-full rounded bg-gray-100" />
                       </div>
                     </div>
                   ))}
                 </div>
               ) : comments.length === 0 ? (
-                <p className="py-4 text-center text-sm text-gray-600">
+                <p className="py-4 text-center text-sm text-gray-400">
                   No comments yet — be the first!
                 </p>
               ) : (
@@ -1085,21 +1085,21 @@ export default function PinDetailModal({
                             {comment.profile?.username ? (
                               <Link
                                 href={`/u/${comment.profile.username}`}
-                                className="text-xs font-semibold text-gray-300 hover:text-indigo-400 transition-colors"
+                                className="text-xs font-semibold text-gray-700 hover:text-indigo-600 transition-colors"
                               >
                                 {comment.profile.username}
                               </Link>
                             ) : (
-                              <span className="text-xs font-semibold text-gray-300">Unknown</span>
+                              <span className="text-xs font-semibold text-gray-700">Unknown</span>
                             )}
-                            <span className="text-[10px] text-gray-600">
+                            <span className="text-[10px] text-gray-400">
                               {timeAgo(comment.created_at)}
                             </span>
                             {canDeleteComment && !isTemp && (
                               <button
                                 onClick={() => handleDeleteComment(comment.id)}
                                 disabled={deletingId === comment.id}
-                                className="ml-auto shrink-0 rounded p-0.5 text-gray-700 transition-colors hover:text-red-400 disabled:opacity-40"
+                                className="ml-auto shrink-0 rounded p-0.5 text-gray-700 transition-colors hover:text-red-500 disabled:opacity-40"
                               >
                                 <Trash2 className="h-3 w-3" />
                               </button>
@@ -1111,7 +1111,7 @@ export default function PinDetailModal({
                               </span>
                             )}
                           </div>
-                          <p className="mt-0.5 text-sm leading-relaxed text-gray-400 break-words">
+                          <p className="mt-0.5 text-sm leading-relaxed text-gray-600 break-words">
                             {comment.body}
                           </p>
                         </div>
@@ -1126,7 +1126,7 @@ export default function PinDetailModal({
         </div>
 
         {/* ── Comment input (sticky footer) ─────────────────────────────── */}
-        <div className="shrink-0 border-t border-gray-800 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="shrink-0 border-t border-gray-200 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           {user ? (
             <div className="flex items-end gap-2">
               <Avatar
@@ -1145,7 +1145,7 @@ export default function PinDetailModal({
                 placeholder="Add a comment… (Ctrl+Enter to post)"
                 rows={1}
                 maxLength={1000}
-                className="flex-1 resize-none rounded-xl border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="flex-1 resize-none rounded-xl border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 style={{ minHeight: 36, maxHeight: 120 }}
               />
               <button
@@ -1157,16 +1157,16 @@ export default function PinDetailModal({
               </button>
             </div>
           ) : (
-            <p className="text-center text-xs text-gray-600">
+            <p className="text-center text-xs text-gray-400">
               {onSignIn ? (
                 <button
                   onClick={onSignIn}
-                  className="text-indigo-400 hover:underline"
+                  className="text-indigo-600 hover:underline"
                 >
                   Sign in
                 </button>
               ) : (
-                <span className="text-indigo-400">Sign in</span>
+                <span className="text-indigo-600">Sign in</span>
               )}
               {' '}to join the conversation
             </p>

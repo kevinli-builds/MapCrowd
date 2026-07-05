@@ -109,13 +109,13 @@ export default function RouteBuilder({
   ]
   // Read-only viewer: only the Stops list, no add tabs.
   const renderTabs = () => !canEdit ? null : (
-    <div className="flex shrink-0 gap-1 border-b border-gray-800 p-2">
+    <div className="flex shrink-0 gap-1 border-b border-gray-200 p-2">
       {tabs.map((t) => (
         <button
           key={t.id}
           onClick={() => setTab(t.id)}
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
-            tab === t.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            tab === t.id ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
         >
           {t.icon}
@@ -130,19 +130,19 @@ export default function RouteBuilder({
     steps.length === 0 ? (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-6 py-10 text-center">
         <MapPinned className="h-8 w-8 text-gray-700" />
-        <p className="text-sm font-medium text-gray-400">No stops yet</p>
-        <p className="text-xs leading-relaxed text-gray-600">
-          Use <span className="font-semibold text-gray-400">From community</span> to add existing
-          pins, or <span className="font-semibold text-gray-400">From map</span> to tap them.
+        <p className="text-sm font-medium text-gray-600">No stops yet</p>
+        <p className="text-xs leading-relaxed text-gray-400">
+          Use <span className="font-semibold text-gray-600">From community</span> to add existing
+          pins, or <span className="font-semibold text-gray-600">From map</span> to tap them.
         </p>
       </div>
     ) : (
-      <ul className="divide-y divide-gray-800/60">
+      <ul className="divide-y divide-gray-200/60">
         {steps.map((g, i) => (
           <li key={g.step} className="px-3 py-2.5">
             <div className="flex gap-2">
               <span
-                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-gray-900"
                 style={{ backgroundColor: route.color }}
               >
                 {i + 1}
@@ -150,17 +150,17 @@ export default function RouteBuilder({
               <div className="min-w-0 flex-1">
                 {g.pins.map((pin, k) => (
                   <div key={pin.id}>
-                    {k > 0 && <p className="my-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">or</p>}
+                    {k > 0 && <p className="my-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">or</p>}
                     <div className="flex items-center gap-2">
                       <button onClick={() => onFlyToPin(pin)} className="min-w-0 flex-1 text-left">
-                        <p className="truncate text-sm font-medium text-white">{pin.title}</p>
+                        <p className="truncate text-sm font-medium text-gray-900">{pin.title}</p>
                         {pin.community && (
                           <p className="truncate text-xs text-gray-500">{pin.community.icon} {pin.community.name}</p>
                         )}
                       </button>
                       {canEdit && (
                         <button onClick={() => onRemoveStop(pin.id)} title="Remove"
-                          className="shrink-0 rounded p-1 text-gray-600 transition-colors hover:text-red-400">
+                          className="shrink-0 rounded p-1 text-gray-400 transition-colors hover:text-red-500">
                           <X className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -169,7 +169,7 @@ export default function RouteBuilder({
                 ))}
                 {canEdit && (
                   <button onClick={() => startAddAlternative(g.step)}
-                    className="mt-1 flex items-center gap-1 text-xs font-medium text-indigo-400 transition-colors hover:text-indigo-300">
+                    className="mt-1 flex items-center gap-1 text-xs font-medium text-indigo-600 transition-colors hover:text-indigo-700">
                     <Plus className="h-3 w-3" /> Add alternative
                   </button>
                 )}
@@ -179,25 +179,25 @@ export default function RouteBuilder({
                   <button
                     onClick={() => onToggleEqualOptions(g.step)}
                     title="Draw all of this step's options as equal dashed branches (no solid default), instead of one main stop + dashed fallbacks."
-                    className="mt-1.5 flex items-start gap-1.5 text-left text-[11px] font-medium text-gray-400 transition-colors hover:text-gray-200"
+                    className="mt-1.5 flex items-start gap-1.5 text-left text-[11px] font-medium text-gray-600 transition-colors hover:text-gray-800"
                   >
                     <span className={`mt-px flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${
-                      g.equalOptions ? 'border-indigo-400 bg-indigo-500' : 'border-gray-600'
+                      g.equalOptions ? 'border-indigo-400 bg-indigo-500' : 'border-gray-300'
                     }`}>
-                      {g.equalOptions && <Check className="h-2.5 w-2.5 text-white" />}
+                      {g.equalOptions && <Check className="h-2.5 w-2.5 text-gray-900" />}
                     </span>
-                    <span>Equal options <span className="text-gray-600">— dash all, no default</span></span>
+                    <span>Equal options <span className="text-gray-400">— dash all, no default</span></span>
                   </button>
                 )}
               </div>
               {canEdit && (
                 <div className="flex shrink-0 flex-col items-center">
                   <button onClick={() => onMoveStep(g.step, -1)} disabled={i === 0} title="Move step up"
-                    className="rounded p-1 text-gray-600 transition-colors hover:text-gray-300 disabled:opacity-30">
+                    className="rounded p-1 text-gray-400 transition-colors hover:text-gray-700 disabled:opacity-30">
                     <ChevronUp className="h-4 w-4" />
                   </button>
                   <button onClick={() => onMoveStep(g.step, 1)} disabled={i === steps.length - 1} title="Move step down"
-                    className="rounded p-1 text-gray-600 transition-colors hover:text-gray-300 disabled:opacity-30">
+                    className="rounded p-1 text-gray-400 transition-colors hover:text-gray-700 disabled:opacity-30">
                     <ChevronDown className="h-4 w-4" />
                   </button>
                 </div>
@@ -227,7 +227,7 @@ export default function RouteBuilder({
         <select
           value={pickedCommunityId ?? ''}
           onChange={(e) => setPickedCommunityId(e.target.value || null)}
-          className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
           {communities.length === 0 && <option value="">No communities</option>}
           {communities.map((c) => (
@@ -235,29 +235,29 @@ export default function RouteBuilder({
           ))}
         </select>
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search pins in this community…"
-            className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2 pl-9 pr-3 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-gray-200 bg-gray-100 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
-        <p className="text-xs text-gray-600">Tap a pin to add it — or tap it on the map.</p>
+        <p className="text-xs text-gray-400">Tap a pin to add it — or tap it on the map.</p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {communityPins.length === 0 ? (
-          <p className="px-3 py-6 text-center text-xs text-gray-600">
+          <p className="px-3 py-6 text-center text-xs text-gray-400">
             {pickedCommunityId ? 'No matching pins in this community yet.' : 'Pick a community above.'}
           </p>
         ) : (
-          <ul className="divide-y divide-gray-800/60">
+          <ul className="divide-y divide-gray-200/60">
             {communityPins.map((p) => {
               const added = addedIds.has(p.id)
               return (
                 <li key={p.id} className="flex items-center gap-2 px-3 py-2.5">
                   <button onClick={() => onFlyToPin(p)} className="min-w-0 flex-1 text-left">
-                    <p className="truncate text-sm font-medium text-white">{p.title}</p>
+                    <p className="truncate text-sm font-medium text-gray-900">{p.title}</p>
                     {p.description && <p className="truncate text-xs text-gray-500">{p.description}</p>}
                   </button>
                   <button
@@ -265,7 +265,7 @@ export default function RouteBuilder({
                     disabled={added}
                     className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                       added
-                        ? 'cursor-default bg-green-600/15 text-green-400'
+                        ? 'cursor-default bg-green-600/15 text-green-600'
                         : 'bg-indigo-600 text-white hover:bg-indigo-500'
                     }`}
                   >
@@ -286,12 +286,12 @@ export default function RouteBuilder({
       {addingBanner && <div className="p-3">{addingBanner}</div>}
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
         <MapPinned className="h-8 w-8 text-gray-700" />
-        <p className="text-sm font-medium text-gray-400">Tap pins on the map</p>
-        <p className="text-xs leading-relaxed text-gray-600">
+        <p className="text-sm font-medium text-gray-600">Tap pins on the map</p>
+        <p className="text-xs leading-relaxed text-gray-400">
           {targetStep != null ? (
-            <>Each pin you tap becomes an <span className="font-semibold text-gray-400">alternative</span> for step {targetStepNumber}.</>
+            <>Each pin you tap becomes an <span className="font-semibold text-gray-600">alternative</span> for step {targetStepNumber}.</>
           ) : (
-            <>Each pin you tap is added to <span className="font-semibold text-gray-400">{route.name}</span> as a new step. Switch to <span className="font-semibold text-gray-400">Stops</span> to reorder.</>
+            <>Each pin you tap is added to <span className="font-semibold text-gray-600">{route.name}</span> as a new step. Switch to <span className="font-semibold text-gray-600">Stops</span> to reorder.</>
           )}
         </p>
       </div>
@@ -311,11 +311,11 @@ export default function RouteBuilder({
   // ── Top bar — anchored to the left column on desktop (w-96), full width on mobile ──
   const topBar = (
     <div
-      className="pointer-events-auto relative z-20 flex w-full shrink-0 items-center gap-2 border-b border-gray-800 bg-gray-900/95 px-3 py-2.5 backdrop-blur-sm md:w-96"
+      className="pointer-events-auto relative z-20 flex w-full shrink-0 items-center gap-2 border-b border-gray-200 bg-white/95 px-3 py-2.5 backdrop-blur-sm md:w-96"
       style={{ boxShadow: `inset 0 -2px 0 ${route.color}` }}
     >
       <button onClick={onClose} title="Back to map"
-        className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-800 hover:text-white">
+        className="rounded-lg p-1.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900">
         <ArrowLeft className="h-4 w-4" />
       </button>
       <span
@@ -333,14 +333,14 @@ export default function RouteBuilder({
             onBlur={commitName}
             onKeyDown={(e) => { if (e.key === 'Enter') commitName(); if (e.key === 'Escape') { setNameDraft(route.name); setEditingName(false) } }}
             maxLength={60}
-            className="w-full rounded border border-gray-700 bg-gray-800 px-2 py-1 text-sm font-bold text-white focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded border border-gray-200 bg-gray-100 px-2 py-1 text-sm font-bold text-gray-900 focus:border-indigo-500 focus:outline-none"
           />
         ) : canEdit ? (
-          <button onClick={() => setEditingName(true)} title="Rename" className="block max-w-full truncate text-left text-sm font-bold text-white hover:text-indigo-300">
+          <button onClick={() => setEditingName(true)} title="Rename" className="block max-w-full truncate text-left text-sm font-bold text-gray-900 hover:text-indigo-700">
             {route.name}
           </button>
         ) : (
-          <h2 className="truncate text-sm font-bold text-white">{route.name}</h2>
+          <h2 className="truncate text-sm font-bold text-gray-900">{route.name}</h2>
         )}
         <p className="truncate text-xs text-gray-500">
           {activeMode.emoji} {activeMode.label} · {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
@@ -354,12 +354,12 @@ export default function RouteBuilder({
       {canEdit && (
         <div ref={menuRef} className="relative shrink-0">
         <button onClick={() => setMenuOpen((v) => !v)} title="Route options"
-          className={`rounded-lg p-1.5 transition-colors ${menuOpen ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+          className={`rounded-lg p-1.5 transition-colors ${menuOpen ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>
           <MoreHorizontal className="h-4 w-4" />
         </button>
 
         {menuOpen && (
-          <div className="absolute right-0 top-full z-10 mt-1 w-72 rounded-xl border border-gray-700 bg-gray-900 p-3 shadow-2xl">
+          <div className="absolute right-0 top-full z-10 mt-1 w-72 rounded-xl border border-gray-200 bg-white p-3 shadow-2xl">
             {/* Travel mode */}
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">Route follows</p>
             <div className="grid grid-cols-2 gap-1.5">
@@ -368,7 +368,7 @@ export default function RouteBuilder({
                   key={m.id}
                   onClick={() => onUpdateMode(route.id, m.id)}
                   className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors ${
-                    route.travel_mode === m.id ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800'
+                    route.travel_mode === m.id ? 'bg-indigo-600 text-white' : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   <span className="text-base leading-none">{m.emoji}</span> {m.label}
@@ -389,7 +389,7 @@ export default function RouteBuilder({
                   className={`flex h-7 w-7 items-center justify-center rounded-full border-2 ${route.color === hex ? 'border-white' : 'border-transparent'}`}
                   style={{ backgroundColor: hex }}
                 >
-                  {route.color === hex && <Check className="h-3.5 w-3.5 text-white" />}
+                  {route.color === hex && <Check className="h-3.5 w-3.5 text-gray-900" />}
                 </button>
               ))}
             </div>
@@ -404,13 +404,13 @@ export default function RouteBuilder({
               const isCommunity = route.is_public && !!route.community_id
               const opt = (active: boolean, onClick: () => void, label: React.ReactNode, hint: string) => (
                 <button onClick={onClick}
-                  className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors ${active ? 'bg-indigo-600/15' : 'hover:bg-gray-800'}`}>
-                  <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${active ? 'border-indigo-400' : 'border-gray-600'}`}>
+                  className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors ${active ? 'bg-indigo-600/15' : 'hover:bg-gray-100'}`}>
+                  <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${active ? 'border-indigo-400' : 'border-gray-300'}`}>
                     {active && <span className="h-2 w-2 rounded-full bg-indigo-400" />}
                   </span>
                   <span className="min-w-0">
-                    <span className={`block text-sm ${active ? 'font-semibold text-white' : 'text-gray-300'}`}>{label}</span>
-                    <span className="block text-xs text-gray-600">{hint}</span>
+                    <span className={`block text-sm ${active ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{label}</span>
+                    <span className="block text-xs text-gray-400">{hint}</span>
                   </span>
                 </button>
               )
@@ -423,8 +423,8 @@ export default function RouteBuilder({
                         <>Publish to {publishCommunity.icon} {publishCommunity.name}</>,
                         'Shown on that community')
                     : (
-                      <div className="rounded-lg px-2 py-1.5 text-xs text-gray-600">
-                        Stops span multiple communities — use <span className="text-gray-400">Public link</span> to share, or keep all stops in one community to publish there.
+                      <div className="rounded-lg px-2 py-1.5 text-xs text-gray-400">
+                        Stops span multiple communities — use <span className="text-gray-600">Public link</span> to share, or keep all stops in one community to publish there.
                       </div>
                     )}
                 </div>
@@ -432,10 +432,10 @@ export default function RouteBuilder({
             })()}
 
             {/* Delete */}
-            <div className="mt-3 border-t border-gray-800 pt-2">
+            <div className="mt-3 border-t border-gray-200 pt-2">
               <button
                 onClick={() => { if (confirm(`Delete the route “${route.name}”? This can't be undone.`)) { setMenuOpen(false); onDelete(route.id) } }}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-600/10"
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-600/10"
               >
                 <Trash2 className="h-4 w-4" /> Delete route
               </button>
@@ -453,7 +453,7 @@ export default function RouteBuilder({
 
       {/* Body — desktop control column on the left, map shows through on the right */}
       <div className="flex min-h-0 flex-1">
-        <div className="pointer-events-auto hidden w-96 flex-col border-r border-gray-800 bg-gray-900/95 backdrop-blur-sm md:flex">
+        <div className="pointer-events-auto hidden w-96 flex-col border-r border-gray-200 bg-white/95 backdrop-blur-sm md:flex">
           {renderTabs()}
           <div className="min-h-0 flex-1 overflow-y-auto">{renderActivePane()}</div>
         </div>
@@ -461,7 +461,7 @@ export default function RouteBuilder({
       </div>
 
       {/* Mobile bottom sheet */}
-      <div className="pointer-events-auto flex max-h-[55dvh] flex-col rounded-t-2xl border-t border-gray-800 bg-gray-900/95 backdrop-blur-sm md:hidden">
+      <div className="pointer-events-auto flex max-h-[55dvh] flex-col rounded-t-2xl border-t border-gray-200 bg-white/95 backdrop-blur-sm md:hidden">
         {renderTabs()}
         <div
           className="min-h-0 flex-1 overflow-y-auto"

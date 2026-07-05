@@ -74,8 +74,8 @@ function TabBtn({
       onClick={onClick}
       className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-semibold transition-colors ${
         active
-          ? 'border-indigo-500 text-white'
-          : 'border-transparent text-gray-500 hover:text-gray-300'
+          ? 'border-indigo-500 text-gray-900'
+          : 'border-transparent text-gray-500 hover:text-gray-700'
       }`}
     >
       {icon}
@@ -708,13 +708,13 @@ export default function CommunitySettingsModal({
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
-      className="absolute inset-0 z-[1300] flex items-end bg-black/60 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4"
+      className="absolute inset-0 z-[1300] flex items-end bg-black/30 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex w-full flex-col overflow-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl sm:max-w-md sm:rounded-2xl" style={{ maxHeight: '90dvh' }}>
+      <div className="flex w-full flex-col overflow-hidden rounded-t-2xl border border-gray-200 bg-white shadow-2xl sm:max-w-md sm:rounded-2xl" style={{ maxHeight: '90dvh' }}>
         {/* Drag handle — mobile only */}
         <div className="flex shrink-0 justify-center pt-3 pb-1 sm:hidden">
-          <div className="h-1 w-10 rounded-full bg-gray-700" />
+          <div className="h-1 w-10 rounded-full bg-gray-200" />
         </div>
 
         {/* Header */}
@@ -726,9 +726,9 @@ export default function CommunitySettingsModal({
             <span className="text-xl">{community.icon}</span>
             <div>
               <div className="flex items-center gap-1.5">
-                <h2 className="text-sm font-bold text-white">{community.name}</h2>
+                <h2 className="text-sm font-bold text-gray-900">{community.name}</h2>
                 {isPrivate && (
-                  <Lock className="h-3 w-3 text-gray-400" />
+                  <Lock className="h-3 w-3 text-gray-600" />
                 )}
               </div>
               <p className="text-xs text-gray-500">{isOwner ? 'Owner' : 'Moderator'}</p>
@@ -736,14 +736,14 @@ export default function CommunitySettingsModal({
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-800 hover:text-white"
+            className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Tab bar */}
-        <div className="flex shrink-0 border-b border-gray-800 bg-gray-900">
+        <div className="flex shrink-0 border-b border-gray-200 bg-white">
           <TabBtn
             active={activeTab === 'general'}
             onClick={() => setActiveTab('general')}
@@ -803,12 +803,12 @@ export default function CommunitySettingsModal({
                     <span className="text-sm leading-none">{icon}</span>
                     Icon
                     {iconSaved && (
-                      <span className="flex items-center gap-1 normal-case text-green-400">
+                      <span className="flex items-center gap-1 normal-case text-green-600">
                         <CheckCircle2 className="h-3 w-3" /> Saved
                       </span>
                     )}
                   </h3>
-                  <p className="mb-3 text-xs text-gray-600">
+                  <p className="mb-3 text-xs text-gray-400">
                     Shown on this community&apos;s pins and in the sidebar. Tap to change.
                   </p>
                   <div className="grid grid-cols-8 gap-1.5">
@@ -820,7 +820,7 @@ export default function CommunitySettingsModal({
                         className={`flex h-9 items-center justify-center rounded-lg border text-lg transition-all ${
                           icon === e
                             ? 'border-indigo-500 bg-indigo-600/20'
-                            : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-100'
                         }`}
                       >
                         {e}
@@ -837,12 +837,12 @@ export default function CommunitySettingsModal({
                     <span className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: color }} />
                     Color
                     {colorSaved && (
-                      <span className="flex items-center gap-1 normal-case text-green-400">
+                      <span className="flex items-center gap-1 normal-case text-green-600">
                         <CheckCircle2 className="h-3 w-3" /> Saved
                       </span>
                     )}
                   </h3>
-                  <p className="mb-3 text-xs text-gray-600">
+                  <p className="mb-3 text-xs text-gray-400">
                     Used for this community&apos;s pins, banners, and tags. Tap to change.
                   </p>
                   <div className="grid grid-cols-6 gap-2">
@@ -858,7 +858,7 @@ export default function CommunitySettingsModal({
                         style={{ backgroundColor: hex + '33' }}
                       >
                         <span className="h-5 w-5 rounded-full" style={{ backgroundColor: hex }}>
-                          {color === hex && <CheckCircle2 className="h-5 w-5 text-white" />}
+                          {color === hex && <CheckCircle2 className="h-5 w-5 text-gray-900" />}
                         </span>
                       </button>
                     ))}
@@ -871,7 +871,7 @@ export default function CommunitySettingsModal({
                   <Pencil className="h-3.5 w-3.5" />
                   Community Name
                 </h3>
-                <p className="mb-3 text-xs text-gray-600">
+                <p className="mb-3 text-xs text-gray-400">
                   Rename this community. The URL slug stays the same.
                 </p>
                 <div className="relative">
@@ -884,10 +884,10 @@ export default function CommunitySettingsModal({
                       setRenameError(null)
                     }}
                     maxLength={50}
-                    className={`w-full rounded-lg border bg-gray-800 px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 ${
+                    className={`w-full rounded-lg border bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 ${
                       renameExactMatch
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-700 focus:border-indigo-500 focus:ring-indigo-500'
+                        : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500'
                     }`}
                   />
                   {(renameChecking || (trimmedNewName !== community.name && trimmedNewName.length >= 2 && trimmedNewName !== debouncedNewName)) && (
@@ -897,7 +897,7 @@ export default function CommunitySettingsModal({
 
                 {/* Exact duplicate — block save */}
                 {renameExactMatch && (
-                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-400">
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-500">
                     <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     A public community named &ldquo;{renameExactMatch.name}&rdquo; already exists.
                   </div>
@@ -905,7 +905,7 @@ export default function CommunitySettingsModal({
 
                 {/* Similar names — warn but allow */}
                 {!renameExactMatch && renameSimilar.length > 0 && (
-                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2.5 text-xs text-yellow-400">
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2.5 text-xs text-yellow-500">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     Similar communities exist: {renameSimilar.map((c) => `${c.icon} ${c.name}`).join(', ')}
                   </div>
@@ -913,7 +913,7 @@ export default function CommunitySettingsModal({
 
                 {/* Save error */}
                 {renameError && (
-                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-400">
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-500">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     {renameError}
                   </div>
@@ -943,12 +943,12 @@ export default function CommunitySettingsModal({
               </section>
 
               {/* ── Geographic area restriction ── */}
-              <section className="border-t border-gray-800 pt-1">
+              <section className="border-t border-gray-200 pt-1">
                 <h3 className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                   <MapPin className="h-3.5 w-3.5" />
                   Geographic Area
                 </h3>
-                <p className="mb-3 text-xs text-gray-600">
+                <p className="mb-3 text-xs text-gray-400">
                   Optionally restrict this community to a specific city or region.
                   Users dropping pins outside it will see a warning.
                 </p>
@@ -956,26 +956,26 @@ export default function CommunitySettingsModal({
                 {/* Current restriction pill */}
                 {geoRestriction ? (
                   <div className="mb-3 flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2.5">
-                    <MapPin className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
-                    <span className="flex-1 text-sm text-indigo-300">{geoRestriction.name}</span>
+                    <MapPin className="h-3.5 w-3.5 shrink-0 text-indigo-600" />
+                    <span className="flex-1 text-sm text-indigo-700">{geoRestriction.name}</span>
                     <button
                       type="button"
                       onClick={() => { setGeoRestriction(null); setGeoSaved(false) }}
                       title="Remove restriction"
-                      className="rounded p-0.5 text-gray-500 transition-colors hover:text-red-400"
+                      className="rounded p-0.5 text-gray-500 transition-colors hover:text-red-500"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                 ) : (
-                  <p className="mb-3 text-xs italic text-gray-600">
+                  <p className="mb-3 text-xs italic text-gray-400">
                     No restriction — pins can be placed anywhere
                   </p>
                 )}
 
                 {/* Place search */}
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-600" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
                     value={geoQuery}
@@ -983,7 +983,7 @@ export default function CommunitySettingsModal({
                     onFocus={() => geoResults.length > 0 && setGeoOpen(true)}
                     onBlur={() => setTimeout(() => setGeoOpen(false), 150)}
                     placeholder={geoRestriction ? 'Search to change area…' : 'Search for a city, region, country…'}
-                    className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2.5 pl-9 pr-9 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-100 py-2.5 pl-9 pr-9 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   {geoFetching && (
                     <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-gray-500" />
@@ -992,7 +992,7 @@ export default function CommunitySettingsModal({
 
                 {/* Dropdown results */}
                 {geoOpen && geoResults.length > 0 && (
-                  <ul className="mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-700 bg-gray-900 shadow-xl">
+                  <ul className="mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl">
                     {geoResults.map((r) => {
                       const parts = r.display_name.split(', ')
                       return (
@@ -1000,11 +1000,11 @@ export default function CommunitySettingsModal({
                           <button
                             type="button"
                             onMouseDown={(e) => { e.preventDefault(); handleGeoSelect(r) }}
-                            className="flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-gray-800"
+                            className="flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-gray-100"
                           >
-                            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-400" />
+                            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-600" />
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-white">{parts[0]}</p>
+                              <p className="truncate text-sm font-medium text-gray-900">{parts[0]}</p>
                               {parts.length > 1 && (
                                 <p className="truncate text-xs text-gray-500">{parts.slice(1).join(', ')}</p>
                               )}
@@ -1059,22 +1059,22 @@ export default function CommunitySettingsModal({
                   )}
                 </h3>
               {loadingQueue ? (
-                <div className="flex items-center gap-2 py-6 text-sm text-gray-600">
+                <div className="flex items-center gap-2 py-6 text-sm text-gray-400">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading queue…
                 </div>
               ) : pendingPins.length === 0 ? (
-                <p className="py-2 text-xs text-gray-600">No pins waiting for review.</p>
+                <p className="py-2 text-xs text-gray-400">No pins waiting for review.</p>
               ) : (
                 <ul className="space-y-3">
                   {pendingPins.map((pin) => (
                     <li
                       key={pin.id}
-                      className="rounded-xl border border-gray-800 bg-gray-800/40 p-4"
+                      className="rounded-xl border border-gray-200 bg-gray-100/40 p-4"
                     >
                       <div className="mb-1 flex items-start justify-between gap-2">
-                        <span className="font-semibold text-white text-sm leading-snug">{pin.title}</span>
-                        <span className="shrink-0 text-xs text-gray-600">{timeAgo(pin.created_at)}</span>
+                        <span className="font-semibold text-gray-900 text-sm leading-snug">{pin.title}</span>
+                        <span className="shrink-0 text-xs text-gray-400">{timeAgo(pin.created_at)}</span>
                       </div>
                       {pin.description && (
                         <p className="mb-2 text-xs text-gray-500 line-clamp-2">{pin.description}</p>
@@ -1097,7 +1097,7 @@ export default function CommunitySettingsModal({
                           <button
                             onClick={() => handleReject(pin.id)}
                             disabled={actingOnPin === pin.id}
-                            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-400 transition-colors hover:bg-red-600/10 hover:text-red-400 disabled:opacity-40"
+                            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-red-600/10 hover:text-red-500 disabled:opacity-40"
                           >
                             {actingOnPin === pin.id ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1109,7 +1109,7 @@ export default function CommunitySettingsModal({
                           <button
                             onClick={() => handleApprove(pin.id)}
                             disabled={actingOnPin === pin.id}
-                            className="flex items-center gap-1 rounded-lg bg-green-700/20 px-2.5 py-1 text-xs font-medium text-green-400 transition-colors hover:bg-green-600 hover:text-white disabled:opacity-40"
+                            className="flex items-center gap-1 rounded-lg bg-green-700/20 px-2.5 py-1 text-xs font-medium text-green-600 transition-colors hover:bg-green-600 hover:text-gray-900 disabled:opacity-40"
                           >
                             {actingOnPin === pin.id ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1127,7 +1127,7 @@ export default function CommunitySettingsModal({
               </section>
 
               {/* ── Reports ── */}
-              <section className="border-t border-gray-800 pt-6">
+              <section className="border-t border-gray-200 pt-6">
                 <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                   <Flag className="h-3.5 w-3.5" />
                   Reports
@@ -1138,42 +1138,42 @@ export default function CommunitySettingsModal({
                   )}
                 </h3>
                 {loadingReports ? (
-                  <div className="flex items-center gap-2 py-6 text-sm text-gray-600">
+                  <div className="flex items-center gap-2 py-6 text-sm text-gray-400">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading reports…
                   </div>
                 ) : reports.length === 0 ? (
-                  <p className="py-2 text-xs text-gray-600">No open reports.</p>
+                  <p className="py-2 text-xs text-gray-400">No open reports.</p>
                 ) : (
                   <ul className="space-y-3">
                     {reports.map((report) => (
                       <li
                         key={report.id}
-                        className="rounded-xl border border-gray-800 bg-gray-800/40 p-4"
+                        className="rounded-xl border border-gray-200 bg-gray-100/40 p-4"
                       >
                         <div className="mb-1 flex items-start justify-between gap-2">
-                          <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-500">
                             <Flag className="h-3 w-3" />
                             {REPORT_REASON_LABELS[report.reason] ?? report.reason}
-                            <span className="font-normal text-gray-600">· {report.target_type}</span>
+                            <span className="font-normal text-gray-400">· {report.target_type}</span>
                           </span>
-                          <span className="shrink-0 text-xs text-gray-600">{timeAgo(report.created_at)}</span>
+                          <span className="shrink-0 text-xs text-gray-400">{timeAgo(report.created_at)}</span>
                         </div>
-                        <p className="mb-1 text-sm text-gray-300 line-clamp-2">
-                          {report.preview ?? <span className="italic text-gray-600">(content already removed)</span>}
+                        <p className="mb-1 text-sm text-gray-700 line-clamp-2">
+                          {report.preview ?? <span className="italic text-gray-400">(content already removed)</span>}
                         </p>
                         {report.detail && (
                           <p className="mb-2 text-xs italic text-gray-500 line-clamp-2">&ldquo;{report.detail}&rdquo;</p>
                         )}
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">
+                          <span className="text-xs text-gray-400">
                             Reported by {report.reporter?.username ?? 'anonymous'}
                           </span>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleDismissReport(report.id)}
                               disabled={actingReportId === report.id}
-                              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-400 transition-colors hover:bg-gray-700 hover:text-gray-200 disabled:opacity-40"
+                              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-800 disabled:opacity-40"
                             >
                               {actingReportId === report.id ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1186,7 +1186,7 @@ export default function CommunitySettingsModal({
                               onClick={() => handleRemoveReported(report)}
                               disabled={actingReportId === report.id || !report.preview}
                               title={report.preview ? `Delete this ${report.target_type}` : 'Content already removed — dismiss instead'}
-                              className="flex items-center gap-1 rounded-lg bg-red-700/20 px-2.5 py-1 text-xs font-medium text-red-400 transition-colors hover:bg-red-600 hover:text-white disabled:opacity-40"
+                              className="flex items-center gap-1 rounded-lg bg-red-700/20 px-2.5 py-1 text-xs font-medium text-red-500 transition-colors hover:bg-red-600 hover:text-gray-900 disabled:opacity-40"
                             >
                               {actingReportId === report.id ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1215,7 +1215,7 @@ export default function CommunitySettingsModal({
                   <Globe className="h-3.5 w-3.5" />
                   Visibility
                 </h3>
-                <p className="mb-3 text-xs text-gray-600">
+                <p className="mb-3 text-xs text-gray-400">
                   Controls who can discover and view this community.
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -1225,16 +1225,16 @@ export default function CommunitySettingsModal({
                     className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
                       !isPrivate
                         ? 'border-indigo-500 bg-indigo-600/10'
-                        : 'border-gray-700 hover:border-gray-600'
+                        : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <Globe className={`h-3.5 w-3.5 ${!isPrivate ? 'text-indigo-400' : 'text-gray-500'}`} />
-                      <span className={`text-sm font-medium ${!isPrivate ? 'text-indigo-300' : 'text-gray-400'}`}>
+                      <Globe className={`h-3.5 w-3.5 ${!isPrivate ? 'text-indigo-600' : 'text-gray-500'}`} />
+                      <span className={`text-sm font-medium ${!isPrivate ? 'text-indigo-700' : 'text-gray-600'}`}>
                         Public
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600">Visible to everyone</p>
+                    <p className="text-xs text-gray-400">Visible to everyone</p>
                   </button>
                   <button
                     type="button"
@@ -1242,21 +1242,21 @@ export default function CommunitySettingsModal({
                     className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
                       isPrivate
                         ? 'border-indigo-500 bg-indigo-600/10'
-                        : 'border-gray-700 hover:border-gray-600'
+                        : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <Lock className={`h-3.5 w-3.5 ${isPrivate ? 'text-indigo-400' : 'text-gray-500'}`} />
-                      <span className={`text-sm font-medium ${isPrivate ? 'text-indigo-300' : 'text-gray-400'}`}>
+                      <Lock className={`h-3.5 w-3.5 ${isPrivate ? 'text-indigo-600' : 'text-gray-500'}`} />
+                      <span className={`text-sm font-medium ${isPrivate ? 'text-indigo-700' : 'text-gray-600'}`}>
                         Private
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600">Invite-only</p>
+                    <p className="text-xs text-gray-400">Invite-only</p>
                   </button>
                 </div>
                 {/* Warn on direction change */}
                 {isPrivate !== community.is_private && (
-                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-400">
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-500">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     {isPrivate
                       ? 'Making this community private will hide it from non-members. Existing pins remain visible to current members.'
@@ -1271,7 +1271,7 @@ export default function CommunitySettingsModal({
                   <Clock className="h-3.5 w-3.5" />
                   Default pin lifespan
                 </h3>
-                <p className="mb-3 text-xs text-gray-600">
+                <p className="mb-3 text-xs text-gray-400">
                   How long new pins live before auto-expiring.
                 </p>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -1282,8 +1282,8 @@ export default function CommunitySettingsModal({
                       onClick={() => setPinDuration(value)}
                       className={`rounded-lg border px-3 py-2 text-left text-xs font-medium transition-colors ${
                         pinDuration === value
-                          ? 'border-indigo-500 bg-indigo-600/10 text-indigo-300'
-                          : 'border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300'
+                          ? 'border-indigo-500 bg-indigo-600/10 text-indigo-700'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
                       }`}
                     >
                       {label}
@@ -1298,7 +1298,7 @@ export default function CommunitySettingsModal({
                   <Shield className="h-3.5 w-3.5" />
                   Who can drop pins
                 </h3>
-                <p className="mb-3 text-xs text-gray-600">
+                <p className="mb-3 text-xs text-gray-400">
                   Restrict pinning to keep your map high-quality.
                 </p>
                 <div className="space-y-2">
@@ -1308,7 +1308,7 @@ export default function CommunitySettingsModal({
                       className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
                         whoCanPin === value
                           ? 'border-indigo-500 bg-indigo-600/10'
-                          : 'border-gray-800 hover:border-gray-700'
+                          : 'border-gray-200 hover:border-gray-200'
                       }`}
                     >
                       <input
@@ -1319,7 +1319,7 @@ export default function CommunitySettingsModal({
                         onChange={() => setWhoCanPin(value)}
                         className="accent-indigo-500"
                       />
-                      <span className={`text-sm font-medium ${whoCanPin === value ? 'text-indigo-300' : 'text-gray-400'}`}>
+                      <span className={`text-sm font-medium ${whoCanPin === value ? 'text-indigo-700' : 'text-gray-600'}`}>
                         {label}
                       </span>
                     </label>
@@ -1333,7 +1333,7 @@ export default function CommunitySettingsModal({
                   <Inbox className="h-3.5 w-3.5" />
                   Moderation
                 </h3>
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-800 px-4 py-3 transition-colors hover:border-gray-700">
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 px-4 py-3 transition-colors hover:border-gray-200">
                   <input
                     type="checkbox"
                     checked={requireApproval}
@@ -1341,8 +1341,8 @@ export default function CommunitySettingsModal({
                     className="mt-0.5 accent-indigo-500"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-300">Require mod approval</p>
-                    <p className="mt-0.5 text-xs text-gray-600">
+                    <p className="text-sm font-medium text-gray-700">Require mod approval</p>
+                    <p className="mt-0.5 text-xs text-gray-400">
                       New pins go into the Queue before appearing on the map.
                       You&apos;ll review them in the Queue tab.
                     </p>
@@ -1375,7 +1375,7 @@ export default function CommunitySettingsModal({
 
               {/* Save error */}
               {saveRulesError && (
-                <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-400">
+                <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-500">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   {saveRulesError}
                 </div>
@@ -1390,7 +1390,7 @@ export default function CommunitySettingsModal({
                 {!confirmDelete ? (
                   <button
                     onClick={() => setConfirmDelete(true)}
-                    className="flex w-full items-center gap-2 rounded-lg border border-red-800/60 bg-red-950/20 px-4 py-2.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-900/30 hover:text-red-300"
+                    className="flex w-full items-center gap-2 rounded-lg border border-red-800/60 bg-red-950/20 px-4 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-900/30 hover:text-red-300"
                   >
                     <Trash2 className="h-4 w-4" />
                     Delete Community
@@ -1398,14 +1398,14 @@ export default function CommunitySettingsModal({
                 ) : (
                   <div className="rounded-lg border border-red-700/50 bg-red-950/20 p-4 space-y-3">
                     <p className="text-sm font-semibold text-red-300">Are you sure?</p>
-                    <p className="text-xs text-red-400/80 leading-relaxed">
+                    <p className="text-xs text-red-500/80 leading-relaxed">
                       This will permanently delete <strong className="text-red-300">{community.name}</strong> and all its pins. This cannot be undone.
                     </p>
                     <div className="flex gap-2 pt-1">
                       <button
                         onClick={() => setConfirmDelete(false)}
                         disabled={deleting}
-                        className="flex-1 rounded-lg border border-gray-700 py-2 text-xs font-medium text-gray-400 transition-colors hover:text-gray-300 disabled:opacity-40"
+                        className="flex-1 rounded-lg border border-gray-200 py-2 text-xs font-medium text-gray-600 transition-colors hover:text-gray-700 disabled:opacity-40"
                       >
                         Cancel
                       </button>
@@ -1436,36 +1436,36 @@ export default function CommunitySettingsModal({
                   <Users className="h-3.5 w-3.5" />
                   Members
                   {acceptedMembers.length > 0 && (
-                    <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-gray-400">
+                    <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-gray-600">
                       {acceptedMembers.length}
                     </span>
                   )}
                 </h3>
 
                 {loadingMembers ? (
-                  <div className="flex items-center gap-2 py-3 text-sm text-gray-600">
+                  <div className="flex items-center gap-2 py-3 text-sm text-gray-400">
                     <Loader2 className="h-4 w-4 animate-spin" /> Loading…
                   </div>
                 ) : acceptedMembers.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-gray-800 py-4 text-center text-sm text-gray-600">
+                  <p className="rounded-lg border border-dashed border-gray-200 py-4 text-center text-sm text-gray-400">
                     No members yet — invite someone below
                   </p>
                 ) : (
                   <ul className="space-y-1">
                     {acceptedMembers.map((m) => (
-                      <li key={m.id} className="flex items-center gap-3 rounded-lg border border-gray-800 px-3 py-2">
+                      <li key={m.id} className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2">
                         <Avatar
                           userId={m.user_id}
                           username={m.profile?.username ?? '??'}
                           src={m.profile?.avatar_url ?? null}
                         />
-                        <span className="flex-1 text-sm font-medium text-gray-200">
+                        <span className="flex-1 text-sm font-medium text-gray-800">
                           {m.profile?.username ?? 'Unknown user'}
                         </span>
                         <button
                           onClick={() => handleRemoveMember(m.id)}
                           disabled={removingMemberId === m.id}
-                          className="rounded p-1 text-gray-600 transition-colors hover:text-red-400 disabled:opacity-40"
+                          className="rounded p-1 text-gray-400 transition-colors hover:text-red-500 disabled:opacity-40"
                           title="Remove member"
                         >
                           {removingMemberId === m.id
@@ -1484,26 +1484,26 @@ export default function CommunitySettingsModal({
                   <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                     <Clock className="h-3.5 w-3.5" />
                     Pending Invites
-                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-amber-400">
+                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-amber-500">
                       {pendingMembers.length + emailInvites.length}
                     </span>
                   </h3>
                   <ul className="space-y-1">
                     {pendingMembers.map((m) => (
-                      <li key={m.id} className="flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-800/30 px-3 py-2">
+                      <li key={m.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-100/30 px-3 py-2">
                         <Avatar
                           userId={m.user_id}
                           username={m.profile?.username ?? '??'}
                           src={m.profile?.avatar_url ?? null}
                         />
-                        <span className="flex-1 text-sm font-medium text-gray-400">
+                        <span className="flex-1 text-sm font-medium text-gray-600">
                           {m.profile?.username ?? 'Unknown user'}
                         </span>
                         <span className="text-xs text-amber-500/80">Pending</span>
                         <button
                           onClick={() => handleRemoveMember(m.id)}
                           disabled={removingMemberId === m.id}
-                          className="rounded p-1 text-gray-600 transition-colors hover:text-red-400 disabled:opacity-40"
+                          className="rounded p-1 text-gray-400 transition-colors hover:text-red-500 disabled:opacity-40"
                           title="Cancel invite"
                         >
                           {removingMemberId === m.id
@@ -1513,18 +1513,18 @@ export default function CommunitySettingsModal({
                       </li>
                     ))}
                     {emailInvites.map((inv) => (
-                      <li key={inv.id} className="flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-800/30 px-3 py-2">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-800 text-gray-500">
+                      <li key={inv.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-100/30 px-3 py-2">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
                           <Mail className="h-4 w-4" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-gray-400">{inv.email}</p>
-                          <p className="text-xs text-gray-600">Email invite sent</p>
+                          <p className="truncate text-sm font-medium text-gray-600">{inv.email}</p>
+                          <p className="text-xs text-gray-400">Email invite sent</p>
                         </div>
                         <button
                           onClick={() => handleCancelEmailInvite(inv.id)}
                           disabled={cancellingEmailId === inv.id}
-                          className="rounded p-1 text-gray-600 transition-colors hover:text-red-400 disabled:opacity-40"
+                          className="rounded p-1 text-gray-400 transition-colors hover:text-red-500 disabled:opacity-40"
                           title="Cancel invite"
                         >
                           {cancellingEmailId === inv.id
@@ -1545,8 +1545,8 @@ export default function CommunitySettingsModal({
                 </h3>
                 <div className="relative mb-2">
                   {isEmail
-                    ? <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
-                    : <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />}
+                    ? <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    : <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />}
                   <input
                     type="text"
                     placeholder="Username or email address…"
@@ -1555,7 +1555,7 @@ export default function CommunitySettingsModal({
                       setMemberSearch(e.target.value)
                       if (emailInviteStatus !== 'idle') setEmailInviteStatus('idle')
                     }}
-                    className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2 pl-9 pr-4 text-sm text-white placeholder-gray-600 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-100 py-2 pl-9 pr-4 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   />
                   {(searchingMembers || emailInviteStatus === 'sending') && (
                     <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-500" />
@@ -1579,8 +1579,8 @@ export default function CommunitySettingsModal({
                     {emailInviteStatus !== 'idle' && emailInviteStatus !== 'sending' && (
                       <div className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
                         emailInviteStatus === 'error'
-                          ? 'bg-red-500/10 text-red-400'
-                          : 'bg-green-500/10 text-green-400'
+                          ? 'bg-red-500/10 text-red-500'
+                          : 'bg-green-500/10 text-green-600'
                       }`}>
                         {emailInviteStatus === 'error'
                           ? <XCircle className="h-4 w-4 shrink-0" />
@@ -1595,9 +1595,9 @@ export default function CommunitySettingsModal({
                 {!isEmail && memberSearchResults.length > 0 && (
                   <ul className="space-y-1">
                     {memberSearchResults.map((profile) => (
-                      <li key={profile.id} className="flex items-center gap-3 rounded-lg border border-gray-800 px-3 py-2 hover:border-gray-700 hover:bg-gray-800/50">
+                      <li key={profile.id} className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 hover:border-gray-200 hover:bg-gray-100/50">
                         <Avatar userId={profile.id} username={profile.username} src={profile.avatar_url} />
-                        <span className="flex-1 text-sm font-medium text-gray-200">{profile.username}</span>
+                        <span className="flex-1 text-sm font-medium text-gray-800">{profile.username}</span>
                         <button
                           onClick={() => handleInviteMember(profile)}
                           disabled={invitingId === profile.id}
@@ -1614,7 +1614,7 @@ export default function CommunitySettingsModal({
                 )}
 
                 {!isEmail && memberSearch.trim() && !searchingMembers && memberSearchResults.length === 0 && (
-                  <p className="py-2 text-center text-sm text-gray-600">
+                  <p className="py-2 text-center text-sm text-gray-400">
                     No users found — try inviting by email instead
                   </p>
                 )}
@@ -1632,19 +1632,19 @@ export default function CommunitySettingsModal({
                   <Shield className="h-3.5 w-3.5" />
                   Moderators
                   {mods.length > 0 && (
-                    <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-gray-400">
+                    <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-gray-600">
                       {mods.length}
                     </span>
                   )}
                 </h3>
 
                 {loadingMods ? (
-                  <div className="flex items-center gap-2 py-3 text-sm text-gray-600">
+                  <div className="flex items-center gap-2 py-3 text-sm text-gray-400">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading…
                   </div>
                 ) : mods.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-gray-800 py-4 text-center text-sm text-gray-600">
+                  <p className="rounded-lg border border-dashed border-gray-200 py-4 text-center text-sm text-gray-400">
                     No moderators yet — add one below
                   </p>
                 ) : (
@@ -1654,18 +1654,18 @@ export default function CommunitySettingsModal({
                       return (
                         <li
                           key={mod.user_id}
-                          className="flex items-center gap-3 rounded-lg border border-gray-800 px-3 py-2"
+                          className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2"
                         >
                           <Avatar
                             userId={mod.user_id}
                             username={mod.profile?.username ?? '??'}
                             src={mod.profile?.avatar_url ?? null}
                           />
-                          <span className="flex-1 text-sm font-medium text-gray-200">
+                          <span className="flex-1 text-sm font-medium text-gray-800">
                             {mod.profile?.username ?? 'Unknown user'}
                           </span>
                           {isOwnerMod ? (
-                            <span className="flex items-center gap-1 rounded-full bg-indigo-500/20 px-2.5 py-0.5 text-xs font-semibold text-indigo-300">
+                            <span className="flex items-center gap-1 rounded-full bg-indigo-500/20 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
                               <Shield className="h-3 w-3" />
                               Owner
                             </span>
@@ -1673,7 +1673,7 @@ export default function CommunitySettingsModal({
                             <button
                               onClick={() => handleRemoveMod(mod.user_id)}
                               disabled={removingId === mod.user_id}
-                              className="rounded p-1 text-gray-600 transition-colors hover:text-red-400 disabled:opacity-40"
+                              className="rounded p-1 text-gray-400 transition-colors hover:text-red-500 disabled:opacity-40"
                             >
                               {removingId === mod.user_id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1697,8 +1697,8 @@ export default function CommunitySettingsModal({
                 </h3>
                 <div className="relative mb-2">
                   {isModEmail
-                    ? <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
-                    : <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />}
+                    ? <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    : <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />}
                   <input
                     type="text"
                     placeholder="Username or email address…"
@@ -1707,7 +1707,7 @@ export default function CommunitySettingsModal({
                       setSearchQuery(e.target.value)
                       if (modEmailStatus !== 'idle') setModEmailStatus('idle')
                     }}
-                    className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2 pl-9 pr-4 text-sm text-white placeholder-gray-600 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-100 py-2 pl-9 pr-4 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   />
                   {(searching || modEmailStatus === 'sending') && (
                     <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-500" />
@@ -1731,8 +1731,8 @@ export default function CommunitySettingsModal({
                     {modEmailStatus !== 'idle' && modEmailStatus !== 'sending' && (
                       <div className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
                         modEmailStatus === 'error' || modEmailStatus === 'not_found'
-                          ? 'bg-red-500/10 text-red-400'
-                          : 'bg-green-500/10 text-green-400'
+                          ? 'bg-red-500/10 text-red-500'
+                          : 'bg-green-500/10 text-green-600'
                       }`}>
                         {modEmailStatus === 'error' || modEmailStatus === 'not_found'
                           ? <XCircle className="h-4 w-4 shrink-0" />
@@ -1749,10 +1749,10 @@ export default function CommunitySettingsModal({
                     {searchResults.map((profile) => (
                       <li
                         key={profile.id}
-                        className="flex items-center gap-3 rounded-lg border border-gray-800 px-3 py-2 hover:border-gray-700 hover:bg-gray-800/50"
+                        className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 hover:border-gray-200 hover:bg-gray-100/50"
                       >
                         <Avatar userId={profile.id} username={profile.username} src={profile.avatar_url} />
-                        <span className="flex-1 text-sm font-medium text-gray-200">{profile.username}</span>
+                        <span className="flex-1 text-sm font-medium text-gray-800">{profile.username}</span>
                         <button
                           onClick={() => handleAddMod(profile)}
                           disabled={addingId === profile.id}
@@ -1771,7 +1771,7 @@ export default function CommunitySettingsModal({
                 )}
 
                 {!isModEmail && searchQuery.trim() && !searching && searchResults.length === 0 && (
-                  <p className="py-2 text-center text-sm text-gray-600">
+                  <p className="py-2 text-center text-sm text-gray-400">
                     No users found matching &ldquo;{searchQuery}&rdquo;
                   </p>
                 )}
@@ -1792,18 +1792,18 @@ export default function CommunitySettingsModal({
                   <Tag className="h-3.5 w-3.5" />
                   Current Tags
                   {tags.length > 0 && (
-                    <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-gray-400">
+                    <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-gray-600">
                       {tags.length}
                     </span>
                   )}
                 </h3>
 
                 {loadingTags ? (
-                  <div className="flex items-center gap-2 py-3 text-sm text-gray-600">
+                  <div className="flex items-center gap-2 py-3 text-sm text-gray-400">
                     <Loader2 className="h-4 w-4 animate-spin" /> Loading…
                   </div>
                 ) : tags.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-gray-800 py-5 text-center text-sm text-gray-600">
+                  <p className="rounded-lg border border-dashed border-gray-200 py-5 text-center text-sm text-gray-400">
                     No tags yet — add some below
                   </p>
                 ) : (
@@ -1846,7 +1846,7 @@ export default function CommunitySettingsModal({
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag() } }}
                     maxLength={30}
                     placeholder="e.g. Verified, Rare, Historic…"
-                    className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="flex-1 rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   <button
                     onClick={handleAddTag}
@@ -1860,12 +1860,12 @@ export default function CommunitySettingsModal({
                   </button>
                 </div>
                 {tagError && (
-                  <p className="mt-2 flex items-center gap-1.5 text-xs text-red-400">
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-red-500">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                     {tagError}
                   </p>
                 )}
-                <p className="mt-2 text-xs text-gray-600">
+                <p className="mt-2 text-xs text-gray-400">
                   Deleting a tag removes it from all pins automatically.
                 </p>
               </section>

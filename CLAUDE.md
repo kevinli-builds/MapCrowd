@@ -174,6 +174,16 @@ Key helper functions (SECURITY DEFINER):
 
 ## Architecture decisions & gotchas
 
+### Visual theme — LIGHT (as of 2026-07-04)
+The whole UI is a light, minimal theme (user preference): page bg `bg-gray-50`,
+surfaces `bg-white`, borders `gray-200/300`, primary text `gray-900`, secondary
+`gray-600/700`, muted `gray-500`, faint `gray-400`; indigo stays the accent
+(`indigo-600` fills with `text-white`, `text-indigo-600/700` for accent text);
+status colors `green-600 / red-500 / amber-500` (the -400 shades were dark-theme
+tuning — don't reintroduce them). Frosted overlays use `bg-white/60..95`;
+backdrops `bg-black/30`. Default map tiles are `light`. Keep NEW components on
+this palette.
+
 ### Next.js 16 specifics
 - `params` in `generateMetadata` is `Promise<{...}>` — must be `await`ed
 - `generateMetadata` can only be exported from Server Components — client pages use a sibling `layout.tsx` for SEO

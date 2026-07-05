@@ -199,7 +199,7 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
     >
       {/* ── Input ── */}
       <div className="relative flex items-center">
-        <Search className="pointer-events-none absolute left-3 h-4 w-4 text-gray-400" />
+        <Search className="pointer-events-none absolute left-3 h-4 w-4 text-gray-600" />
         <input
           ref={inputRef}
           type="text"
@@ -215,14 +215,14 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
           onFocus={() => { if (!suppressSearch.current && results.length > 0) setOpen(true) }}
           placeholder="Go to a place…"
           autoComplete="off"
-          className="w-full rounded-xl border border-gray-700 bg-gray-900/90 py-2.5 pl-9 pr-9 text-sm text-white placeholder-gray-500 shadow-lg backdrop-blur-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-xl border border-gray-200 bg-white/90 py-2.5 pl-9 pr-9 text-sm text-gray-900 placeholder-gray-400 shadow-lg backdrop-blur-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
         {showSpinner ? (
           <Loader2 className="absolute right-3 h-4 w-4 animate-spin text-gray-500" />
         ) : query ? (
           <button
             onClick={clear}
-            className="absolute right-2.5 rounded p-0.5 text-gray-500 transition-colors hover:text-gray-300"
+            className="absolute right-2.5 rounded p-0.5 text-gray-500 transition-colors hover:text-gray-700"
             aria-label="Clear"
           >
             <X className="h-3.5 w-3.5" />
@@ -232,7 +232,7 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
 
       {/* ── Dropdown ── */}
       {open && results.length > 0 && (
-        <ul className="mt-1.5 overflow-hidden rounded-xl border border-gray-700 bg-gray-900/95 shadow-2xl backdrop-blur-sm">
+        <ul className="mt-1.5 overflow-hidden rounded-xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur-sm">
           {results.map((r, i) => {
             // Split on Nominatim's ", " separator to get clean parts
             const rawParts      = r.display_name.split(', ')
@@ -250,12 +250,12 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
                     selectResult(r)
                   }}
                   className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors ${
-                    i === activeIdx ? 'bg-indigo-600/30' : 'hover:bg-gray-800'
+                    i === activeIdx ? 'bg-indigo-600/30' : 'hover:bg-gray-100'
                   }`}
                 >
-                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-400" />
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-600" />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-white">{primary}</p>
+                    <p className="truncate text-sm font-medium text-gray-900">{primary}</p>
                     {secondary && (
                       <p className="truncate text-xs text-gray-500">{secondary}</p>
                     )}
@@ -269,9 +269,9 @@ export default function LocationSearch({ onFlyTo, panelOpen = false, onAddPin }:
 
       {/* ── "Add pin here" action pill — appears after a place is selected ── */}
       {pinCandidate && onAddPin && (
-        <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-gray-900/95 px-3 py-2 shadow-lg backdrop-blur-sm">
-          <MapPin className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
-          <span className="flex-1 truncate text-xs text-gray-300">{pinCandidate.name}</span>
+        <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-indigo-500/30 bg-white/95 px-3 py-2 shadow-lg backdrop-blur-sm">
+          <MapPin className="h-3.5 w-3.5 shrink-0 text-indigo-600" />
+          <span className="flex-1 truncate text-xs text-gray-700">{pinCandidate.name}</span>
           <button
             onMouseDown={(e) => {
               e.preventDefault()

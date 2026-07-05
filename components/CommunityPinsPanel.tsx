@@ -81,16 +81,16 @@ export default function CommunityPinsPanel({
   const showSearch = sorted.length > 5
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-[1150] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-gray-800 bg-gray-900/95 shadow-2xl backdrop-blur-sm sm:bottom-auto sm:left-auto sm:top-0 sm:h-full sm:max-h-none sm:w-80 sm:rounded-none sm:border-b-0 sm:border-l sm:border-r-0 sm:border-t-0">
+    <div className="absolute bottom-0 left-0 right-0 z-[1150] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur-sm sm:bottom-auto sm:left-auto sm:top-0 sm:h-full sm:max-h-none sm:w-80 sm:rounded-none sm:border-b-0 sm:border-l sm:border-r-0 sm:border-t-0">
 
       {/* Drag handle — mobile only */}
       <div className="flex shrink-0 justify-center pt-3 pb-1 sm:hidden">
-        <div className="h-1 w-10 rounded-full bg-gray-700" />
+        <div className="h-1 w-10 rounded-full bg-gray-200" />
       </div>
 
       {/* ── Header ───────────────────────────────────────────────────── */}
       <div
-        className="flex shrink-0 items-center gap-3 border-b border-gray-800 px-4 py-3"
+        className="flex shrink-0 items-center gap-3 border-b border-gray-200 px-4 py-3"
         style={{ backgroundColor: community.color + '18' }}
       >
         {/* Icon + name */}
@@ -103,7 +103,7 @@ export default function CommunityPinsPanel({
           </span>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h2 className="truncate text-sm font-bold text-white">{community.name}</h2>
+              <h2 className="truncate text-sm font-bold text-gray-900">{community.name}</h2>
               {community.is_private && <Lock className="h-3 w-3 shrink-0 text-gray-500" />}
             </div>
             <p className="text-xs text-gray-500">
@@ -124,20 +124,20 @@ export default function CommunityPinsPanel({
             href={`/c/${community.slug}`}
             onClick={(e) => e.stopPropagation()}
             title="View community page"
-            className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300"
+            className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
           >
             <ArrowUpRight className="h-4 w-4" />
           </Link>
           <button
             onClick={() => onAddPin(community.id)}
             title="Drop a pin in this community"
-            className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-800 hover:text-indigo-400"
+            className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-indigo-600"
           >
             <Plus className="h-4 w-4" />
           </button>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-800 hover:text-white"
+            className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
             <X className="h-4 w-4" />
           </button>
@@ -146,7 +146,7 @@ export default function CommunityPinsPanel({
 
       {/* ── Tag filter chips ─────────────────────────────────────────── */}
       {tags.length > 0 && (
-        <div className="flex shrink-0 flex-wrap gap-1.5 border-b border-gray-800 px-4 py-2.5">
+        <div className="flex shrink-0 flex-wrap gap-1.5 border-b border-gray-200 px-4 py-2.5">
           {tags.map((tag) => {
             const active = selectedTagIds.has(tag.id)
             return (
@@ -167,7 +167,7 @@ export default function CommunityPinsPanel({
           {selectedTagIds.size > 0 && (
             <button
               onClick={() => tags.forEach((t) => { if (selectedTagIds.has(t.id)) onToggleTag(t.id) })}
-              className="rounded-full px-2 py-0.5 text-xs text-gray-500 transition-colors hover:text-gray-300"
+              className="rounded-full px-2 py-0.5 text-xs text-gray-500 transition-colors hover:text-gray-700"
             >
               Clear
             </button>
@@ -177,7 +177,7 @@ export default function CommunityPinsPanel({
 
       {/* ── Search box ───────────────────────────────────────────────── */}
       {showSearch && (
-        <div className="shrink-0 border-b border-gray-800 px-3 py-2.5">
+        <div className="shrink-0 border-b border-gray-200 px-3 py-2.5">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
             <input
@@ -185,13 +185,13 @@ export default function CommunityPinsPanel({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={`Search ${sorted.length} pins…`}
-              className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2 pl-9 pr-8 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-gray-200 bg-gray-100 py-2 pl-9 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
                 aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-500 transition-colors hover:text-gray-300"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-500 transition-colors hover:text-gray-700"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -204,10 +204,10 @@ export default function CommunityPinsPanel({
       <div className="flex-1 overflow-y-auto">
         {/* Routes published to this community */}
         {routes.length > 0 && (
-          <div className="border-b-4 border-gray-800 bg-gray-900/40 px-3 py-3">
-            <p className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-indigo-300/80">
+          <div className="border-b-4 border-gray-200 bg-white/40 px-3 py-3">
+            <p className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-indigo-700/80">
               <RouteIcon className="h-3.5 w-3.5" /> Routes
-              <span className="rounded-full bg-gray-800 px-1.5 text-[10px] font-semibold text-gray-400">{routes.length}</span>
+              <span className="rounded-full bg-gray-100 px-1.5 text-[10px] font-semibold text-gray-600">{routes.length}</span>
             </p>
             <ul className="space-y-1">
               {routes.map((r) => {
@@ -216,14 +216,14 @@ export default function CommunityPinsPanel({
                   <li key={r.id}>
                     <button
                       onClick={() => onOpenRoute(r.id)}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-gray-800"
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-gray-100"
                     >
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                         style={{ backgroundColor: r.color + '22', border: `2px solid ${r.color}` }}>
                         <RouteIcon className="h-3.5 w-3.5" style={{ color: r.color }} />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium text-white">{r.name}</span>
+                        <span className="block truncate text-sm font-medium text-gray-900">{r.name}</span>
                         <span className="block truncate text-xs text-gray-500">
                           {stops} {stops === 1 ? 'stop' : 'stops'}
                         </span>
@@ -240,15 +240,15 @@ export default function CommunityPinsPanel({
         {routes.length > 0 && sorted.length > 0 && (
           <p className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-500">
             <MapPin className="h-3.5 w-3.5" /> Pins
-            <span className="rounded-full bg-gray-800 px-1.5 text-[10px] font-semibold text-gray-400">{sorted.length}</span>
+            <span className="rounded-full bg-gray-100 px-1.5 text-[10px] font-semibold text-gray-600">{sorted.length}</span>
           </p>
         )}
 
         {sorted.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
             <span className="text-5xl opacity-30">{community.icon}</span>
-            <p className="text-sm font-medium text-gray-400">No pins yet</p>
-            <p className="text-xs leading-relaxed text-gray-600">
+            <p className="text-sm font-medium text-gray-600">No pins yet</p>
+            <p className="text-xs leading-relaxed text-gray-400">
               Be the first to drop a pin in {community.name}!
             </p>
             <button
@@ -262,25 +262,25 @@ export default function CommunityPinsPanel({
         ) : displayed.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
             <Search className="h-7 w-7 text-gray-700" />
-            <p className="text-sm font-medium text-gray-400">No pins match “{query}”</p>
+            <p className="text-sm font-medium text-gray-600">No pins match “{query}”</p>
             <button
               onClick={() => setQuery('')}
-              className="text-xs text-indigo-400 transition-colors hover:text-indigo-300"
+              className="text-xs text-indigo-600 transition-colors hover:text-indigo-700"
             >
               Clear search
             </button>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-800/60">
+          <ul className="divide-y divide-gray-200/60">
             {displayed.map((pin) => {
               const isNegative = pin.vote_count < 0
-              const voteColor = voteColorClass(pin.vote_count, 'text-gray-600')
+              const voteColor = voteColorClass(pin.vote_count, 'text-gray-400')
 
               return (
                 <li key={pin.id}>
                   <button
                     onClick={() => onPinClick(pin)}
-                    className="group w-full px-4 py-3.5 text-left transition-colors hover:bg-gray-800/50"
+                    className="group w-full px-4 py-3.5 text-left transition-colors hover:bg-gray-100/50"
                   >
                     <div className="flex items-start gap-3">
 
@@ -296,7 +296,7 @@ export default function CommunityPinsPanel({
 
                       {/* Content column */}
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold leading-snug text-white transition-colors group-hover:text-indigo-300">
+                        <p className="text-sm font-semibold leading-snug text-gray-900 transition-colors group-hover:text-indigo-700">
                           {pin.title}
                         </p>
                         {pin.description && (
@@ -304,7 +304,7 @@ export default function CommunityPinsPanel({
                             {pin.description}
                           </p>
                         )}
-                        <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-gray-600">
+                        <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-gray-400">
                           <Clock className="h-2.5 w-2.5 shrink-0" />
                           <span>{timeAgo(pin.created_at)}</span>
                           {pin.profile?.username && (

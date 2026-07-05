@@ -122,22 +122,22 @@ export default function CreateCommunityModal({
       className="absolute inset-0 z-[1250] flex items-end bg-black/50 sm:items-center sm:justify-center sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full overflow-y-auto overflow-x-hidden rounded-t-2xl border border-gray-700 bg-gray-900 shadow-2xl sm:max-w-lg sm:rounded-2xl" style={{ maxHeight: '90dvh' }}>
+      <div className="w-full overflow-y-auto overflow-x-hidden rounded-t-2xl border border-gray-200 bg-white shadow-2xl sm:max-w-lg sm:rounded-2xl" style={{ maxHeight: '90dvh' }}>
         {/* Drag handle — mobile only */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
-          <div className="h-1 w-10 rounded-full bg-gray-700" />
+          <div className="h-1 w-10 rounded-full bg-gray-200" />
         </div>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-800 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
           <div className="flex items-center gap-2">
             {isPrivate
-              ? <Lock className="h-4 w-4 text-indigo-400" />
-              : <Globe className="h-4 w-4 text-indigo-400" />}
-            <h2 className="font-semibold text-white">New Community</h2>
+              ? <Lock className="h-4 w-4 text-indigo-600" />
+              : <Globe className="h-4 w-4 text-indigo-600" />}
+            <h2 className="font-semibold text-gray-900">New Community</h2>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-800 hover:text-white"
+            className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
             <X className="h-4 w-4" />
           </button>
@@ -146,7 +146,7 @@ export default function CreateCommunityModal({
         <form onSubmit={handleSubmit} className="space-y-5 p-5">
           {/* ── Privacy toggle ── */}
           <div>
-            <label className="mb-2 block text-sm text-gray-400">Visibility</label>
+            <label className="mb-2 block text-sm text-gray-600">Visibility</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -154,16 +154,16 @@ export default function CreateCommunityModal({
                 className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
                   !isPrivate
                     ? 'border-indigo-500 bg-indigo-600/10'
-                    : 'border-gray-700 hover:border-gray-600'
+                    : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-center gap-1.5">
-                  <Globe className={`h-3.5 w-3.5 ${!isPrivate ? 'text-indigo-400' : 'text-gray-500'}`} />
-                  <span className={`text-sm font-medium ${!isPrivate ? 'text-indigo-300' : 'text-gray-400'}`}>
+                  <Globe className={`h-3.5 w-3.5 ${!isPrivate ? 'text-indigo-600' : 'text-gray-500'}`} />
+                  <span className={`text-sm font-medium ${!isPrivate ? 'text-indigo-700' : 'text-gray-600'}`}>
                     Public
                   </span>
                 </div>
-                <p className="text-xs text-gray-600">Anyone can see and find this map</p>
+                <p className="text-xs text-gray-400">Anyone can see and find this map</p>
               </button>
               <button
                 type="button"
@@ -171,24 +171,24 @@ export default function CreateCommunityModal({
                 className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
                   isPrivate
                     ? 'border-indigo-500 bg-indigo-600/10'
-                    : 'border-gray-700 hover:border-gray-600'
+                    : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-center gap-1.5">
-                  <Lock className={`h-3.5 w-3.5 ${isPrivate ? 'text-indigo-400' : 'text-gray-500'}`} />
-                  <span className={`text-sm font-medium ${isPrivate ? 'text-indigo-300' : 'text-gray-400'}`}>
+                  <Lock className={`h-3.5 w-3.5 ${isPrivate ? 'text-indigo-600' : 'text-gray-500'}`} />
+                  <span className={`text-sm font-medium ${isPrivate ? 'text-indigo-700' : 'text-gray-600'}`}>
                     Private
                   </span>
                 </div>
-                <p className="text-xs text-gray-600">Invite-only — invisible to everyone else</p>
+                <p className="text-xs text-gray-400">Invite-only — invisible to everyone else</p>
               </button>
             </div>
           </div>
 
           {/* Name */}
           <div>
-            <label className="mb-1.5 block text-sm text-gray-400">
-              Community name <span className="text-red-400">*</span>
+            <label className="mb-1.5 block text-sm text-gray-600">
+              Community name <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -199,12 +199,12 @@ export default function CreateCommunityModal({
                 maxLength={50}
                 autoFocus
                 required
-                className={`w-full rounded-lg border bg-gray-800 px-3 py-2.5 pr-8 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 ${
+                className={`w-full rounded-lg border bg-gray-100 px-3 py-2.5 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 ${
                   exactMatch
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                     : similarCommunities.length > 0
                     ? 'border-yellow-500/60 focus:border-yellow-500 focus:ring-yellow-500'
-                    : 'border-gray-700 focus:border-indigo-500 focus:ring-indigo-500'
+                    : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500'
                 }`}
               />
               {(checking || (trimmedName !== debouncedName && !isPrivate && trimmedName.length >= 3)) && (
@@ -215,10 +215,10 @@ export default function CreateCommunityModal({
             {/* Exact duplicate — block creation */}
             {exactMatch && (
               <div className="mt-2 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
                 <div className="text-sm">
                   <p className="font-medium text-red-300">This community already exists</p>
-                  <p className="mt-0.5 text-red-400/80">
+                  <p className="mt-0.5 text-red-500/80">
                     {exactMatch.icon} {exactMatch.name} — try a more specific name like adding your city.
                   </p>
                 </div>
@@ -228,13 +228,13 @@ export default function CreateCommunityModal({
             {/* Similar communities — warn but allow */}
             {!exactMatch && similarCommunities.length > 0 && (
               <div className="mt-2 flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2.5">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-400" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
                 <div className="text-sm">
                   <p className="font-medium text-yellow-300">Similar communities exist</p>
-                  <p className="mt-1 text-yellow-400/80">
+                  <p className="mt-1 text-yellow-500/80">
                     {similarCommunities.map((c) => `${c.icon} ${c.name}`).join(', ')}
                   </p>
-                  <p className="mt-1 text-yellow-400/60">
+                  <p className="mt-1 text-yellow-500/60">
                     You can still create yours if it covers a different area or focus.
                   </p>
                 </div>
@@ -244,9 +244,9 @@ export default function CreateCommunityModal({
 
           {/* Description */}
           <div>
-            <label className="mb-1.5 block text-sm text-gray-400">
+            <label className="mb-1.5 block text-sm text-gray-600">
               Description{' '}
-              <span className="text-gray-600">(optional)</span>
+              <span className="text-gray-400">(optional)</span>
             </label>
             <input
               type="text"
@@ -254,14 +254,14 @@ export default function CreateCommunityModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What will people pin here?"
               maxLength={120}
-              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
 
           {/* Emoji picker */}
           <div>
-            <label className="mb-2 block text-sm text-gray-400">Icon</label>
-            <div className="grid grid-cols-8 gap-1 rounded-xl border border-gray-700 bg-gray-800 p-2">
+            <label className="mb-2 block text-sm text-gray-600">Icon</label>
+            <div className="grid grid-cols-8 gap-1 rounded-xl border border-gray-200 bg-gray-100 p-2">
               {COMMUNITY_EMOJIS.map((e) => (
                 <button
                   key={e}
@@ -269,8 +269,8 @@ export default function CreateCommunityModal({
                   onClick={() => setIcon(e)}
                   className={`flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-all ${
                     icon === e
-                      ? 'bg-gray-600 ring-2 ring-indigo-500'
-                      : 'hover:bg-gray-700'
+                      ? 'bg-gray-300 ring-2 ring-indigo-500'
+                      : 'hover:bg-gray-200'
                   }`}
                 >
                   {e}
@@ -281,7 +281,7 @@ export default function CreateCommunityModal({
 
           {/* Color picker */}
           <div>
-            <label className="mb-2 block text-sm text-gray-400">Color</label>
+            <label className="mb-2 block text-sm text-gray-600">Color</label>
             <div className="flex flex-wrap gap-2">
               {COMMUNITY_COLORS.map((c) => (
                 <button
@@ -303,10 +303,10 @@ export default function CreateCommunityModal({
 
           {/* Live preview */}
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-600">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
               Preview
             </p>
-            <div className="flex items-center gap-3 rounded-lg bg-gray-800 px-3 py-2.5">
+            <div className="flex items-center gap-3 rounded-lg bg-gray-100 px-3 py-2.5">
               <span
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm"
                 style={{
@@ -316,26 +316,26 @@ export default function CreateCommunityModal({
               >
                 {icon}
               </span>
-              <span className="flex-1 truncate text-sm font-medium text-white">
+              <span className="flex-1 truncate text-sm font-medium text-gray-900">
                 {previewName}
               </span>
               {isPrivate && (
                 <Lock className="h-3 w-3 shrink-0 text-gray-500" />
               )}
-              <span className="rounded-full bg-gray-700 px-2 py-0.5 text-xs text-gray-400">
+              <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
                 0
               </span>
             </div>
           </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
           {/* Actions */}
           <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-gray-700 py-2.5 text-sm font-medium text-gray-400 transition-colors hover:border-gray-600 hover:text-gray-300"
+              className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-gray-300 hover:text-gray-700"
             >
               Cancel
             </button>

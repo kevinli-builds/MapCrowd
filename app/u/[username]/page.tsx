@@ -143,7 +143,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-950">
+      <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
       </div>
     )
@@ -151,23 +151,23 @@ export default function ProfilePage() {
 
   if (notFound || !profile) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-950 text-gray-400">
-        <AlertCircle className="h-12 w-12 text-gray-600" />
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-50 text-gray-600">
+        <AlertCircle className="h-12 w-12 text-gray-400" />
         <p className="text-lg font-medium">User not found</p>
-        <Link href="/" className="text-indigo-400 hover:underline">← Back to map</Link>
+        <Link href="/" className="text-indigo-600 hover:underline">← Back to map</Link>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
 
       {/* ── Profile header ───────────────────────────────────────────────── */}
-      <div className="border-b border-gray-800 bg-gray-900">
+      <div className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-2xl px-4 pt-5">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-white"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-600 transition-colors hover:text-gray-900"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to map
@@ -181,10 +181,10 @@ export default function ProfilePage() {
               src={profile.avatar_url}
               username={profile.username}
               userId={profile.id}
-              className="h-20 w-20 rounded-2xl text-3xl ring-4 ring-gray-800"
+              className="h-20 w-20 rounded-2xl text-3xl ring-4 ring-gray-200"
             />
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-white">{profile.username}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{profile.username}</h1>
               <p className="mt-1 text-sm text-gray-500">
                 Joined{' '}
                 {new Date(profile.created_at).toLocaleDateString('en-US', {
@@ -201,7 +201,7 @@ export default function ProfilePage() {
                 disabled={followBusy}
                 className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-60 ${
                   following
-                    ? 'border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400'
+                    ? 'border border-amber-500/40 bg-amber-500/10 text-amber-500 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-500'
                     : 'bg-indigo-600 text-white hover:bg-indigo-500'
                 }`}
               >
@@ -217,7 +217,7 @@ export default function ProfilePage() {
           {/* Stats */}
           <div className="mt-6 flex flex-wrap gap-8">
             <div>
-              <p className="text-2xl font-bold text-white">{pins.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{pins.length}</p>
               <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
                 <MapPin className="h-3 w-3" /> Pins
               </p>
@@ -225,7 +225,7 @@ export default function ProfilePage() {
             <div>
               <p
                 className={`text-2xl font-bold tabular-nums ${
-                  totalVotes > 0 ? 'text-green-400' : totalVotes < 0 ? 'text-red-400' : 'text-white'
+                  totalVotes > 0 ? 'text-green-600' : totalVotes < 0 ? 'text-red-500' : 'text-gray-900'
                 }`}
               >
                 {totalVotes > 0 ? `+${totalVotes}` : totalVotes}
@@ -235,19 +235,19 @@ export default function ProfilePage() {
               </p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{communityCount}</p>
+              <p className="text-2xl font-bold text-gray-900">{communityCount}</p>
               <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
                 <Users className="h-3 w-3" /> Communities
               </p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{followerCount}</p>
+              <p className="text-2xl font-bold text-gray-900">{followerCount}</p>
               <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
                 <UserCheck className="h-3 w-3" /> Followers
               </p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{followingCount}</p>
+              <p className="text-2xl font-bold text-gray-900">{followingCount}</p>
               <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
                 <UserPlus className="h-3 w-3" /> Following
               </p>
@@ -284,16 +284,16 @@ export default function ProfilePage() {
         <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
           <MapPin className="h-4 w-4" />
           Pins
-          <span className="rounded-full bg-gray-800 px-2 py-0.5 text-gray-400">{pins.length}</span>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">{pins.length}</span>
         </h2>
 
         {pins.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-800 py-16 text-center">
+          <div className="rounded-xl border border-dashed border-gray-200 py-16 text-center">
             <MapPin className="mx-auto mb-3 h-8 w-8 text-gray-700" />
             <p className="text-gray-500">No pins yet.</p>
             <Link
               href="/"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm text-indigo-400 hover:underline"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:underline"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Go to the map
             </Link>
@@ -307,7 +307,7 @@ export default function ProfilePage() {
               return (
                 <li
                   key={pin.id}
-                  className="rounded-xl border border-gray-800 bg-gray-800/30 p-4 transition-colors hover:border-gray-700 hover:bg-gray-800/60"
+                  className="rounded-xl border border-gray-200 bg-gray-100/30 p-4 transition-colors hover:border-gray-200 hover:bg-gray-100/60"
                 >
                   <div className="flex items-start gap-3">
                     {/* Vote score */}
@@ -319,17 +319,17 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold leading-snug text-white">{pin.title}</h3>
+                      <h3 className="font-semibold leading-snug text-gray-900">{pin.title}</h3>
                       {pin.description && (
                         <p className="mt-1 line-clamp-2 text-sm text-gray-500">{pin.description}</p>
                       )}
 
-                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
                         {/* Community chip */}
                         {comm && (
                           <Link
                             href={`/c/${comm.slug}`}
-                            className="flex items-center gap-1 transition-colors hover:text-gray-400"
+                            className="flex items-center gap-1 transition-colors hover:text-gray-600"
                           >
                             <span
                               className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px]"

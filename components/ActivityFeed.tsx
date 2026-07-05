@@ -49,8 +49,8 @@ export default function ActivityFeed({
     return (
       <div className="px-3 py-10 text-center">
         <Newspaper className="mx-auto mb-3 h-8 w-8 text-gray-700" />
-        <p className="text-sm font-medium text-gray-400">Your activity feed</p>
-        <p className="mx-auto mt-1 max-w-[16rem] text-xs text-gray-600">
+        <p className="text-sm font-medium text-gray-600">Your activity feed</p>
+        <p className="mx-auto mt-1 max-w-[16rem] text-xs text-gray-400">
           Sign in, then follow people and subscribe to communities to see their
           latest pins here.
         </p>
@@ -68,8 +68,8 @@ export default function ActivityFeed({
     return (
       <div className="px-3 py-10 text-center">
         <UserPlus className="mx-auto mb-3 h-8 w-8 text-gray-700" />
-        <p className="text-sm font-medium text-gray-400">Nothing in your feed yet</p>
-        <p className="mx-auto mt-1 max-w-[16rem] text-xs text-gray-600">
+        <p className="text-sm font-medium text-gray-600">Nothing in your feed yet</p>
+        <p className="mx-auto mt-1 max-w-[16rem] text-xs text-gray-400">
           Subscribe to communities or follow other mappers and their newest pins
           will gather here.
         </p>
@@ -81,8 +81,8 @@ export default function ActivityFeed({
     return (
       <div className="px-3 py-10 text-center">
         <MapPin className="mx-auto mb-3 h-8 w-8 text-gray-700" />
-        <p className="text-sm font-medium text-gray-400">No recent activity</p>
-        <p className="mx-auto mt-1 max-w-[16rem] text-xs text-gray-600">
+        <p className="text-sm font-medium text-gray-600">No recent activity</p>
+        <p className="mx-auto mt-1 max-w-[16rem] text-xs text-gray-400">
           Your communities and the people you follow haven&apos;t dropped any pins
           lately. Check back soon!
         </p>
@@ -95,12 +95,12 @@ export default function ActivityFeed({
     <ul className="space-y-1.5">
       {feed.map(({ pin, byFollowed, bySubscribed }) => {
         const comm = pin.community
-        const voteColor = voteColorClass(pin.vote_count, 'text-gray-600')
+        const voteColor = voteColorClass(pin.vote_count, 'text-gray-400')
         return (
           <li key={pin.id}>
             <button
               onClick={() => onSelectPin(pin)}
-              className="flex w-full items-start gap-2.5 rounded-lg border border-gray-800 bg-gray-800/30 p-2.5 text-left transition-colors hover:border-gray-700 hover:bg-gray-800/60"
+              className="flex w-full items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-100/30 p-2.5 text-left transition-colors hover:border-gray-200 hover:bg-gray-100/60"
             >
               <Avatar
                 src={pin.profile?.avatar_url}
@@ -111,29 +111,29 @@ export default function ActivityFeed({
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <span className="truncate font-medium text-gray-300">
+                  <span className="truncate font-medium text-gray-700">
                     {pin.profile?.username ?? 'Someone'}
                   </span>
                   <span>·</span>
                   <span className="shrink-0">{timeAgo(pin.created_at)}</span>
                   {/* Why this is in your feed */}
                   {byFollowed ? (
-                    <span className="ml-auto flex shrink-0 items-center gap-0.5 text-amber-400" title="From someone you follow">
+                    <span className="ml-auto flex shrink-0 items-center gap-0.5 text-amber-500" title="From someone you follow">
                       <Star className="h-3 w-3 fill-current" />
                     </span>
                   ) : bySubscribed ? (
-                    <span className="ml-auto flex shrink-0 items-center gap-0.5 text-indigo-400" title="From a community you subscribe to">
+                    <span className="ml-auto flex shrink-0 items-center gap-0.5 text-indigo-600" title="From a community you subscribe to">
                       <BookmarkCheck className="h-3 w-3" />
                     </span>
                   ) : null}
                 </div>
 
-                <p className="mt-0.5 flex items-center gap-1 truncate text-sm font-medium text-white">
-                  {pin.event_date && <Calendar className="h-3 w-3 shrink-0 text-indigo-400" />}
+                <p className="mt-0.5 flex items-center gap-1 truncate text-sm font-medium text-gray-900">
+                  {pin.event_date && <Calendar className="h-3 w-3 shrink-0 text-indigo-600" />}
                   {pin.title}
                 </p>
 
-                <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+                <div className="mt-1 flex items-center gap-2 text-xs text-gray-400">
                   {comm && (
                     <span
                       className="inline-flex max-w-[8rem] items-center gap-1 truncate rounded-full px-1.5 py-0.5"

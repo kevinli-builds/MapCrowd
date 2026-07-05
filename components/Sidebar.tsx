@@ -185,7 +185,7 @@ export default function Sidebar({
   const renderRouteRow = (r: Route) => (
     <div key={r.id} className="group/route relative mb-0.5">
       <div className={`flex items-center rounded-lg transition-colors ${
-        activeRouteId === r.id ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+        activeRouteId === r.id ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
       }`}>
         <button onClick={() => onSelectRoute(r.id)} className="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3 text-left">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
@@ -200,7 +200,7 @@ export default function Sidebar({
           <button
             onClick={(e) => { e.stopPropagation(); setFolderMenuRouteId((id) => (id === r.id ? null : r.id)) }}
             title="Move to folder"
-            className="shrink-0 p-1 text-gray-500 transition-opacity hover:text-gray-300 md:opacity-0 md:group-hover/route:opacity-100"
+            className="shrink-0 p-1 text-gray-500 transition-opacity hover:text-gray-700 md:opacity-0 md:group-hover/route:opacity-100"
           >
             <Folder className="h-3.5 w-3.5" />
           </button>
@@ -209,23 +209,23 @@ export default function Sidebar({
         <button
           onClick={(e) => { e.stopPropagation(); if (confirm(`Delete the route “${r.name}”? This can't be undone.`)) onDeleteRoute(r.id) }}
           title="Delete route"
-          className="shrink-0 p-1 pr-2 text-gray-500 transition-opacity hover:text-red-400 md:opacity-0 md:group-hover/route:opacity-100"
+          className="shrink-0 p-1 pr-2 text-gray-500 transition-opacity hover:text-red-500 md:opacity-0 md:group-hover/route:opacity-100"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
       {/* Inline "move to folder" picker (in normal flow so the scroll container never clips it) */}
       {folderMenuRouteId === r.id && (
-        <div className="ml-9 mt-0.5 mb-1 rounded-lg border border-gray-700/70 bg-gray-900/60 p-1">
+        <div className="ml-9 mt-0.5 mb-1 rounded-lg border border-gray-200/70 bg-white/60 p-1">
           <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">Move to folder…</p>
           <button onClick={() => { onAssignRouteFolder(r.id, null); setFolderMenuRouteId(null) }}
-            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-300 hover:bg-gray-800">
+            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100">
             <span className="min-w-0 flex-1 truncate text-left">No folder</span>
             {!r.folder_id && <Check className="h-3.5 w-3.5" />}
           </button>
           {routeFolders.map((f) => (
             <button key={f.id} onClick={() => { onAssignRouteFolder(r.id, f.id); setFolderMenuRouteId(null) }}
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-300 hover:bg-gray-800">
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100">
               <Folder className="h-3.5 w-3.5 shrink-0 text-gray-500" />
               <span className="min-w-0 flex-1 truncate text-left">{f.name}</span>
               {r.folder_id === f.id && <Check className="h-3.5 w-3.5" />}
@@ -319,7 +319,7 @@ export default function Sidebar({
         {/* ── Main row: button (flex-1) + action clusters in normal flow so a long
               name truncates to make room instead of running under the icons ── */}
         <div className={`relative flex items-center rounded-lg transition-colors ${
-          active ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          active ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
         } ${hidden ? 'opacity-45' : ''}`}>
           <button
             onClick={() => { setGroupPicker(null); onSelectCommunity(active ? null : c.id) }}
@@ -337,7 +337,7 @@ export default function Sidebar({
 
             <span className="min-w-0 flex-1 truncate text-sm font-medium">{c.name}</span>
 
-            {c.is_private && <Lock className="h-3 w-3 shrink-0 text-gray-600" />}
+            {c.is_private && <Lock className="h-3 w-3 shrink-0 text-gray-400" />}
             {(owner || mod) && (
               <Shield
                 className="h-3 w-3 shrink-0"
@@ -352,7 +352,7 @@ export default function Sidebar({
             <button
               onClick={(e) => { e.stopPropagation(); onToggleCommunityVisibility(c.id) }}
               title={hidden ? 'Show pins on map' : 'Hide pins from map'}
-              className={`rounded-lg p-2 transition-colors ${hidden ? 'text-indigo-400' : 'text-gray-600 hover:text-gray-400'}`}
+              className={`rounded-lg p-2 transition-colors ${hidden ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
             >
               {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -365,7 +365,7 @@ export default function Sidebar({
                 }}
                 title="Move to folder"
                 className={`rounded-lg p-2 transition-colors ${
-                  currentGroupId ? 'text-indigo-400' : 'text-gray-600 hover:text-gray-400'
+                  currentGroupId ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
                 <Folder className="h-4 w-4" />
@@ -376,7 +376,7 @@ export default function Sidebar({
                 onClick={(e) => { e.stopPropagation(); onToggleSubscription(c.id) }}
                 title={subscribed ? 'Unsubscribe' : 'Subscribe'}
                 className={`rounded-lg p-2 transition-colors ${
-                  subscribed ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'
+                  subscribed ? 'text-yellow-500' : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
                 {subscribed ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
@@ -387,7 +387,7 @@ export default function Sidebar({
                 onClick={(e) => { e.stopPropagation(); onOpenSettings(c.id) }}
                 title="Settings"
                 className={`rounded-lg p-2 transition-colors ${
-                  isAdmin && !owner && !mod ? 'text-red-500/60' : 'text-gray-600 hover:text-gray-400'
+                  isAdmin && !owner && !mod ? 'text-red-500/60' : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
                 <Settings className="h-4 w-4" />
@@ -398,7 +398,7 @@ export default function Sidebar({
           {/* ── Right cluster: desktop (pin count → actions on hover, in flow) ── */}
           <div className="hidden shrink-0 items-center pr-2 md:flex">
             <span className={`rounded-full px-2 py-0.5 text-xs md:group-hover:hidden ${
-              active ? 'bg-gray-700 text-gray-300' : 'bg-gray-800 text-gray-500'
+              active ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-500'
             }`}>
               {countFor(c.id)}
             </span>
@@ -406,7 +406,7 @@ export default function Sidebar({
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleCommunityVisibility(c.id) }}
                 title={hidden ? 'Show pins on map' : 'Hide pins from map'}
-                className={`rounded p-1 transition-colors ${hidden ? 'text-indigo-400 hover:text-indigo-300' : 'text-gray-500 hover:text-gray-300'}`}
+                className={`rounded p-1 transition-colors ${hidden ? 'text-indigo-600 hover:text-indigo-700' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
               </button>
@@ -420,8 +420,8 @@ export default function Sidebar({
                   title="Move to folder"
                   className={`rounded p-1 transition-colors ${
                     currentGroupId
-                      ? 'text-indigo-400 hover:text-indigo-300'
-                      : 'text-gray-500 hover:text-gray-300'
+                      ? 'text-indigo-600 hover:text-indigo-700'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   <Folder className="h-3.5 w-3.5" />
@@ -432,7 +432,7 @@ export default function Sidebar({
                   onClick={(e) => { e.stopPropagation(); onToggleSubscription(c.id) }}
                   title={subscribed ? 'Unsubscribe' : 'Subscribe'}
                   className={`rounded p-1 transition-colors ${
-                    subscribed ? 'text-yellow-400 hover:text-yellow-300' : 'text-gray-500 hover:text-gray-300'
+                    subscribed ? 'text-yellow-500 hover:text-yellow-300' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {subscribed ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
@@ -441,7 +441,7 @@ export default function Sidebar({
               <button
                 onClick={(e) => { e.stopPropagation(); onAddPin(c.id) }}
                 title="Drop a pin here"
-                className="rounded p-1 text-gray-500 transition-colors hover:text-indigo-400"
+                className="rounded p-1 text-gray-500 transition-colors hover:text-indigo-600"
               >
                 <MapPin className="h-3.5 w-3.5" />
               </button>
@@ -449,7 +449,7 @@ export default function Sidebar({
                 href={`/c/${c.slug}`}
                 onClick={(e) => e.stopPropagation()}
                 title="View community page"
-                className="rounded p-1 text-gray-500 transition-colors hover:text-gray-300"
+                className="rounded p-1 text-gray-500 transition-colors hover:text-gray-700"
               >
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
@@ -457,8 +457,8 @@ export default function Sidebar({
                 <button
                   onClick={(e) => { e.stopPropagation(); onOpenSettings(c.id) }}
                   title={owner ? 'Community settings' : isAdmin && !mod ? 'Admin settings' : 'Moderation queue'}
-                  className={`rounded p-1 transition-colors hover:text-gray-300 ${
-                    isAdmin && !owner && !mod ? 'text-red-500/60 hover:text-red-400' : 'text-gray-500'
+                  className={`rounded p-1 transition-colors hover:text-gray-700 ${
+                    isAdmin && !owner && !mod ? 'text-red-500/60 hover:text-red-500' : 'text-gray-500'
                   }`}
                 >
                   <Settings className="h-3.5 w-3.5" />
@@ -471,20 +471,20 @@ export default function Sidebar({
         {/* ── Group picker (inline dropdown) ── */}
         {pickerOpen && (
           <div
-            className="mx-1 mb-1 mt-0.5 overflow-hidden rounded-lg border border-gray-700 bg-gray-900 shadow-xl"
+            className="mx-1 mb-1 mt-0.5 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-1">
               {/* No folder option */}
               <button
                 onClick={() => { onAssignGroup(c.id, null); setGroupPicker(null) }}
-                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-gray-800 ${
-                  currentGroupId === null ? 'text-white' : 'text-gray-400'
+                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-gray-100 ${
+                  currentGroupId === null ? 'text-gray-900' : 'text-gray-600'
                 }`}
               >
                 <Folder className="h-3.5 w-3.5 shrink-0 text-gray-500" />
                 <span className="flex-1 text-left">No folder</span>
-                {currentGroupId === null && <Check className="h-3 w-3 shrink-0 text-indigo-400" />}
+                {currentGroupId === null && <Check className="h-3 w-3 shrink-0 text-indigo-600" />}
               </button>
 
               {/* Existing folders */}
@@ -492,30 +492,30 @@ export default function Sidebar({
                 <button
                   key={g.id}
                   onClick={() => { onAssignGroup(c.id, g.id); setGroupPicker(null) }}
-                  className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-gray-800 ${
-                    currentGroupId === g.id ? 'text-white' : 'text-gray-400'
+                  className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-gray-100 ${
+                    currentGroupId === g.id ? 'text-gray-900' : 'text-gray-600'
                   }`}
                 >
-                  <Folder className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
+                  <Folder className="h-3.5 w-3.5 shrink-0 text-indigo-600" />
                   <span className="flex-1 truncate text-left">{g.name}</span>
-                  {currentGroupId === g.id && <Check className="h-3 w-3 shrink-0 text-indigo-400" />}
+                  {currentGroupId === g.id && <Check className="h-3 w-3 shrink-0 text-indigo-600" />}
                 </button>
               ))}
             </div>
 
             {/* Create new folder from picker */}
-            <div className="border-t border-gray-800">
+            <div className="border-t border-gray-200">
               {!pickerCreating ? (
                 <button
                   onClick={() => setPickerCreating(true)}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
                 >
                   <FolderPlus className="h-3.5 w-3.5 shrink-0" />
                   New folder…
                 </button>
               ) : (
                 <div className="flex items-center gap-2 px-3 py-2">
-                  <FolderPlus className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
+                  <FolderPlus className="h-3.5 w-3.5 shrink-0 text-indigo-600" />
                   <input
                     // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus
@@ -527,7 +527,7 @@ export default function Sidebar({
                       if (e.key === 'Escape') { setPickerCreating(false); setPickerNewName('') }
                     }}
                     placeholder="Folder name…"
-                    className="min-w-0 flex-1 bg-transparent text-xs text-white placeholder-gray-600 outline-none"
+                    className="min-w-0 flex-1 bg-transparent text-xs text-gray-900 placeholder-gray-400 outline-none"
                   />
                   <button
                     onClick={() => handlePickerCreate(c.id)}
@@ -554,18 +554,18 @@ export default function Sidebar({
     children: React.ReactNode,
   ) => (
     <div className="mb-1">
-      <div className={`flex items-center rounded-lg transition-colors ${active ? activeRow : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+      <div className={`flex items-center rounded-lg transition-colors ${active ? activeRow : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>
         <button
           onClick={(e) => { e.stopPropagation(); onToggle() }}
           title={open ? 'Collapse' : 'Expand'}
-          className="flex h-9 shrink-0 items-center pl-2 pr-0.5 text-gray-500 transition-colors hover:text-gray-300"
+          className="flex h-9 shrink-0 items-center pl-2 pr-0.5 text-gray-500 transition-colors hover:text-gray-700"
         >
           {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
         </button>
         <button onClick={onClick} className="flex min-w-0 flex-1 items-center gap-2.5 py-2 pr-3 text-left">
           {icon}
           <span className="min-w-0 flex-1 truncate text-sm font-medium">{label}</span>
-          <span className={`rounded-full px-2 py-0.5 text-xs ${active ? activeBadge : 'bg-gray-800 text-gray-500'}`}>{count}</span>
+          <span className={`rounded-full px-2 py-0.5 text-xs ${active ? activeBadge : 'bg-gray-100 text-gray-500'}`}>{count}</span>
         </button>
       </div>
       {open && <div className="mb-1 pl-2">{children}</div>}
@@ -578,49 +578,49 @@ export default function Sidebar({
       {/* Mobile backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-[1400] bg-black/60 md:hidden"
+          className="fixed inset-0 z-[1400] bg-black/30 md:hidden"
           onClick={onMobileClose}
         />
       )}
 
       <aside className={`
-        flex flex-col border-r border-gray-800 bg-gray-900
+        flex flex-col border-r border-gray-200 bg-white
         fixed inset-y-0 left-0 z-[1401] w-72 transition-transform duration-300
         md:relative md:z-auto md:translate-x-0
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* ── Header ── */}
-        <div className="border-b border-gray-800 p-4">
+        <div className="border-b border-gray-200 p-4">
           <div className="mb-3 flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 shadow-lg">
-              <MapPin className="h-4 w-4 text-white" />
+              <MapPin className="h-4 w-4 text-gray-900" />
             </div>
             <div className="flex-1">
-              <h1 className="text-base font-bold leading-none text-white">MapCrowd</h1>
+              <h1 className="text-base font-bold leading-none text-gray-900">MapCrowd</h1>
               <p className="mt-0.5 text-xs text-gray-500">crowd-sourced maps</p>
             </div>
             <button
               onClick={onMobileClose}
-              className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-800 hover:text-white md:hidden"
+              className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 md:hidden"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
           <button
             onClick={onOpenSearch}
-            className="flex w-full items-center gap-2 rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2 text-sm text-gray-500 transition-colors hover:border-gray-600 hover:text-gray-300"
+            className="flex w-full items-center gap-2 rounded-lg border border-gray-200 bg-gray-100/50 px-3 py-2 text-sm text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
           >
             <Search className="h-3.5 w-3.5 shrink-0" />
             <span className="flex-1 text-left">Search…</span>
-            <kbd className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-600">⌘K</kbd>
+            <kbd className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] text-gray-400">⌘K</kbd>
           </button>
 
           {/* ── Communities / Following tab switcher ── */}
-          <div className="mt-3 flex gap-1 rounded-lg bg-gray-800/60 p-1">
+          <div className="mt-3 flex gap-1 rounded-lg bg-gray-100/60 p-1">
             <button
               onClick={() => onTabChange('communities')}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-medium transition-colors ${
-                tab === 'communities' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'
+                tab === 'communities' ? 'bg-gray-200 text-gray-900 shadow' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               <MapPin className="h-3.5 w-3.5" />
@@ -629,7 +629,7 @@ export default function Sidebar({
             <button
               onClick={() => onTabChange('feed')}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-medium transition-colors ${
-                tab === 'feed' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'
+                tab === 'feed' ? 'bg-gray-200 text-gray-900 shadow' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               <Newspaper className="h-3.5 w-3.5" />
@@ -660,7 +660,7 @@ export default function Sidebar({
         >
           {/* Section header */}
           <div className="mb-2 flex items-center justify-between px-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-600">Communities</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Communities</p>
             {user && (
               <div className="flex items-center gap-1">
                 {/* New folder button — only when user has at least one subscription */}
@@ -672,7 +672,7 @@ export default function Sidebar({
                       setNewGroupName('')
                     }}
                     title="New folder"
-                    className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-700 hover:text-white"
+                    className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
                   >
                     <FolderPlus className="h-3.5 w-3.5" />
                   </button>
@@ -680,7 +680,7 @@ export default function Sidebar({
                 <button
                   onClick={onCreateCommunity}
                   title="Create a new community"
-                  className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-700 hover:text-white"
+                  className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
                 >
                   <Plus className="h-3.5 w-3.5" />
                 </button>
@@ -706,7 +706,7 @@ export default function Sidebar({
                   else setCreatingGroup(false)
                 }}
                 placeholder="Folder name…"
-                className="w-full rounded-lg border border-indigo-500 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none"
+                className="w-full rounded-lg border border-indigo-500 bg-gray-100 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
               />
             </div>
           )}
@@ -716,7 +716,7 @@ export default function Sidebar({
             allOpen, () => setAllOpen((v) => !v),
             !selectedCommunity && !showSubscribedOnly && !showSavedOnly && !activeFolderId,
             () => { setGroupPicker(null); onSelectCommunity(null) },
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-700 text-sm">🌍</span>,
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm">🌍</span>,
             'All Communities', pins.length,
             'bg-indigo-600 text-white', 'bg-indigo-700 text-indigo-200',
             [...communities].sort((a, b) => a.name.localeCompare(b.name)).map((c) => renderRow(c, true)),
@@ -729,7 +729,7 @@ export default function Sidebar({
             () => { setGroupPicker(null); onShowSubscribed() },
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-yellow-500/10 text-sm">⭐</span>,
             'My Subscriptions', pins.filter((p) => subscribedIds.has(p.community_id)).length,
-            'bg-yellow-500/20 text-yellow-300', 'bg-yellow-500/20 text-yellow-400',
+            'bg-yellow-500/20 text-yellow-300', 'bg-yellow-500/20 text-yellow-500',
             communities.filter((c) => subscribedIds.has(c.id)).sort((a, b) => a.name.localeCompare(b.name)).map((c) => renderRow(c, true)),
           )}
 
@@ -739,16 +739,16 @@ export default function Sidebar({
               onClick={() => { setGroupPicker(null); onShowSaved() }}
               className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
                 showSavedOnly
-                  ? 'bg-indigo-500/20 text-indigo-300'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  ? 'bg-indigo-500/20 text-indigo-700'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-300">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-700">
                 <BookmarkCheck className="h-4 w-4" />
               </span>
               <span className="flex-1 text-sm font-medium">Saved</span>
               <span className={`rounded-full px-2 py-0.5 text-xs ${
-                showSavedOnly ? 'bg-indigo-500/20 text-indigo-300' : 'bg-gray-800 text-gray-500'
+                showSavedOnly ? 'bg-indigo-500/20 text-indigo-700' : 'bg-gray-100 text-gray-500'
               }`}>
                 {savedCount}
               </span>
@@ -766,14 +766,14 @@ export default function Sidebar({
                 {/* Group header — chevron expands, name filters the map */}
                 <div
                   className={`group/grp mb-0.5 flex items-center gap-1.5 rounded-lg px-2 py-1.5 ${
-                    activeFolderId === group.id ? 'bg-indigo-600/20' : 'hover:bg-gray-800/50'
+                    activeFolderId === group.id ? 'bg-indigo-600/20' : 'hover:bg-gray-100/50'
                   }`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
                     onClick={() => toggleCollapse(group.id)}
                     title={collapsed ? 'Expand' : 'Collapse'}
-                    className="shrink-0 text-gray-600 transition-colors hover:text-gray-300"
+                    className="shrink-0 text-gray-400 transition-colors hover:text-gray-700"
                   >
                     {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                   </button>
@@ -789,12 +789,12 @@ export default function Sidebar({
                       }}
                       onBlur={() => commitRename(group.id)}
                       onClick={(e) => e.stopPropagation()}
-                      className="min-w-0 flex-1 bg-transparent text-xs font-semibold uppercase tracking-wider text-gray-400 outline-none"
+                      className="min-w-0 flex-1 bg-transparent text-xs font-semibold uppercase tracking-wider text-gray-600 outline-none"
                     />
                   ) : (
                     <button onClick={() => onSelectFolder(group.id)} className="min-w-0 flex-1 text-left">
                       <span className={`block truncate text-xs font-semibold uppercase tracking-wider ${
-                        activeFolderId === group.id ? 'text-indigo-300' : 'text-gray-500'
+                        activeFolderId === group.id ? 'text-indigo-700' : 'text-gray-500'
                       }`}>
                         {group.name}
                       </span>
@@ -809,7 +809,7 @@ export default function Sidebar({
                       <button
                         onClick={(e) => { e.stopPropagation(); startRename(group) }}
                         title="Rename folder"
-                        className="rounded p-0.5 text-gray-600 transition-colors hover:text-gray-300"
+                        className="rounded p-0.5 text-gray-400 transition-colors hover:text-gray-700"
                       >
                         <Pencil className="h-3 w-3" />
                       </button>
@@ -817,7 +817,7 @@ export default function Sidebar({
                     <button
                       onClick={(e) => { e.stopPropagation(); onDeleteGroup(group.id) }}
                       title="Delete folder"
-                      className="rounded p-0.5 text-gray-600 transition-colors hover:text-red-400"
+                      className="rounded p-0.5 text-gray-400 transition-colors hover:text-red-500"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -847,7 +847,7 @@ export default function Sidebar({
 
           {/* Divider between subscribed and unsubscribed */}
           {hasSubscribedContent && unsubscribedVisible.length > 0 && (
-            <div className="my-2 border-t border-gray-800" />
+            <div className="my-2 border-t border-gray-200" />
           )}
 
           {/* ── Unsubscribed / all-other communities ── */}
@@ -856,7 +856,7 @@ export default function Sidebar({
             renderAutoFolder(
               otherOpen, () => setOtherOpen((v) => !v),
               false, () => setOtherOpen((v) => !v),
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-800"><Folder className="h-3.5 w-3.5 text-gray-400" /></span>,
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100"><Folder className="h-3.5 w-3.5 text-gray-600" /></span>,
               'Other communities', unsubscribedVisible.length,
               '', '',
               unsubscribedVisible.map((c) => renderRow(c, true)),
@@ -865,20 +865,20 @@ export default function Sidebar({
             unsubscribedVisible.map((c) => renderRow(c, false))
           )}
 
-          <div className="my-2 border-t border-gray-800" />
+          <div className="my-2 border-t border-gray-200" />
 
           {/* ── Routes ── */}
           {user && (
             <div className="mb-1" onClick={(e) => e.stopPropagation()}>
               {/* Section header — compact icon buttons, matching Communities */}
               <div className="mb-1 flex items-center justify-between px-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-600">Routes</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Routes</p>
                 <div className="flex items-center gap-1">
                   {routes.length > 0 && (
                     <button
                       onClick={() => { setCreatingFolder((v) => !v); setNewFolderName('') }}
                       title="New route folder"
-                      className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-700 hover:text-white"
+                      className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
                     >
                       <FolderPlus className="h-3.5 w-3.5" />
                     </button>
@@ -886,7 +886,7 @@ export default function Sidebar({
                   <button
                     onClick={() => { setCreatingRoute((v) => !v); setNewRouteName('') }}
                     title="New route"
-                    className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-700 hover:text-white"
+                    className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </button>
@@ -906,7 +906,7 @@ export default function Sidebar({
                     if (e.key === 'Escape') { setCreatingRoute(false); setNewRouteName('') }
                   }}
                   placeholder="Route name…"
-                  className="mb-1 w-full rounded-lg border border-indigo-500 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none"
+                  className="mb-1 w-full rounded-lg border border-indigo-500 bg-gray-100 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
                 />
               )}
               {creatingFolder && (
@@ -921,7 +921,7 @@ export default function Sidebar({
                     if (e.key === 'Escape') { setCreatingFolder(false); setNewFolderName('') }
                   }}
                   placeholder="Folder name…"
-                  className="mb-1 w-full rounded-lg border border-indigo-500 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none"
+                  className="mb-1 w-full rounded-lg border border-indigo-500 bg-gray-100 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
                 />
               )}
 
@@ -929,7 +929,7 @@ export default function Sidebar({
               {routes.length > 0 && renderAutoFolder(
                 allRoutesOpen, () => setAllRoutesOpen((v) => !v),
                 false, () => setAllRoutesOpen((v) => !v),
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-800"><RouteIcon className="h-3.5 w-3.5 text-gray-400" /></span>,
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100"><RouteIcon className="h-3.5 w-3.5 text-gray-600" /></span>,
                 'All Routes', routes.length,
                 '', '',
                 [...routes].sort((a, b) => a.name.localeCompare(b.name)).map(renderRouteRow),
@@ -942,9 +942,9 @@ export default function Sidebar({
                 const isRenaming = renamingFolderId === folder.id
                 return (
                   <div key={folder.id} className="mb-1">
-                    <div className="group/fld mb-0.5 flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-gray-800/50">
+                    <div className="group/fld mb-0.5 flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-gray-100/50">
                       <button onClick={() => toggleFolder(folder.id)} className="flex min-w-0 flex-1 items-center gap-1.5">
-                        {collapsed ? <ChevronRight className="h-3 w-3 shrink-0 text-gray-600" /> : <ChevronDown className="h-3 w-3 shrink-0 text-gray-600" />}
+                        {collapsed ? <ChevronRight className="h-3 w-3 shrink-0 text-gray-400" /> : <ChevronDown className="h-3 w-3 shrink-0 text-gray-400" />}
                         {isRenaming ? (
                           <input
                             // eslint-disable-next-line jsx-a11y/no-autofocus
@@ -957,7 +957,7 @@ export default function Sidebar({
                             }}
                             onBlur={() => { if (folderRename.trim() && folderRename.trim() !== folder.name) onRenameRouteFolder(folder.id, folderRename.trim()); setRenamingFolderId(null) }}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full bg-transparent text-xs font-semibold uppercase tracking-wider text-gray-400 outline-none"
+                            className="w-full bg-transparent text-xs font-semibold uppercase tracking-wider text-gray-600 outline-none"
                           />
                         ) : (
                           <span className="truncate text-xs font-semibold uppercase tracking-wider text-gray-500">{folder.name}</span>
@@ -967,12 +967,12 @@ export default function Sidebar({
                       <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/fld:opacity-100">
                         {!isRenaming && (
                           <button onClick={(e) => { e.stopPropagation(); setRenamingFolderId(folder.id); setFolderRename(folder.name) }} title="Rename folder"
-                            className="rounded p-0.5 text-gray-600 transition-colors hover:text-gray-300">
+                            className="rounded p-0.5 text-gray-400 transition-colors hover:text-gray-700">
                             <Pencil className="h-3 w-3" />
                           </button>
                         )}
                         <button onClick={(e) => { e.stopPropagation(); onDeleteRouteFolder(folder.id) }} title="Delete folder (keeps the routes)"
-                          className="rounded p-0.5 text-gray-600 transition-colors hover:text-red-400">
+                          className="rounded p-0.5 text-gray-400 transition-colors hover:text-red-500">
                           <Trash2 className="h-3 w-3" />
                         </button>
                       </div>
@@ -993,7 +993,7 @@ export default function Sidebar({
 
               {/* Empty state */}
               {routes.length === 0 && routeFolders.length === 0 && !creatingRoute && (
-                <p className="px-2 py-1 text-xs text-gray-600">No routes yet — tap + to start one.</p>
+                <p className="px-2 py-1 text-xs text-gray-400">No routes yet — tap + to start one.</p>
               )}
             </div>
           )}
@@ -1001,12 +1001,12 @@ export default function Sidebar({
         )}
 
         {/* ── Footer ── */}
-        <div className="space-y-3 border-t border-gray-800 p-4">
+        <div className="space-y-3 border-t border-gray-200 p-4">
 
           {/* Pending invites */}
           {pendingInvites.length > 0 && (
             <div className="space-y-2 rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-3">
-              <p className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600">
                 <Lock className="h-3 w-3" />
                 {pendingInvites.length === 1
                   ? '1 private map invite'
@@ -1023,20 +1023,20 @@ export default function Sidebar({
                   >
                     {invite.community?.icon ?? '🗺️'}
                   </span>
-                  <span className="flex-1 truncate text-xs font-medium text-gray-300">
+                  <span className="flex-1 truncate text-xs font-medium text-gray-700">
                     {invite.community?.name ?? 'Private Map'}
                   </span>
                   <button
                     onClick={() => onDeclineInvite(invite.id)}
                     title="Decline"
-                    className="rounded p-1 text-gray-600 transition-colors hover:text-red-400"
+                    className="rounded p-1 text-gray-400 transition-colors hover:text-red-500"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => onAcceptInvite(invite.id)}
                     title="Accept"
-                    className="rounded p-1 text-gray-600 transition-colors hover:text-green-400"
+                    className="rounded p-1 text-gray-400 transition-colors hover:text-green-600"
                   >
                     <Check className="h-3.5 w-3.5" />
                   </button>
@@ -1048,7 +1048,7 @@ export default function Sidebar({
           {/* Discover link */}
           <Link
             href="/discover"
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300"
+            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
           >
             <Compass className="h-3.5 w-3.5 shrink-0" />
             Discover communities
@@ -1059,7 +1059,7 @@ export default function Sidebar({
           {onShowWelcome && (
             <button
               onClick={onShowWelcome}
-              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300"
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
             >
               <HelpCircle className="h-3.5 w-3.5 shrink-0" />
               How MapCrowd works
@@ -1082,16 +1082,16 @@ export default function Sidebar({
                 src={user.user_metadata?.avatar_url}
                 username={displayName(user)}
                 userId={user.id}
-                className="h-8 w-8 rounded-full text-xs ring-2 ring-gray-700"
+                className="h-8 w-8 rounded-full text-xs ring-2 ring-gray-200"
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-white">{displayName(user)}</p>
+                <p className="truncate text-sm font-medium text-gray-900">{displayName(user)}</p>
                 <p className="truncate text-xs text-gray-500">{user.email}</p>
               </div>
               <button
                 onClick={onSignOut}
                 title="Sign out"
-                className="shrink-0 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-800 hover:text-white"
+                className="shrink-0 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -1099,7 +1099,7 @@ export default function Sidebar({
           ) : (
             <button
               onClick={onSignIn}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-700 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-indigo-500 hover:bg-indigo-600/10 hover:text-white"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-indigo-500 hover:bg-indigo-600/10 hover:text-gray-900"
             >
               <User2 className="h-4 w-4" />
               Sign in

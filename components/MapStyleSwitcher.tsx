@@ -32,18 +32,18 @@ export default function MapStyleSwitcher({ value, onChange }: MapStyleSwitcherPr
     <div ref={ref} className="relative">
       {/* Popover — opens upward so it never collides with the bottom nav */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-36 overflow-hidden rounded-xl border border-gray-700 bg-gray-900/95 shadow-2xl backdrop-blur-sm">
+        <div className="absolute bottom-full left-0 mb-2 w-36 overflow-hidden rounded-xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur-sm">
           {OPTIONS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => { onChange(opt.value); setOpen(false) }}
-              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-800 ${
-                value === opt.value ? 'text-white' : 'text-gray-400'
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-100 ${
+                value === opt.value ? 'text-gray-900' : 'text-gray-600'
               }`}
             >
               <span className="h-4 w-4 shrink-0 rounded border border-white/20" style={{ background: opt.swatch }} />
               <span className="flex-1">{opt.label}</span>
-              {value === opt.value && <Check className="h-3.5 w-3.5 text-indigo-400" />}
+              {value === opt.value && <Check className="h-3.5 w-3.5 text-indigo-600" />}
             </button>
           ))}
         </div>
@@ -53,7 +53,7 @@ export default function MapStyleSwitcher({ value, onChange }: MapStyleSwitcherPr
         onClick={() => setOpen((v) => !v)}
         title="Map style"
         aria-label="Change map style"
-        className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-700 bg-gray-900 text-gray-300 shadow-lg transition-colors hover:border-indigo-500 hover:text-white"
+        className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-lg transition-colors hover:border-indigo-500 hover:text-gray-900"
       >
         <Layers className="h-4 w-4" />
       </button>
