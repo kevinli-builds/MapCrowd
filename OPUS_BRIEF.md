@@ -311,3 +311,32 @@ a tappable backdrop. Remaining nits:_
    single entry point to everything on mobile.
 3. Not testable in a browser: long-press flows and pinch on the map — keep
    on the real-device checklist alongside Furnisher's.
+
+---
+
+## 9. Depth roadmap — serving the current user (2026-07-05)
+
+_Direction change: depth over reach. MapCrowd's deepest current users are
+community OWNERS/MODS — give them insight into the thing they tend._
+
+### C1 — Community insights for mods (M) ⭐
+A tab in CommunitySettingsModal: pins/week trend, active contributors,
+top-voted pins, subscriber growth, pending-queue latency. All from
+existing tables via 2-3 SECURITY DEFINER aggregate RPCs (mod-gated like
+get_community_stats). The mod's "is my community alive?" question,
+answered.
+
+### C2 — Personal map yearbook (S)
+For any signed-in user: your pins/routes/photos by month, communities
+contributed to, votes received — the private analytics behind §4 D6's
+shareable wrapped.
+
+### C3 — Route analytics (S)
+Per route: total distance by travel mode (geometry exists), elevation gain
+(Open-Elevation batch lookup, optional), estimated walking time. Turns
+routes into genuinely useful trail cards.
+
+### C4 — Pin lifecycle insight (M, tentative)
+For mods: expiry/decay view — how many pins go stale (no votes/comments in
+90d), oldest unedited pins — supports a "spring cleaning" queue. Depth for
+map QUALITY, which is the real product.
