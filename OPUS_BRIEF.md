@@ -293,3 +293,21 @@ Cross-cutting rules:
 - After extraction, run the full manual loop once on the preview server:
   select community → open pin → vote path → build a route → welcome modal
   reopen. Then (and only then) tackle §3's Sidebar/PinDetailModal splits.
+
+---
+
+## 8. Mobile & web experience scan (measured 2026-07-05, 375x812 viewport)
+
+_Live-tested post-light-theme. The mobile system holds up: welcome modal
+renders as a true bottom sheet, no horizontal overflow anywhere tested,
+bottom nav 53px with 4 tabs, quick-add FAB 45px, drawer opens at 270px with
+a tappable backdrop. Remaining nits:_
+
+1. **Mixed tap-target sizes in the sidebar drawer** — measured rows at
+   36/41px with some controls at 26px (folder toggles / small icon
+   buttons). On <768px bump list-row vertical padding so every interactive
+   row clears ~44px; icon-only buttons get `p-2` minimum.
+2. **Hamburger is 38px** — take it to 44px (`h-11 w-11`) since it is the
+   single entry point to everything on mobile.
+3. Not testable in a browser: long-press flows and pinch on the map — keep
+   on the real-device checklist alongside Furnisher's.
