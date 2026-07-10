@@ -8,6 +8,13 @@ may have shipped since this was written._
 
 ---
 
+## 0. Status ledger (2026-07-05) + how to pick up
+
+**Shipped ✓** — abuse reporting (P0); first-visit welcome modal (§5); full light theme (see CLAUDE.md theme note).
+**Next → (highest value first)** — refactor `page.tsx` per the §7 decomposition blueprint FIRST, then §1 notifications; §6 Google-Maps-saved-places import ⭐ (the acquisition play); §9 C1 mod community-insights ⭐; §8 mobile (44px hamburger, drawer row heights). **`CHECKINS_SPEC.md`** is a fully-designed check-ins/outings feature ready to build — it needs the user's four open-decisions (its §8) answered first.
+**Ops (apply in Supabase SQL editor if unrun)** — migrations 33, 34, and 37-reports.sql.
+**Deferred** — lint→CI (existing `react-hooks/set-state-in-effect` debt); viewport-based pin loading (fine at current scale).
+
 ## 1. Product roadmap (PM)
 
 MapCrowd is feature-deep (routes, events, collections, private communities) but has

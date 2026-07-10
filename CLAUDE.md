@@ -1,5 +1,16 @@
 @AGENTS.md
 
+## Notes & handoff — READ FIRST when told to "go through your notes"
+**`OPUS_BRIEF.md`** (repo root) is the forward roadmap of record: PM/design/security
+audits (sections 1-3), delight ideas (4), first-visit cold opens (5, shipped), wave-2 (6),
+Fable design notes (7), mobile/web scan (8), and the depth roadmap (9) — plus a **status
+ledger at the very top** marking what has shipped vs. what is next. When asked to pick up
+the next enhancement: (1) read the brief; (2) run `git log --oneline -20` + `git status` —
+a dirty working tree means another agent is mid-flight, so choose a different area or write
+specs rather than edit the same files; (3) confirm the item is not already built; (4) build
+it with the house conventions (tests, then commit + push).
+Other notes in this repo: `HANDOFF.md` (ops/deploy status) and `CHECKINS_SPEC.md` (a ready-to-build check-ins/outings feature spec).
+
 # MapCrowd — Project Context
 
 ## What this is
@@ -183,6 +194,14 @@ status colors `green-600 / red-500 / amber-500` (the -400 shades were dark-theme
 tuning — don't reintroduce them). Frosted overlays use `bg-white/60..95`;
 backdrops `bg-black/30`. Default map tiles are `light`. Keep NEW components on
 this palette.
+
+- **Brightness:** `globals.css` has a `@theme` block that dims `white` /
+  `gray-50` / `gray-100` a touch (user found pure white too glaring). Keep using
+  the normal Tailwind classes — the tokens do the softening globally.
+- **Subscription/warning accent is amber, not yellow:** fills `amber-500/10..20`,
+  text `amber-700/800`, icons `amber-500/600`. Never use `yellow-300/500` (or
+  `red-300`) as text on light surfaces — those were dark-theme classes with no
+  contrast here.
 
 ### Next.js 16 specifics
 - `params` in `generateMetadata` is `Promise<{...}>` — must be `await`ed
