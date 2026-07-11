@@ -292,3 +292,44 @@ $$ LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE;
       with vitest (`lib/*.test.ts`).
 - [ ] Update `CLAUDE.md` "Features built" + schema table once shipped.
 ```
+
+---
+
+## 8.1 Second opinion on the open decisions (Fable review, 2026-07-11)
+
+_A fresh pass over §8 against the codebase's privacy posture and build cost.
+Verdict format: agree/disagree + what to do. If you simply reply "go with the
+defaults below," the feature is unblocked and buildable as Phase 1._
+
+1. **Pin-only check-ins — agree, and make it permanent, not just Phase 1.**
+   Snapping presence to public pins is the feature's entire privacy story (§3
+   already frames it as a deliberate property). An arbitrary-lat/lng mode later
+   would quietly convert MapCrowd into a location-sharing app and reopen every
+   trust question the pin model closes. Recommend recording it as a non-goal
+   forever, not "initially".
+
+2. **Followers-only default — agree, with one sharpening.** Make the check-in
+   button's visibility scope EXPLICIT in the confirm sheet ("visible to your 12
+   followers"), not a settings-page default. Presence is the most sensitive
+   thing the app will store; the number makes the audience concrete at the
+   moment of sharing. Defer community-wide indefinitely — a community is an
+   audience of strangers, and "I'm here now" to strangers is a safety hazard,
+   not a feature.
+
+3. **Ephemeral outings — agree.** The auto-archive property is also the
+   moderation story: no standing rosters means no roster politics, no admin
+   tooling, no leave/kick flows. If recurring crews emerge as real usage, the
+   cheap v2 is "duplicate last outing," which preserves ephemerality.
+
+4. **Expiry windows — tune down check-ins, keep outings.** 4h reads long for
+   "I'm here now": bars/cafés/parks turn over in 1–2h, and a stale presence
+   marker is worse than none (someone goes to meet you; you left two hours
+   ago). Recommend **2h default with a one-tap "+2h extend"** (the extend
+   interaction doubles as an "I'm still here" freshness signal), and let a
+   check-in at a new pin auto-expire the previous one immediately — you can't
+   be in two places. Outings at 24h is right for "a day out".
+
+One addition to §9's checklist: the presence layer should render nothing for
+expired rows client-side even if the cleanup job lags — expiry must be
+enforced in the RLS/read query (`expires_at > now()`), not by trusting a
+sweeper.
