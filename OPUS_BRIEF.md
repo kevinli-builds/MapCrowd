@@ -347,3 +347,48 @@ routes into genuinely useful trail cards.
 For mods: expiry/decay view — how many pins go stale (no votes/comments in
 90d), oldest unedited pins — supports a "spring cleaning" queue. Depth for
 map QUALITY, which is the real product.
+
+---
+
+## Security & code-quality audit (2026-07-12, Fable portfolio pass)
+
+_This repo is PUBLIC; the security model here is genuinely strong, so all notes are
+safe to keep in-repo. (Any future sensitive finding goes to the private home-dir
+doc `C:\Users\snoww\PORTFOLIO_SECURITY_AUDIT.md`; nothing needed to go there for
+MapCrowd this pass.) Working tree was dirty during the audit — only this file was
+staged._
+
+**Security posture: strong.** Verified this pass:
+- Client uses only the anon key; **RLS is the boundary**. All 23 tables in
+  `schema-current.sql` have RLS enabled. The many `USING (true)` policies are
+  SELECT-only on intentionally-public data (profiles, communities, pins, comments,
+  photos, tags, follows, events) — correct for a public map.
+- Service-role key is server-only (`/api/invite`, `/api/route`); never
+  `NEXT_PUBLIC_`. `/api/invite` verifies the caller's JWT, checks community
+  ownership, rate-limits invites, and deliberately avoids account-enumeration.
+- `/api/route` (ORS proxy) requires a valid JWT, allowlists `profile`, caps
+  coordinates 2–50, validates each is finite, and calls a fixed ORS endpoint —
+  **not** an open proxy / no SSRF.
+- Migration 23 correctly `DROP`s the old fully-permissive `votes_*_all` policies;
+  writes now go only through `vote_on_pin()` (SECURITY DEFINER, keyed on
+  `auth.uid()`). Storage/pin-insert hardening (26) forces `vote_count=0`.
+
+**O1 — operational (the one real risk): live security depends on the whole
+migration chain.** The base migration ships permissive policies that later
+migrations (22 security-hardening, 23 abuse/admin, 26 pin-insert) tighten. If the
+live DB ever missed one of those, the base hole is open and nothing in the app
+would show it. **Recommend:** treat `schema-current.sql` as canonical and
+periodically diff it against the live DB (Supabase schema dump), or add a tiny
+"policy audit" SQL snippet you can run to assert no `votes` write policy exists and
+every table has RLS. Cheap insurance for a public-write app.
+
+**Quality — low priority:**
+- `NEXT_PUBLIC_ADMIN_USER_ID` is exposed to the browser (expected — it's a public
+  UUID) but must never gate a real permission client-side; the real check is the
+  `is_site_admin()` RLS path. Keep it that way; don't add client-only admin gates.
+- Lint is not yet a CI gate (known, per AGENTS/CLAUDE) — pre-existing
+  `react-hooks/set-state-in-effect` debt. Clear it, then add lint to CI so it can't
+  regrow.
+- `app/page.tsx` holds ALL map state ("god component"). Not urgent, but the single
+  biggest maintainability drag; peel off self-contained slices (routes builder,
+  feed) into hooks/contexts as you touch them.
