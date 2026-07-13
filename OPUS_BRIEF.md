@@ -12,6 +12,12 @@ may have shipped since this was written._
 
 **Shipped ✓** — abuse reporting (P0); first-visit welcome modal (§5); full light theme (see CLAUDE.md theme note).
 **Next → (highest value first)** — refactor `page.tsx` per the §7 decomposition blueprint FIRST, then §1 notifications; §6 Google-Maps-saved-places import ⭐ (the acquisition play); §9 C1 mod community-insights ⭐; §8 mobile (44px hamburger, drawer row heights). **`CHECKINS_SPEC.md`** is a fully-designed check-ins/outings feature ready to build — it needs the user's four open-decisions (its §8) answered first.
+**Usability audit finding (2026-07-12, SPEC ONLY — Sidebar.tsx was mid-flight)** — the folder
+rename/delete buttons in `Sidebar.tsx` (~line 865, community groups; ~line 1007, route folders)
+use un-gated `opacity-0 group-hover/…:opacity-100`, so they are **invisible on touch devices**
+— and the sidebar IS the mobile drawer. Fix: prefix with `md:` (`md:opacity-0
+md:group-hover/…:opacity-100`), exactly the pattern the route-row actions at ~243/252 and the
+community-row actions at ~439/444 already use. Two-line change once the tree is clean.
 **Ops (apply in Supabase SQL editor if unrun)** — migrations 33, 34, and 37-reports.sql.
 **Deferred** — lint→CI (existing `react-hooks/set-state-in-effect` debt); viewport-based pin loading (fine at current scale).
 
