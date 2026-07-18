@@ -11,7 +11,7 @@ may have shipped since this was written._
 ## 0. Status ledger (2026-07-05) + how to pick up
 
 **Shipped ✓** — abuse reporting (P0); first-visit welcome modal (§5); full light theme (see CLAUDE.md theme note).
-**Next → (highest value first)** — refactor `page.tsx` per the §7 decomposition blueprint FIRST, then §1 notifications; §6 Google-Maps-saved-places import ⭐ (the acquisition play); §9 C1 mod community-insights ⭐; §8 mobile (44px hamburger, drawer row heights). **`CHECKINS_SPEC.md`** is a fully-designed check-ins/outings feature ready to build — it needs the user's four open-decisions (its §8) answered first.
+**Next → (highest value first)** — refactor `page.tsx` per the §7 decomposition blueprint FIRST, then §1 notifications; §6 Google-Maps-saved-places import ⭐ (the acquisition play); §9 C1 mod community-insights ⭐. **§8 mobile SHIPPED (2026-07-13)** — 44px hamburger; route rows py-2.5 on mobile; folder headers/chevrons + all small icon buttons `max-md:p-2` (desktop unchanged); real-device long-press/pinch checks remain the user's. **`CHECKINS_SPEC.md`** is a fully-designed check-ins/outings feature ready to build — it needs the user's four open-decisions (its §8) answered first.
 **Usability fix SHIPPED (2026-07-13)** — the folder rename/delete buttons (community groups +
 route folders in `Sidebar.tsx`) were un-gated `opacity-0 group-hover` reveals, invisible on
 touch; now `md:`-gated (always visible on phones, hover-revealed on desktop). Landed together
