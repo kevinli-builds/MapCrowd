@@ -227,7 +227,7 @@ export default function Sidebar({
       <div className={`flex items-center rounded-lg transition-colors ${
         activeRouteId === r.id ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
       }`}>
-        <button onClick={() => onSelectRoute(r.id)} className="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3 text-left">
+        <button onClick={() => onSelectRoute(r.id)} className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-3 text-left md:py-2">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
             style={{ backgroundColor: r.color + '22', border: `2px solid ${r.color}` }}>
             <RouteIcon className="h-3.5 w-3.5" style={{ color: r.color }} />
@@ -240,7 +240,7 @@ export default function Sidebar({
           <button
             onClick={(e) => { e.stopPropagation(); setFolderMenuRouteId((id) => (id === r.id ? null : r.id)) }}
             title="Move to folder"
-            className="shrink-0 p-1 text-gray-500 transition-opacity hover:text-gray-700 md:opacity-0 md:group-hover/route:opacity-100"
+            className="shrink-0 p-1 max-md:p-2 text-gray-500 transition-opacity hover:text-gray-700 md:opacity-0 md:group-hover/route:opacity-100"
           >
             <Folder className="h-3.5 w-3.5" />
           </button>
@@ -249,7 +249,7 @@ export default function Sidebar({
         <button
           onClick={(e) => { e.stopPropagation(); if (confirm(`Delete the route “${r.name}”? This can't be undone.`)) onDeleteRoute(r.id) }}
           title="Delete route"
-          className="shrink-0 p-1 pr-2 text-gray-500 transition-opacity hover:text-red-500 md:opacity-0 md:group-hover/route:opacity-100"
+          className="shrink-0 p-1 pr-2 max-md:p-2 text-gray-500 transition-opacity hover:text-red-500 md:opacity-0 md:group-hover/route:opacity-100"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -823,7 +823,7 @@ export default function Sidebar({
               <div key={group.id} className="mb-1">
                 {/* Group header — chevron expands, name filters the map */}
                 <div
-                  className={`group/grp mb-0.5 flex items-center gap-1.5 rounded-lg px-2 py-1.5 ${
+                  className={`group/grp mb-0.5 flex items-center gap-1.5 rounded-lg px-2 py-1.5 max-md:py-2 ${
                     activeFolderId === group.id ? 'bg-indigo-600/20' : 'hover:bg-gray-100/50'
                   }`}
                   onClick={(e) => e.stopPropagation()}
@@ -831,7 +831,7 @@ export default function Sidebar({
                   <button
                     onClick={() => toggleCollapse(group.id)}
                     title={collapsed ? 'Expand' : 'Collapse'}
-                    className="shrink-0 text-gray-400 transition-colors hover:text-gray-700"
+                    className="shrink-0 max-md:p-2 text-gray-400 transition-colors hover:text-gray-700"
                   >
                     {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                   </button>
@@ -867,7 +867,7 @@ export default function Sidebar({
                       <button
                         onClick={(e) => { e.stopPropagation(); startRename(group) }}
                         title="Rename folder"
-                        className="rounded p-0.5 text-gray-400 transition-colors hover:text-gray-700"
+                        className="rounded p-0.5 max-md:p-2 text-gray-400 transition-colors hover:text-gray-700"
                       >
                         <Pencil className="h-3 w-3" />
                       </button>
@@ -875,7 +875,7 @@ export default function Sidebar({
                     <button
                       onClick={(e) => { e.stopPropagation(); onDeleteGroup(group.id) }}
                       title="Delete folder"
-                      className="rounded p-0.5 text-gray-400 transition-colors hover:text-red-500"
+                      className="rounded p-0.5 max-md:p-2 text-gray-400 transition-colors hover:text-red-500"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -982,7 +982,7 @@ export default function Sidebar({
                 const isRenaming = renamingFolderId === folder.id
                 return (
                   <div key={folder.id} className="mb-1">
-                    <div className="group/fld mb-0.5 flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-gray-100/50">
+                    <div className="group/fld mb-0.5 flex items-center gap-1 rounded-lg px-2 py-1.5 max-md:py-2 hover:bg-gray-100/50">
                       <button onClick={() => toggleFolder(folder.id)} className="flex min-w-0 flex-1 items-center gap-1.5">
                         {collapsed ? <ChevronRight className="h-3 w-3 shrink-0 text-gray-400" /> : <ChevronDown className="h-3 w-3 shrink-0 text-gray-400" />}
                         {isRenaming ? (
@@ -1007,12 +1007,12 @@ export default function Sidebar({
                       <div className="flex items-center gap-0.5 transition-opacity md:opacity-0 md:group-hover/fld:opacity-100">
                         {!isRenaming && (
                           <button onClick={(e) => { e.stopPropagation(); setRenamingFolderId(folder.id); setFolderRename(folder.name) }} title="Rename folder"
-                            className="rounded p-0.5 text-gray-400 transition-colors hover:text-gray-700">
+                            className="rounded p-0.5 max-md:p-2 text-gray-400 transition-colors hover:text-gray-700">
                             <Pencil className="h-3 w-3" />
                           </button>
                         )}
                         <button onClick={(e) => { e.stopPropagation(); onDeleteRouteFolder(folder.id) }} title="Delete folder (keeps the routes)"
-                          className="rounded p-0.5 text-gray-400 transition-colors hover:text-red-500">
+                          className="rounded p-0.5 max-md:p-2 text-gray-400 transition-colors hover:text-red-500">
                           <Trash2 className="h-3 w-3" />
                         </button>
                       </div>
@@ -1069,14 +1069,14 @@ export default function Sidebar({
                   <button
                     onClick={() => onDeclineInvite(invite.id)}
                     title="Decline"
-                    className="rounded p-1 text-gray-400 transition-colors hover:text-red-500"
+                    className="rounded p-1 max-md:p-2 text-gray-400 transition-colors hover:text-red-500"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => onAcceptInvite(invite.id)}
                     title="Accept"
-                    className="rounded p-1 text-gray-400 transition-colors hover:text-green-600"
+                    className="rounded p-1 max-md:p-2 text-gray-400 transition-colors hover:text-green-600"
                   >
                     <Check className="h-3.5 w-3.5" />
                   </button>

@@ -1067,7 +1067,7 @@ export default function Home() {
         {/* Hamburger — mobile only; hidden whenever any overlay owns the screen */}
         <button
           onClick={() => setShowMobileSidebar(true)}
-          className={`fixed left-4 top-4 z-[1100] flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-lg border border-gray-200 text-gray-700 hover:text-gray-900 transition-colors ${overlayOpen ? 'hidden' : 'md:hidden'}`}
+          className={`fixed left-4 top-4 z-[1100] flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-lg border border-gray-200 text-gray-700 hover:text-gray-900 transition-colors ${overlayOpen ? 'hidden' : 'md:hidden'}`}
           aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
