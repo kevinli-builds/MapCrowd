@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* Softened light theme: dim the three brightest surface tokens a touch so the
+   UI reads less glaring, keeping even steps between them (white stays the
+   lightest). Every bg-white / bg-gray-50 / bg-gray-100 utility (and their
+   opacity variants) picks these up — don't re-brighten per component. */
+@theme {
+  --color-white: #fafafa;
+  --color-gray-50: #f4f5f7;
+  --color-gray-100: #edeff2;
+}
+
 html,
 body {
   /* dvh tracks the *visible* viewport (excludes iOS Safari's dynamic toolbar),

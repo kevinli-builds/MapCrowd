@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Bookmark, BookmarkCheck, Check, ChevronDown, ChevronRight,
   Compass, Folder, FolderPlus, LogOut, Lock, MapPin, Pencil, Plus,
@@ -140,13 +140,53 @@ export default function Sidebar({
 }: SidebarProps) {
   // ── Local UI state ──────────────────────────────────────────────────────
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
-  // Auto-folders (All Communities / My Subscriptions / All Routes) — collapsed by default
-  const [allOpen, setAllOpen] = useState(false)
-  const [subsOpen, setSubsOpen] = useState(false)
+  // All Routes auto-folder — collapsed by default
   const [allRoutesOpen, setAllRoutesOpen] = useState(false)
-  const [otherOpen, setOtherOpen] = useState(false)
-  // Once the flat "discover" list gets long, tuck it into a collapsed "Other" folder.
-  const OTHER_FOLDER_THRESHOLD = 8
+
+  // ── Resizable sidebar (desktop only; mobile stays a fixed-width drawer) ────
+  const MIN_SIDEBAR_W = 240
+  const MAX_SIDEBAR_W = 520
+  const clampSidebarW = (n: number) => Math.min(MAX_SIDEBAR_W, Math.max(MIN_SIDEBAR_W, n))
+  const asideRef      = useRef<HTMLElement>(null)
+  const resizingRef   = useRef(false)
+  const [sidebarWidth, setSidebarWidth] = useState(288) // w-72 default
+
+  // Restore persisted width on mount
+  useEffect(() => {
+    const saved = Number(localStorage.getItem('mapcrowd:sidebarWidth'))
+    if (saved) setSidebarWidth(clampSidebarW(saved))
+  }, [])
+
+  // Drag-to-resize: width tracks the cursor's distance from the sidebar's left edge
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!resizingRef.current || !asideRef.current) return
+      const left = asideRef.current.getBoundingClientRect().left
+      setSidebarWidth(clampSidebarW(e.clientX - left))
+    }
+    const onUp = () => {
+      if (!resizingRef.current) return
+      resizingRef.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      if (asideRef.current) {
+        localStorage.setItem('mapcrowd:sidebarWidth', String(Math.round(asideRef.current.getBoundingClientRect().width)))
+      }
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [])
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault()
+    resizingRef.current = true
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
   const [groupPicker, setGroupPicker]         = useState<string | null>(null) // communityId
   const [pickerCreating, setPickerCreating]   = useState(false)
   const [pickerNewName, setPickerNewName]     = useState('')
@@ -246,25 +286,24 @@ export default function Sidebar({
   const pendingCommunityIds = new Set(pendingInvites.map((i) => i.community_id))
   const visibleCommunities  = communities.filter((c) => !pendingCommunityIds.has(c.id))
 
-  // ── Categorise communities into groups / ungrouped-subscribed / unsubscribed ──
-  const groupedMap = new Map<string, Community[]>(groups.map((g) => [g.id, []]))
-  const ungroupedSubscribed: Community[] = []
-  const unsubscribedVisible: Community[] = []
+  // The main list shows EVERY community, alphabetical — subscribing no longer pulls
+  // a community out of it. Custom folders (and the All/Subscriptions filters) are
+  // non-MECE overlays: a community can appear in the full list AND in a folder.
+  const sortedCommunities = [...visibleCommunities].sort((a, b) => a.name.localeCompare(b.name))
 
-  for (const c of visibleCommunities) {
-    if (isSubscribed(c.id)) {
-      const gid = communityGroupMap.get(c.id) ?? null
-      if (gid && groupedMap.has(gid)) {
-        groupedMap.get(gid)!.push(c)
-      } else {
-        ungroupedSubscribed.push(c)
-      }
-    } else {
-      unsubscribedVisible.push(c)
-    }
+  // Custom folders list their assigned members (independent of subscription state).
+  const groupedMap = new Map<string, Community[]>(groups.map((g) => [g.id, []]))
+  for (const c of sortedCommunities) {
+    const gid = communityGroupMap.get(c.id) ?? null
+    if (gid && groupedMap.has(gid)) groupedMap.get(gid)!.push(c)
   }
 
-  const hasSubscribedContent = groups.length > 0 || ungroupedSubscribed.length > 0
+  // Pin counts for the filter rows
+  const allPinCount        = pins.length
+  const subscribedPinCount = pins.filter((p) => subscribedIds.has(p.community_id)).length
+
+  // Is the map currently unfiltered (the "All Communities" filter is active)?
+  const allActive = !selectedCommunity && !showSubscribedOnly && !showSavedOnly && !activeFolderId
 
   // ── Group helpers ────────────────────────────────────────────────────────
   const toggleCollapse = (id: string) =>
@@ -331,7 +370,7 @@ export default function Sidebar({
             >
               {c.icon}
               {subscribed && (
-                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-gray-900 bg-yellow-400" />
+                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-amber-500" />
               )}
             </span>
 
@@ -376,7 +415,7 @@ export default function Sidebar({
                 onClick={(e) => { e.stopPropagation(); onToggleSubscription(c.id) }}
                 title={subscribed ? 'Unsubscribe' : 'Subscribe'}
                 className={`rounded-lg p-2 transition-colors ${
-                  subscribed ? 'text-yellow-500' : 'text-gray-400 hover:text-gray-600'
+                  subscribed ? 'text-amber-500' : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
                 {subscribed ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
@@ -432,7 +471,7 @@ export default function Sidebar({
                   onClick={(e) => { e.stopPropagation(); onToggleSubscription(c.id) }}
                   title={subscribed ? 'Unsubscribe' : 'Subscribe'}
                   className={`rounded p-1 transition-colors ${
-                    subscribed ? 'text-yellow-500 hover:text-yellow-300' : 'text-gray-500 hover:text-gray-700'
+                    subscribed ? 'text-amber-500 hover:text-amber-600' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {subscribed ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
@@ -583,17 +622,27 @@ export default function Sidebar({
         />
       )}
 
-      <aside className={`
+      <aside
+        ref={asideRef}
+        style={{ '--sidebar-w': `${sidebarWidth}px` } as React.CSSProperties}
+        className={`
         flex flex-col border-r border-gray-200 bg-white
         fixed inset-y-0 left-0 z-[1401] w-72 transition-transform duration-300
-        md:relative md:z-auto md:translate-x-0
+        md:relative md:z-auto md:w-[var(--sidebar-w)] md:translate-x-0
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
+        {/* Drag handle — desktop only; mobile is a fixed-width drawer */}
+        <div
+          onMouseDown={startResize}
+          title="Drag to resize"
+          className="absolute inset-y-0 -right-0.5 z-10 hidden w-1.5 cursor-col-resize hover:bg-indigo-500/40 md:block"
+        />
+
         {/* ── Header ── */}
         <div className="border-b border-gray-200 p-4">
           <div className="mb-3 flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 shadow-lg">
-              <MapPin className="h-4 w-4 text-gray-900" />
+              <MapPin className="h-4 w-4 text-white" />
             </div>
             <div className="flex-1">
               <h1 className="text-base font-bold leading-none text-gray-900">MapCrowd</h1>
@@ -711,29 +760,35 @@ export default function Sidebar({
             </div>
           )}
 
-          {/* All Communities — auto-folder: click filters to everything, chevron lists all */}
-          {renderAutoFolder(
-            allOpen, () => setAllOpen((v) => !v),
-            !selectedCommunity && !showSubscribedOnly && !showSavedOnly && !activeFolderId,
-            () => { setGroupPicker(null); onSelectCommunity(null) },
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm">🌍</span>,
-            'All Communities', pins.length,
-            'bg-indigo-600 text-white', 'bg-indigo-700 text-indigo-200',
-            [...communities].sort((a, b) => a.name.localeCompare(b.name)).map((c) => renderRow(c, true)),
+          {/* ── Filters: non-MECE map views. Tap to filter the map; they don't
+               remove a community from the full list below. ── */}
+          {/* All Communities — clears every filter */}
+          <button
+            onClick={() => { setGroupPicker(null); onSelectCommunity(null) }}
+            className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
+              allActive ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm">🌍</span>
+            <span className="flex-1 text-sm font-medium">All Communities</span>
+            <span className={`rounded-full px-2 py-0.5 text-xs ${allActive ? 'bg-indigo-700 text-indigo-100' : 'bg-gray-100 text-gray-500'}`}>{allPinCount}</span>
+          </button>
+
+          {/* My Subscriptions — filter to subscribed communities' pins */}
+          {user && subscribedIds.size > 0 && (
+            <button
+              onClick={() => { setGroupPicker(null); onShowSubscribed() }}
+              className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
+                showSubscribedOnly ? 'bg-amber-500/20 text-amber-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-sm">⭐</span>
+              <span className="flex-1 text-sm font-medium">My Subscriptions</span>
+              <span className={`rounded-full px-2 py-0.5 text-xs ${showSubscribedOnly ? 'bg-amber-500/25 text-amber-900' : 'bg-gray-100 text-gray-500'}`}>{subscribedPinCount}</span>
+            </button>
           )}
 
-          {/* My Subscriptions — auto-folder */}
-          {user && subscribedIds.size > 0 && renderAutoFolder(
-            subsOpen, () => setSubsOpen((v) => !v),
-            showSubscribedOnly,
-            () => { setGroupPicker(null); onShowSubscribed() },
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-yellow-500/10 text-sm">⭐</span>,
-            'My Subscriptions', pins.filter((p) => subscribedIds.has(p.community_id)).length,
-            'bg-yellow-500/20 text-yellow-300', 'bg-yellow-500/20 text-yellow-500',
-            communities.filter((c) => subscribedIds.has(c.id)).sort((a, b) => a.name.localeCompare(b.name)).map((c) => renderRow(c, true)),
-          )}
-
-          {/* Saved — a pin filter, not a folder */}
+          {/* Saved — filter to bookmarked pins */}
           {user && savedCount > 0 && (
             <button
               onClick={() => { setGroupPicker(null); onShowSaved() }}
@@ -754,6 +809,9 @@ export default function Sidebar({
               </span>
             </button>
           )}
+
+          {/* Divider between the filter rows and the folders / full list */}
+          <div className="my-2 border-t border-gray-200" />
 
           {/* ── Group folders ── */}
           {user && groups.map((group) => {
@@ -803,8 +861,8 @@ export default function Sidebar({
 
                   <span className="shrink-0 text-[10px] text-gray-700">{comms.length}</span>
 
-                  {/* Rename / delete — shown on hover */}
-                  <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/grp:opacity-100">
+                  {/* Rename / delete — always visible on touch, hover-revealed on desktop */}
+                  <div className="flex items-center gap-0.5 transition-opacity md:opacity-0 md:group-hover/grp:opacity-100">
                     {!isRenaming && (
                       <button
                         onClick={(e) => { e.stopPropagation(); startRename(group) }}
@@ -837,33 +895,15 @@ export default function Sidebar({
             )
           })}
 
-          {/* ── Ungrouped subscribed communities ── */}
-          {user && groups.length > 0 && ungroupedSubscribed.length > 0 && (
-            <p className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-gray-700">
-              Other subscriptions
+          {/* ── Full community list ── every community, alphabetical. Subscribing
+               keeps a community here (its star just fills in); folders above are
+               non-MECE overlays, so a foldered community still appears here too. ── */}
+          {groups.length > 0 && (
+            <p className="px-2 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+              All communities
             </p>
           )}
-          {ungroupedSubscribed.map((c) => renderRow(c, false))}
-
-          {/* Divider between subscribed and unsubscribed */}
-          {hasSubscribedContent && unsubscribedVisible.length > 0 && (
-            <div className="my-2 border-t border-gray-200" />
-          )}
-
-          {/* ── Unsubscribed / all-other communities ── */}
-          {/* Flat when short; tucked into a collapsed "Other" folder once crowded. */}
-          {unsubscribedVisible.length > OTHER_FOLDER_THRESHOLD ? (
-            renderAutoFolder(
-              otherOpen, () => setOtherOpen((v) => !v),
-              false, () => setOtherOpen((v) => !v),
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100"><Folder className="h-3.5 w-3.5 text-gray-600" /></span>,
-              'Other communities', unsubscribedVisible.length,
-              '', '',
-              unsubscribedVisible.map((c) => renderRow(c, true)),
-            )
-          ) : (
-            unsubscribedVisible.map((c) => renderRow(c, false))
-          )}
+          {sortedCommunities.map((c) => renderRow(c, false))}
 
           <div className="my-2 border-t border-gray-200" />
 
@@ -964,7 +1004,7 @@ export default function Sidebar({
                         )}
                       </button>
                       <span className="shrink-0 text-[10px] text-gray-700">{inFolder.length}</span>
-                      <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/fld:opacity-100">
+                      <div className="flex items-center gap-0.5 transition-opacity md:opacity-0 md:group-hover/fld:opacity-100">
                         {!isRenaming && (
                           <button onClick={(e) => { e.stopPropagation(); setRenamingFolderId(folder.id); setFolderRename(folder.name) }} title="Rename folder"
                             className="rounded p-0.5 text-gray-400 transition-colors hover:text-gray-700">

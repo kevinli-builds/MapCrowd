@@ -254,7 +254,7 @@ export default function CommunityPage() {
             disabled={togglingSubscription}
             className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
               isSubscribed
-                ? 'bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30'
+                ? 'bg-amber-500/15 text-amber-800 hover:bg-amber-500/25'
                 : 'bg-indigo-600 text-white hover:bg-indigo-500'
             } disabled:opacity-60`}
           >

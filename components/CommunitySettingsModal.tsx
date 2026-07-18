@@ -905,7 +905,7 @@ export default function CommunitySettingsModal({
 
                 {/* Similar names — warn but allow */}
                 {!renameExactMatch && renameSimilar.length > 0 && (
-                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2.5 text-xs text-yellow-500">
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-700">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     Similar communities exist: {renameSimilar.map((c) => `${c.icon} ${c.name}`).join(', ')}
                   </div>

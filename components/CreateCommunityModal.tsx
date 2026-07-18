@@ -203,7 +203,7 @@ export default function CreateCommunityModal({
                   exactMatch
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                     : similarCommunities.length > 0
-                    ? 'border-yellow-500/60 focus:border-yellow-500 focus:ring-yellow-500'
+                    ? 'border-amber-500/60 focus:border-amber-500 focus:ring-amber-500'
                     : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500'
                 }`}
               />
@@ -217,7 +217,7 @@ export default function CreateCommunityModal({
               <div className="mt-2 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
                 <div className="text-sm">
-                  <p className="font-medium text-red-300">This community already exists</p>
+                  <p className="font-medium text-red-700">This community already exists</p>
                   <p className="mt-0.5 text-red-500/80">
                     {exactMatch.icon} {exactMatch.name} — try a more specific name like adding your city.
                   </p>
@@ -227,14 +227,14 @@ export default function CreateCommunityModal({
 
             {/* Similar communities — warn but allow */}
             {!exactMatch && similarCommunities.length > 0 && (
-              <div className="mt-2 flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2.5">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
+              <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                 <div className="text-sm">
-                  <p className="font-medium text-yellow-300">Similar communities exist</p>
-                  <p className="mt-1 text-yellow-500/80">
+                  <p className="font-medium text-amber-800">Similar communities exist</p>
+                  <p className="mt-1 text-amber-700">
                     {similarCommunities.map((c) => `${c.icon} ${c.name}`).join(', ')}
                   </p>
-                  <p className="mt-1 text-yellow-500/60">
+                  <p className="mt-1 text-amber-700/80">
                     You can still create yours if it covers a different area or focus.
                   </p>
                 </div>
