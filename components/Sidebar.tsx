@@ -5,7 +5,7 @@ import {
   Bookmark, BookmarkCheck, Check, ChevronDown, ChevronRight,
   Compass, Folder, FolderPlus, LogOut, Lock, MapPin, Pencil, Plus,
   Search, Settings, Shield, Trash2, User2, ArrowUpRight, X, Newspaper, Route as RouteIcon,
-  Eye, EyeOff, Globe, HelpCircle,
+  Eye, EyeOff, Globe, HelpCircle, Upload,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
@@ -77,6 +77,7 @@ interface SidebarProps {
   onSignIn: () => void
   onSignOut: () => void
   onCreateCommunity: () => void
+  onImportPlaces: () => void
   onOpenSearch: () => void
   mobileOpen: boolean
   onMobileClose: () => void
@@ -132,6 +133,7 @@ export default function Sidebar({
   onSignIn,
   onSignOut,
   onCreateCommunity,
+  onImportPlaces,
   onOpenSearch,
   mobileOpen,
   onMobileClose,
@@ -726,6 +728,13 @@ export default function Sidebar({
                     <FolderPlus className="h-3.5 w-3.5" />
                   </button>
                 )}
+                <button
+                  onClick={onImportPlaces}
+                  title="Import your Google Maps saved places"
+                  className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                </button>
                 <button
                   onClick={onCreateCommunity}
                   title="Create a new community"

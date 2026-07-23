@@ -46,6 +46,35 @@ export function formatAddress(data: NominatimReverse | null, maxParts = 3): stri
   )
 }
 
+/**
+ * Forward-geocode a place name/address to a single best coordinate (null on
+ * miss). Used by the Google-Maps import to locate CSV rows whose URL had no
+ * embedded coordinates. Nominatim rate-limits to ~1 req/s — callers MUST
+ * throttle when looping (see ImportPlacesModal).
+ */
+export async function forwardGeocode(
+  query: string,
+  signal?: AbortSignal
+): Promise<{ lat: number; lng: number } | null> {
+  const q = query.trim()
+  if (!q) return null
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
+      { headers: { 'Accept-Language': 'en' }, signal }
+    )
+    const data = (await r.json()) as { lat?: string; lon?: string }[]
+    const hit = data?.[0]
+    if (!hit?.lat || !hit?.lon) return null
+    const lat = parseFloat(hit.lat)
+    const lng = parseFloat(hit.lon)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+    return { lat, lng }
+  } catch {
+    return null
+  }
+}
+
 // ── Nearby places (Overpass) ──────────────────────────────────────────────────
 
 export interface NearbyPlace {

@@ -10,8 +10,8 @@ may have shipped since this was written._
 
 ## 0. Status ledger (2026-07-05) + how to pick up
 
-**Shipped ✓** — abuse reporting (P0); first-visit welcome modal (§5); full light theme (see CLAUDE.md theme note).
-**Next → (highest value first)** — refactor `page.tsx` per the §7 decomposition blueprint FIRST, then §1 notifications; §6 Google-Maps-saved-places import ⭐ (the acquisition play); §9 C1 mod community-insights ⭐. **§8 mobile SHIPPED (2026-07-13)** — 44px hamburger; route rows py-2.5 on mobile; folder headers/chevrons + all small icon buttons `max-md:p-2` (desktop unchanged); real-device long-press/pinch checks remain the user's. **`CHECKINS_SPEC.md`** is a fully-designed check-ins/outings feature ready to build — it needs the user's four open-decisions (its §8) answered first.
+**Shipped ✓** — abuse reporting (P0); first-visit welcome modal (§5); full light theme (see CLAUDE.md theme note); **§6 W2 Google-Maps-saved-places import ⭐ SHIPPED (2026-07-22)** — see below.
+**Next → (highest value first)** — refactor `page.tsx` per the §7 decomposition blueprint FIRST, then §1 notifications; §9 C1 mod community-insights ⭐. **§8 mobile SHIPPED (2026-07-13)** — 44px hamburger; route rows py-2.5 on mobile; folder headers/chevrons + all small icon buttons `max-md:p-2` (desktop unchanged); real-device long-press/pinch checks remain the user's. **`CHECKINS_SPEC.md`** is a fully-designed check-ins/outings feature ready to build — it needs the user's four open-decisions (its §8) answered first.
 **Usability fix SHIPPED (2026-07-13)** — the folder rename/delete buttons (community groups +
 route folders in `Sidebar.tsx`) were un-gated `opacity-0 group-hover` reveals, invisible on
 touch; now `md:`-gated (always visible on phones, hover-revealed on desktop). Landed together
@@ -22,7 +22,9 @@ yellow→amber sweep (all of which CLAUDE.md already documented as conventions).
 tests + production build + CSS artifact inspection; note the in-app browser pane can't
 advance CSS transitions (frozen compositor), so drawer-slide checks were done at the CSS
 level, not visually.
-**Ops (apply in Supabase SQL editor if unrun)** — migrations 33, 34, and 37-reports.sql.
+**Ops (apply in Supabase SQL editor if unrun)** — migrations 33, 34, 37-reports.sql, and **38-import-pins.sql** (adds `import_pins()` + the bulk-import rate-limit bypass; the Google Maps import throws "Could not find function" until this is run).
+
+**Google Maps import ⭐ (§6 W2) — SHIPPED 2026-07-22, needs migration 38 live.** Sidebar Communities header → Upload icon → `ImportPlacesModal`. Flow: pick a Takeout export (`.json` "Maps (your places)" GeoJSON = reliable coords, or `.csv` saved-list = coords only when the maps URL embeds them) → parse via pure, tested `lib/importPlaces.ts` (the import TRUST BOUNDARY: clamps every row to the pins CHECK limits, dedupes, `extractLatLngFromUrl` handles `!3d!4d`/`@`/`q=`/`ll=` forms) → preview counts (located vs need-locating) → optional name-based geocode of the rest (`forwardGeocode` in `lib/geo.ts`, Nominatim, throttled ~1.1s/row) → creates a new private community (default) + subscribes the user → inserts via `import_pins(community_id, jsonb)` in ≤500 chunks. **Non-obvious:** a naive client loop would trip the 10/min pin rate-limit after 10 rows, so `import_pins` is SECURITY DEFINER, mod-gated on the target community, size-capped (500), and sets a **transaction-local `mapcrowd.bulk_import` GUC** that `check_pin_rate_limit()` honours to skip the cap for that trusted path only; per-row `EXCEPTION … CONTINUE` skips a bad row instead of failing the batch; `set_pin_defaults_on_insert` still runs so status/expiry/vote_count stay server-controlled. Verified: 17 parser tests (60 suite total) + clean build + dev-server boot. **Follow-up not built:** per-pin "publish to a public community" (needs a move-pin-between-communities path that doesn't exist yet); import into an existing community (RPC already allows it — UI only offers new-community for now).
 **Deferred** — lint→CI (existing `react-hooks/set-state-in-effect` debt); viewport-based pin loading (fine at current scale).
 
 ## 1. Product roadmap (PM)

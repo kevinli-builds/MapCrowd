@@ -17,6 +17,7 @@ import AddPinModal from '@/components/AddPinModal'
 import PinDetailModal from '@/components/PinDetailModal'
 import AuthModal from '@/components/AuthModal'
 import CreateCommunityModal from '@/components/CreateCommunityModal'
+import ImportPlacesModal from '@/components/ImportPlacesModal'
 import CommunitySettingsModal from '@/components/CommunitySettingsModal'
 import CommunityPinsPanel from '@/components/CommunityPinsPanel'
 import RouteBuilder from '@/components/RouteBuilder'
@@ -53,6 +54,7 @@ export default function Home() {
   const [authReady, setAuthReady] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const [communitySettingsId, setCommunitySettingsId] = useState<string | null>(null)
   const [showSearch, setShowSearch] = useState(false)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
@@ -967,7 +969,7 @@ export default function Home() {
   const panelOpen = !!selectedCommunityObj
   const modalOpen =
     !!pendingLatLng || !!selectedPin || showAuthModal || showSearch ||
-    showCreateModal || !!communitySettingsId || showQuickAdd || routeBuilderOpen ||
+    showCreateModal || showImportModal || !!communitySettingsId || showQuickAdd || routeBuilderOpen ||
     showWelcome
   const overlayOpen = panelOpen || modalOpen
 
@@ -1060,6 +1062,7 @@ export default function Home() {
         onSignIn={() => setShowAuthModal(true)}
         onSignOut={handleSignOut}
         onCreateCommunity={() => setShowCreateModal(true)}
+        onImportPlaces={() => setShowImportModal(true)}
         isAdmin={isAdmin}
       />
 
@@ -1192,6 +1195,19 @@ export default function Home() {
               // (don't disturb the map behind it); otherwise jump the map to it.
               if (pendingLatLng) setPendingCommunityOverride(newId)
               else handleSelectCommunity(newId)
+            }}
+          />
+        )}
+
+        {showImportModal && user && (
+          <ImportPlacesModal
+            userId={user.id}
+            onClose={() => setShowImportModal(false)}
+            onSuccess={(newId) => {
+              setShowImportModal(false)
+              fetchCommunities()
+              fetchPins()
+              handleSelectCommunity(newId)
             }}
           />
         )}
