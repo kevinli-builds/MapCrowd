@@ -26,7 +26,7 @@ import BottomNav from '@/components/BottomNav'
 import MapStyleSwitcher from '@/components/MapStyleSwitcher'
 import QuickAddSheet from '@/components/QuickAddSheet'
 import WelcomeModal from '@/components/WelcomeModal'
-import type { MapStyle } from '@/components/MapInner'
+import { useMapStyle } from '@/hooks/useMapStyle'
 
 // Group flat route stops into ordered steps; pins sharing a step are alternatives.
 // `equalOptions` (per step) marks the step's options as equal — the incoming main
@@ -111,21 +111,10 @@ export default function Home() {
   const [myUsername, setMyUsername] = useState<string | null>(null)
   // Which list the sidebar shows — lifted here so the bottom nav can switch it
   const [sidebarTab, setSidebarTab] = useState<'communities' | 'feed'>('communities')
-  // Map tile style (persisted)
-  const [mapStyle, setMapStyle] = useState<MapStyle>('light')
+  // Map tile style (light/dark/satellite), persisted — see hooks/useMapStyle.
+  const { mapStyle, changeMapStyle } = useMapStyle()
   // Tag filter (community-scoped) — empty = show all
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set())
-
-  // Load persisted map style on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('mapStyle')
-    if (saved === 'light' || saved === 'dark' || saved === 'satellite') setMapStyle(saved)
-  }, [])
-
-  const handleMapStyleChange = (style: MapStyle) => {
-    setMapStyle(style)
-    localStorage.setItem('mapStyle', style)
-  }
 
   // Load persisted hidden-community set on mount
   useEffect(() => {
@@ -1128,7 +1117,7 @@ export default function Home() {
             clear of the right-hand panel) but hides on mobile (the sheet covers it). */}
         {!modalOpen && (
           <div className={`absolute left-4 bottom-20 z-[1100] md:bottom-8 ${panelOpen ? 'hidden md:block' : ''}`}>
-            <MapStyleSwitcher value={mapStyle} onChange={handleMapStyleChange} />
+            <MapStyleSwitcher value={mapStyle} onChange={changeMapStyle} />
           </div>
         )}
 
