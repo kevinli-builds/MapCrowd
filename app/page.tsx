@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Menu, Zap, LocateFixed, Loader2 } from 'lucide-react'
-import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import { ADMIN_USER_ID } from '@/lib/constants'
+import { useAuthUser } from '@/hooks/useAuthUser'
 import { Community, Pin, PendingInvite, CommunityGroup, Route, RouteFolder, TravelMode } from '@/lib/types'
 import { selectVisiblePins } from '@/lib/pin-filters'
 import { fetchRouteGeometry } from '@/lib/routing'
@@ -50,8 +49,7 @@ function groupRouteSteps(stops: RouteStop[]): RouteStepGroup[] {
 }
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null)
-  const [authReady, setAuthReady] = useState(false)
+  const { user, authReady, myUsername, isAdmin } = useAuthUser()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
@@ -107,8 +105,6 @@ export default function Home() {
   const [routeGeometry, setRouteGeometry] = useState<[number, number][][] | null>(null)
   // Snapped DASHED legs (alternative spurs + equal-step main legs) for this session.
   const [branchGeometry, setBranchGeometry] = useState<[number, number][][] | null>(null)
-  // Current user's profile username (for the bottom-nav Profile link)
-  const [myUsername, setMyUsername] = useState<string | null>(null)
   // Which list the sidebar shows — lifted here so the bottom nav can switch it
   const [sidebarTab, setSidebarTab] = useState<'communities' | 'feed'>('communities')
   // Map tile style (light/dark/satellite), persisted — see hooks/useMapStyle.
@@ -145,9 +141,6 @@ export default function Home() {
     [communities, user]
   )
 
-  // Site-wide admin — can delete any community
-  const isAdmin = !!user && !!ADMIN_USER_ID && user.id === ADMIN_USER_ID
-
   // All communities this user can moderate (owner OR assigned mod)
   const moderatedIds = useMemo(
     () => new Set([...ownedCommunityIds, ...modCommunityIds]),
@@ -160,20 +153,9 @@ export default function Home() {
     [moderatedIds]
   )
 
-  // ── Auth state ────────────────────────────────────────────────────────────
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setAuthReady(true)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) setShowAuthModal(false)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+  // Auth (user / authReady / myUsername / isAdmin) lives in hooks/useAuthUser.
+  // Close the auth modal once a session is established.
+  useEffect(() => { if (user) setShowAuthModal(false) }, [user])
 
   // ── Global keyboard shortcuts ─────────────────────────────────────────────
   useEffect(() => {
@@ -254,16 +236,6 @@ export default function Home() {
     if (data) setRouteFolders(data as RouteFolder[])
   }, [user])
 
-  const fetchMyUsername = useCallback(async () => {
-    if (!user) { setMyUsername(null); return }
-    const { data } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('id', user.id)
-      .maybeSingle()
-    setMyUsername(data?.username ?? null)
-  }, [user])
-
   const fetchPendingInvites = useCallback(async () => {
     if (!user) { setPendingInvites([]); return }
     const { data } = await supabase
@@ -293,7 +265,6 @@ export default function Home() {
   useEffect(() => { fetchSaved() }, [fetchSaved])
   useEffect(() => { fetchRoutes() }, [fetchRoutes])
   useEffect(() => { fetchRouteFolders() }, [fetchRouteFolders])
-  useEffect(() => { fetchMyUsername() }, [fetchMyUsername])
 
   // Reset manual-filter flag when auth changes, and clear subscribed view on sign-out
   useEffect(() => {
