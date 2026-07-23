@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Menu, Zap, LocateFixed, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthUser } from '@/hooks/useAuthUser'
-import { Community, Pin, PendingInvite, CommunityGroup, Route, RouteFolder, TravelMode } from '@/lib/types'
+import { useCommunities } from '@/hooks/useCommunities'
+import { Pin, Route, RouteFolder, TravelMode } from '@/lib/types'
 import { selectVisiblePins } from '@/lib/pin-filters'
 import { fetchRouteGeometry } from '@/lib/routing'
 import { buildRouteLegs, stepsToLegSteps, normalizeSolidSegments } from '@/lib/route-legs'
@@ -63,7 +64,6 @@ export default function Home() {
   // Tracks whether user has manually chosen a filter; prevents auto-default from overriding choices
   const userChoseFilter = useRef(false)
 
-  const [communities, setCommunities] = useState<Community[]>([])
   const [pins, setPins] = useState<Pin[]>([])
   const [selectedCommunity, setSelectedCommunity] = useState<string | null>(null)
   const [showSubscribedOnly, setShowSubscribedOnly] = useState(false)
@@ -76,10 +76,29 @@ export default function Home() {
   const [mapCenter, setMapCenter] = useState<[number, number]>([30, 10]) // matches MapInner initial center
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null)
 
-  // Moderation, subscriptions & invites
-  const [subscribedIds, setSubscribedIds] = useState<Set<string>>(new Set())
-  const [modCommunityIds, setModCommunityIds] = useState<Set<string>>(new Set())
-  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([])
+  // Communities + the user's relationship to them — see hooks/useCommunities.
+  const {
+    communities,
+    subscribedIds,
+    modCommunityIds,
+    ownedCommunityIds,
+    moderatedIds,
+    canModerate,
+    pendingInvites,
+    groups,
+    communityGroupMap,
+    refetchCommunities: fetchCommunities,
+    subscribe,
+    unsubscribe,
+    acceptInvite: handleAcceptInvite,
+    declineInvite: handleDeclineInvite,
+    createGroup: handleCreateGroup,
+    renameGroup: handleRenameGroup,
+    deleteGroup: handleDeleteGroup,
+    assignGroup: handleAssignGroup,
+    applyCommunityPatch,
+    removeCommunity,
+  } = useCommunities(user)
   // User IDs the current user follows
   const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set())
   // Pin IDs the current user has saved (private bookmarks)
@@ -130,29 +149,6 @@ export default function Home() {
     })
   }
 
-  // Community groups (personal folders for organising subscriptions)
-  const [groups, setGroups] = useState<CommunityGroup[]>([])
-  // Maps communityId → groupId (null = ungrouped). Only includes subscribed communities.
-  const [communityGroupMap, setCommunityGroupMap] = useState<Map<string, string | null>>(new Map())
-
-  // Communities this user owns (derived from communities list)
-  const ownedCommunityIds = useMemo(
-    () => new Set(communities.filter((c) => c.created_by === user?.id).map((c) => c.id)),
-    [communities, user]
-  )
-
-  // All communities this user can moderate (owner OR assigned mod)
-  const moderatedIds = useMemo(
-    () => new Set([...ownedCommunityIds, ...modCommunityIds]),
-    [ownedCommunityIds, modCommunityIds]
-  )
-
-  // True if the user can moderate the given community (owner or assigned mod)
-  const canModerate = useCallback(
-    (communityId: string) => moderatedIds.has(communityId),
-    [moderatedIds]
-  )
-
   // Auth (user / authReady / myUsername / isAdmin) lives in hooks/useAuthUser.
   // Close the auth modal once a session is established.
   useEffect(() => { if (user) setShowAuthModal(false) }, [user])
@@ -170,32 +166,8 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  // ── Subscriptions & mod roles — refresh whenever auth changes ─────────────
-  const fetchSubscriptions = useCallback(async () => {
-    if (!user) {
-      setSubscribedIds(new Set())
-      setCommunityGroupMap(new Map())
-      return
-    }
-    const { data } = await supabase
-      .from('community_subscriptions')
-      .select('community_id, group_id')
-      .eq('user_id', user.id)
-    if (data) {
-      setSubscribedIds(new Set(data.map((s) => s.community_id)))
-      setCommunityGroupMap(new Map(data.map((s) => [s.community_id, s.group_id ?? null])))
-    }
-  }, [user])
-
-  const fetchModRoles = useCallback(async () => {
-    if (!user) { setModCommunityIds(new Set()); return }
-    const { data } = await supabase
-      .from('community_moderators')
-      .select('community_id')
-      .eq('user_id', user.id)
-    if (data) setModCommunityIds(new Set(data.map((m) => m.community_id)))
-  }, [user])
-
+  // Community data + fetchers (subscriptions, mod roles, invites, groups) live in
+  // hooks/useCommunities. Below are the still-in-page follow/save/route fetchers.
   const fetchFollowing = useCallback(async () => {
     if (!user) { setFollowedUserIds(new Set()); return }
     const { data } = await supabase
@@ -236,31 +208,6 @@ export default function Home() {
     if (data) setRouteFolders(data as RouteFolder[])
   }, [user])
 
-  const fetchPendingInvites = useCallback(async () => {
-    if (!user) { setPendingInvites([]); return }
-    const { data } = await supabase
-      .from('community_members')
-      .select('id, community_id, community:communities(name, icon, color)')
-      .eq('user_id', user.id)
-      .eq('status', 'pending')
-    if (data) setPendingInvites(data as unknown as PendingInvite[])
-  }, [user])
-
-  const fetchGroups = useCallback(async () => {
-    if (!user) { setGroups([]); return }
-    const { data } = await supabase
-      .from('community_groups')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('position')
-      .order('created_at')
-    if (data) setGroups(data)
-  }, [user])
-
-  useEffect(() => { fetchSubscriptions() }, [fetchSubscriptions])
-  useEffect(() => { fetchModRoles() }, [fetchModRoles])
-  useEffect(() => { fetchPendingInvites() }, [fetchPendingInvites])
-  useEffect(() => { fetchGroups() }, [fetchGroups])
   useEffect(() => { fetchFollowing() }, [fetchFollowing])
   useEffect(() => { fetchSaved() }, [fetchSaved])
   useEffect(() => { fetchRoutes() }, [fetchRoutes])
@@ -277,8 +224,8 @@ export default function Home() {
       setRouteStops([])
       setBuilderCommunityId(null)
       setSelectedCommunity(null)
-      setGroups([])
-      setCommunityGroupMap(new Map())
+      // Community-owned state (groups, group map, subscriptions) clears itself in
+      // hooks/useCommunities when user → null.
     }
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -297,23 +244,6 @@ export default function Home() {
   }, [showSavedOnly, savedPinIds])
 
   // ── Data ──────────────────────────────────────────────────────────────────
-  const fetchCommunities = useCallback(async () => {
-    const { data } = await supabase.from('communities').select('*').order('name')
-    if (data) setCommunities(data)
-  }, [])
-
-  useEffect(() => { fetchCommunities() }, [fetchCommunities])
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('communities-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'communities' }, () =>
-        fetchCommunities()
-      )
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [fetchCommunities])
-
   const fetchPins = useCallback(async () => {
     const now = new Date().toISOString()
     const { data } = await supabase
@@ -718,53 +648,19 @@ export default function Home() {
     await supabase.auth.signOut()
   }
 
+  // Subscribe/unsubscribe primitives live in useCommunities; this wrapper adds the
+  // map-filter side-effect (leaving the subscribed-only view when the last sub goes).
   const handleToggleSubscription = async (communityId: string) => {
     if (!user) { setShowAuthModal(true); return }
-
     if (subscribedIds.has(communityId)) {
-      await supabase
-        .from('community_subscriptions')
-        .delete()
-        .eq('community_id', communityId)
-        .eq('user_id', user.id)
-      setSubscribedIds((prev) => {
-        const next = new Set(prev)
-        next.delete(communityId)
-        return next
-      })
-      // If this was the last subscription and we were in subscribed-only mode,
-      // fall back to all-communities view so the map doesn't look empty
+      await unsubscribe(communityId)
       if (subscribedIds.size === 1 && showSubscribedOnly) {
         setShowSubscribedOnly(false)
         userChoseFilter.current = false // allow auto-default to re-activate on re-subscribe
       }
     } else {
-      await supabase
-        .from('community_subscriptions')
-        .insert({ community_id: communityId, user_id: user.id })
-      setSubscribedIds((prev) => new Set([...prev, communityId]))
+      await subscribe(communityId)
     }
-  }
-
-  const handleAcceptInvite = async (memberId: string) => {
-    if (!user) return
-    await supabase
-      .from('community_members')
-      .update({ status: 'accepted' })
-      .eq('id', memberId)
-      .eq('user_id', user.id)
-    setPendingInvites((prev) => prev.filter((i) => i.id !== memberId))
-    fetchCommunities() // make the newly-joined private community appear
-  }
-
-  const handleDeclineInvite = async (memberId: string) => {
-    if (!user) return
-    await supabase
-      .from('community_members')
-      .delete()
-      .eq('id', memberId)
-      .eq('user_id', user.id)
-    setPendingInvites((prev) => prev.filter((i) => i.id !== memberId))
   }
 
   const handleToggleFollow = async (targetUserId: string) => {
@@ -827,48 +723,7 @@ export default function Home() {
     setSelectedPin((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev))
   }
 
-  // ── Community group CRUD ─────────────────────────────────────────────────
-
-  const handleCreateGroup = useCallback(async (name: string): Promise<string | null> => {
-    if (!user) return null
-    const position = groups.length
-    const { data, error } = await supabase
-      .from('community_groups')
-      .insert({ user_id: user.id, name: name.trim(), position })
-      .select()
-      .single()
-    if (error || !data) return null
-    setGroups((prev) => [...prev, data])
-    return data.id
-  }, [user, groups.length])
-
-  const handleRenameGroup = useCallback(async (id: string, name: string) => {
-    await supabase.from('community_groups').update({ name: name.trim() }).eq('id', id)
-    setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, name: name.trim() } : g)))
-  }, [])
-
-  const handleDeleteGroup = useCallback(async (id: string) => {
-    await supabase.from('community_groups').delete().eq('id', id)
-    setGroups((prev) => prev.filter((g) => g.id !== id))
-    // Clear group assignment for any communities that were in this group
-    setCommunityGroupMap((prev) => {
-      const next = new Map(prev)
-      for (const [cid, gid] of next) {
-        if (gid === id) next.set(cid, null)
-      }
-      return next
-    })
-  }, [])
-
-  const handleAssignGroup = useCallback(async (communityId: string, groupId: string | null) => {
-    if (!user) return
-    await supabase
-      .from('community_subscriptions')
-      .update({ group_id: groupId })
-      .eq('community_id', communityId)
-      .eq('user_id', user.id)
-    setCommunityGroupMap((prev) => new Map(prev).set(communityId, groupId))
-  }, [user])
+  // Community group CRUD (create/rename/delete/assign) lives in useCommunities.
 
   // ── Near Me ───────────────────────────────────────────────────────────────
   const [locating, setLocating] = useState(false)
@@ -1261,13 +1116,9 @@ export default function Home() {
             isOwner={settingsCommunity.created_by === user.id}
             isAdmin={isAdmin}
             onClose={() => setCommunitySettingsId(null)}
-            onSettingsUpdate={(updated) => {
-              setCommunities((prev) =>
-                prev.map((c) => (c.id === settingsCommunity.id ? { ...c, ...updated } : c))
-              )
-            }}
+            onSettingsUpdate={(updated) => applyCommunityPatch(settingsCommunity.id, updated)}
             onDelete={() => {
-              setCommunities((prev) => prev.filter((c) => c.id !== settingsCommunity.id))
+              removeCommunity(settingsCommunity.id)
               if (selectedCommunity === settingsCommunity.id) setSelectedCommunity(null)
               setCommunitySettingsId(null)
             }}
