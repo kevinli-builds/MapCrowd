@@ -10,8 +10,8 @@ may have shipped since this was written._
 
 ## 0. Status ledger (2026-07-05) + how to pick up
 
-**Shipped ✓** — abuse reporting (P0); first-visit welcome modal (§5); full light theme (see CLAUDE.md theme note); **§6 W2 Google-Maps-saved-places import ⭐ SHIPPED (2026-07-22)** — see below.
-**Next → (highest value first)** — refactor `page.tsx` per the §7 decomposition blueprint FIRST, then §1 notifications; §9 C1 mod community-insights ⭐. **§8 mobile SHIPPED (2026-07-13)** — 44px hamburger; route rows py-2.5 on mobile; folder headers/chevrons + all small icon buttons `max-md:p-2` (desktop unchanged); real-device long-press/pinch checks remain the user's. **`CHECKINS_SPEC.md`** is a fully-designed check-ins/outings feature ready to build — it needs the user's four open-decisions (its §8) answered first.
+**Shipped ✓** — abuse reporting (P0); first-visit welcome modal (§5); full light theme (see CLAUDE.md theme note); **§6 W2 Google-Maps-saved-places import ⭐ SHIPPED (2026-07-22)** — see below; **§7 `page.tsx` decomposition SHIPPED (2026-07-23)** — all 6 hooks extracted (`hooks/useMapStyle`, `useAuthUser`, `useCommunities`, `usePins`, `useRouteBuilder`, `useMapFilters`); page.tsx 1240→749 lines; `selectedPin`/`flyTo`/modal-visibility stay in the page as the coordination layer, hooks never import each other (see below).
+**Next → (highest value first)** — §1 notifications (the refactor precondition is now done); §9 C1 mod community-insights ⭐. **§8 mobile SHIPPED (2026-07-13)** — 44px hamburger; route rows py-2.5 on mobile; folder headers/chevrons + all small icon buttons `max-md:p-2` (desktop unchanged); real-device long-press/pinch checks remain the user's. **`CHECKINS_SPEC.md`** is a fully-designed check-ins/outings feature ready to build — it needs the user's four open-decisions (its §8) answered first.
 **Usability fix SHIPPED (2026-07-13)** — the folder rename/delete buttons (community groups +
 route folders in `Sidebar.tsx`) were un-gated `opacity-0 group-hover` reveals, invisible on
 touch; now `md:`-gated (always visible on phones, hover-revealed on desktop). Landed together
@@ -268,6 +268,22 @@ footer) + an iframe snippet in community settings. Requires loosening
 ---
 
 ## 7. Fable design notes — page.tsx decomposition blueprint (2026-07-04)
+
+**SHIPPED 2026-07-23 — all 6 steps done, one commit each, build+tests green throughout.**
+`hooks/`: `useMapStyle`, `useAuthUser`, `useCommunities`, `usePins`, `useRouteBuilder`
+(owns the RouteStop type + groupRouteSteps + the ORS recompute effect), `useMapFilters`
+(wraps selectVisiblePins). page.tsx 1240→749 lines. **Non-obvious calls that a future
+refactor should preserve:** (1) **hooks never import each other** — cross-cluster
+coordination stays in the page: `handleToggleSubscription` (community + filter), the
+composite view handlers (filter + route + drawer), pin delete/edit (list + open modal).
+(2) Where a handler needs the sign-in prompt (save/follow/subscribe), the hook exposes a
+primitive assuming a user and the page keeps a thin auth-gating wrapper (the auth modal is
+page state). (3) **Hook call ORDER matters**: useMapFilters must precede useRouteBuilder
+(the builder's `onEnterBuilder` callback needs `setSelectedCommunity`), and both follow
+useCommunities/usePins (filteredPins needs pins+subscribedIds+savedPinIds). (4) Each data
+hook clears its own state on `user → null`, so the page's sign-out reset only touches the
+filter views it still owns. Next: §3's Sidebar.tsx / PinDetailModal.tsx splits, then §1
+notifications on the now-clean state surface.
 
 _The §3/§6 refactor precondition, made concrete so it can be executed as a
 sequence of small, always-green PRs (parallel-session safe: each step is
