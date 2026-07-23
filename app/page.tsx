@@ -6,9 +6,9 @@ import { supabase } from '@/lib/supabase'
 import { useAuthUser } from '@/hooks/useAuthUser'
 import { useCommunities } from '@/hooks/useCommunities'
 import { usePins } from '@/hooks/usePins'
-import { Pin, Route, RouteFolder, TravelMode } from '@/lib/types'
+import { useRouteBuilder, groupRouteSteps } from '@/hooks/useRouteBuilder'
+import { Pin } from '@/lib/types'
 import { selectVisiblePins } from '@/lib/pin-filters'
-import { fetchRouteGeometry } from '@/lib/routing'
 import { buildRouteLegs, stepsToLegSteps, normalizeSolidSegments } from '@/lib/route-legs'
 import type { FlyToTarget } from '@/components/MapInner'
 import Sidebar from '@/components/Sidebar'
@@ -28,27 +28,6 @@ import MapStyleSwitcher from '@/components/MapStyleSwitcher'
 import QuickAddSheet from '@/components/QuickAddSheet'
 import WelcomeModal from '@/components/WelcomeModal'
 import { useMapStyle } from '@/hooks/useMapStyle'
-
-// Group flat route stops into ordered steps; pins sharing a step are alternatives.
-// `equalOptions` (per step) marks the step's options as equal — the incoming main
-// leg is dashed too, so the previous stop fans out to all of them as branches.
-type RouteStop = { pin: Pin; step: number; position: number; equalOptions: boolean }
-type RouteStepGroup = { step: number; pins: Pin[]; equalOptions: boolean }
-function groupRouteSteps(stops: RouteStop[]): RouteStepGroup[] {
-  const byStep = new Map<number, RouteStop[]>()
-  for (const s of stops) {
-    const arr = byStep.get(s.step) ?? []
-    arr.push(s)
-    byStep.set(s.step, arr)
-  }
-  return [...byStep.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([step, rows]) => ({
-      step,
-      pins: rows.sort((a, b) => a.position - b.position).map((r) => r.pin),
-      equalOptions: rows.some((r) => r.equalOptions),
-    }))
-}
 
 export default function Home() {
   const { user, authReady, myUsername, isAdmin } = useAuthUser()
@@ -114,25 +93,40 @@ export default function Home() {
 
   // The custom community folder currently filtering the map (null = none)
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null)
-  // Routes/trails — the open route, its ordered stops, and build mode
-  const [routes, setRoutes] = useState<Route[]>([])
-  const [routeFolders, setRouteFolders] = useState<RouteFolder[]>([])
-  const [activeRouteId, setActiveRouteId] = useState<string | null>(null)
-  const [routeStops, setRouteStops] = useState<RouteStop[]>([])
-  // While the builder is open, which community's pins the map shows (so map taps
-  // add the pins you're browsing). null = show all pins ("From map" tab).
-  const [builderCommunityId, setBuilderCommunityId] = useState<string | null>(null)
-  // When adding an alternative ("or") to an existing step, the target step index;
-  // null = each added pin starts a new step.
-  const [routeTargetStep, setRouteTargetStep] = useState<number | null>(null)
-  // A public route opened via /?route=<id> that the viewer doesn't own (so it's
-  // not in `routes`). Read-only. Cleared on close.
-  const [externalRoute, setExternalRoute] = useState<Route | null>(null)
-  // Freshly computed snapped path for the open route (owner recompute this session).
-  // Snapped SOLID path as segments (this session's recompute); null = use stored / straight.
-  const [routeGeometry, setRouteGeometry] = useState<[number, number][][] | null>(null)
-  // Snapped DASHED legs (alternative spurs + equal-step main legs) for this session.
-  const [branchGeometry, setBranchGeometry] = useState<[number, number][][] | null>(null)
+  // Routes / trails — the whole builder lives in hooks/useRouteBuilder. Opening a
+  // route hands the map to the builder (clear the community filter, close the drawer).
+  const {
+    routes,
+    routeFolders,
+    activeRouteId,
+    routeStops,
+    builderCommunityId,
+    setBuilderCommunityId,
+    routeTargetStep,
+    setRouteTargetStep,
+    externalRoute,
+    routeGeometry,
+    branchGeometry,
+    selectRoute: handleSelectRoute,
+    openRouteById: handleOpenRouteById,
+    closeRoute: handleCloseRoute,
+    setRouteMode: handleSetRouteMode,
+    createRoute: handleCreateRoute,
+    renameRoute: handleRenameRoute,
+    publishRoute: handlePublishRoute,
+    updateRouteColor: handleUpdateRouteColor,
+    deleteRoute: handleDeleteRoute,
+    createRouteFolder: handleCreateRouteFolder,
+    renameRouteFolder: handleRenameRouteFolder,
+    deleteRouteFolder: handleDeleteRouteFolder,
+    assignRouteFolder: handleAssignRouteFolder,
+    addPinToRoute: handleAddPinToRoute,
+    removeRouteStop: handleRemoveRouteStop,
+    moveRouteStep: handleMoveRouteStep,
+    toggleEqualOptions: handleToggleEqualOptions,
+  } = useRouteBuilder(user, {
+    onEnterBuilder: () => { setSelectedCommunity(null); setShowMobileSidebar(false) },
+  })
   // Which list the sidebar shows — lifted here so the bottom nav can switch it
   const [sidebarTab, setSidebarTab] = useState<'communities' | 'feed'>('communities')
   // Map tile style (light/dark/satellite), persisted — see hooks/useMapStyle.
@@ -175,45 +169,18 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  // Pin / saved / follow data + fetchers live in hooks/usePins. Below are the
-  // still-in-page route fetchers (step 5 will move these into useRouteBuilder).
-  const fetchRoutes = useCallback(async () => {
-    if (!user) { setRoutes([]); return }
-    const { data } = await supabase
-      .from('routes')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at')
-    if (data) setRoutes(data as Route[])
-  }, [user])
+  // Pin/saved/follow data lives in hooks/usePins; routes + folders in
+  // hooks/useRouteBuilder. Both clear themselves on sign-out.
 
-  const fetchRouteFolders = useCallback(async () => {
-    if (!user) { setRouteFolders([]); return }
-    const { data } = await supabase
-      .from('route_folders')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('position')
-      .order('created_at')
-    if (data) setRouteFolders(data as RouteFolder[])
-  }, [user])
-
-  useEffect(() => { fetchRoutes() }, [fetchRoutes])
-  useEffect(() => { fetchRouteFolders() }, [fetchRouteFolders])
-
-  // Reset manual-filter flag when auth changes, and clear subscribed view on sign-out
+  // Reset manual-filter flag when auth changes, and clear map-filter views on
+  // sign-out (route/community-owned state clears in their own hooks).
   useEffect(() => {
     userChoseFilter.current = false
     if (!user) {
       setShowSubscribedOnly(false)
       setShowSavedOnly(false)
       setActiveFolderId(null)
-      setActiveRouteId(null)
-      setRouteStops([])
-      setBuilderCommunityId(null)
       setSelectedCommunity(null)
-      // Community-owned state (groups, group map, subscriptions) clears itself in
-      // hooks/useCommunities when user → null.
     }
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -282,47 +249,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Recompute the snapped (street/trail-following) path when an OWNED route's stops
-  // or travel mode change. Debounced; persists to routes.geometry so viewers (incl.
-  // anonymous) render the path without re-hitting the routing API. Viewers don't
-  // recompute — they fall back to the stored geometry.
-  const ownedActive = routes.find((r) => r.id === activeRouteId)
-  const activeTravelMode = ownedActive?.travel_mode ?? null
-  useEffect(() => {
-    if (!activeRouteId || !ownedActive) return
-    // Split the route into solid runs (the main path) + dashed legs (alternative
-    // spurs and equal-step main legs). Each gets snapped independently so the
-    // dashed branches follow streets/trails like the spine does.
-    const { solidRuns, dashedLegs } = buildRouteLegs(stepsToLegSteps(groupRouteSteps(routeStops)))
-    if (solidRuns.length === 0 && dashedLegs.length === 0) {
-      setRouteGeometry(null); setBranchGeometry(null); return
-    }
-    const mode = activeTravelMode as TravelMode
-    let cancelled = false
-    const ctrl = new AbortController()
-    const t = setTimeout(async () => {
-      // Snap each run/leg; fall back to its straight coords if ORS is unavailable.
-      const solid = await Promise.all(
-        solidRuns.map(async (run) => (await fetchRouteGeometry(run, mode, ctrl.signal)) ?? run),
-      )
-      const dashed = await Promise.all(
-        dashedLegs.map(async (leg) =>
-          (await fetchRouteGeometry([leg.from, leg.to], mode, ctrl.signal)) ?? [leg.from, leg.to]),
-      )
-      if (cancelled) return
-      setRouteGeometry(solid)
-      setBranchGeometry(dashed)
-      if (
-        JSON.stringify(solid) !== JSON.stringify(ownedActive.geometry) ||
-        JSON.stringify(dashed) !== JSON.stringify(ownedActive.branch_geometry)
-      ) {
-        await supabase.from('routes').update({ geometry: solid, branch_geometry: dashed }).eq('id', activeRouteId)
-        setRoutes((prev) => prev.map((r) => (r.id === activeRouteId ? { ...r, geometry: solid, branch_geometry: dashed } : r)))
-      }
-    }, 600)
-    return () => { cancelled = true; ctrl.abort(); clearTimeout(t) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRouteId, routeStops, activeTravelMode])
+  // The debounced ORS snapped-geometry recompute lives in hooks/useRouteBuilder.
 
   // ── Interaction handlers ──────────────────────────────────────────────────
 
@@ -335,7 +262,7 @@ export default function Home() {
     setShowSubscribedOnly(false)
     setShowSavedOnly(false)
     setActiveFolderId(null)
-    setActiveRouteId(null); setRouteStops([]); setBuilderCommunityId(null)
+    handleCloseRoute()
     setSelectedTagIds(new Set())
   }
 
@@ -389,191 +316,9 @@ export default function Home() {
     [pins, selectedCommunity, activeFolderId, activeFolderCommunityIds, showSubscribedOnly, subscribedIds, showSavedOnly, savedPinIds, hiddenCommunityIds, selectedTagIds]
   )
 
-  // ── Route CRUD + stop editing ──────────────────────────────────────────────
-  const loadRouteStops = useCallback(async (routeId: string) => {
-    const { data } = await supabase
-      .from('route_pins')
-      .select('step, position, equal_options, pin:pins(*, community:communities(*), profile:profiles(username, avatar_url))')
-      .eq('route_id', routeId)
-      .order('step')
-      .order('position')
-    const stops = (data ?? [])
-      .map((r) => {
-        const row = r as { step: number; position: number; equal_options: boolean; pin: Pin | Pin[] }
-        const pin = Array.isArray(row.pin) ? row.pin[0] : row.pin
-        return pin ? { pin, step: row.step, position: row.position, equalOptions: !!row.equal_options } : null
-      })
-      .filter((s): s is RouteStop => !!s)
-    setRouteStops(stops)
-  }, [])
-
-  const handleSelectRoute = (id: string) => {
-    setSelectedCommunity(null)       // the builder takes over the map area
-    setActiveRouteId(id)
-    setBuilderCommunityId(null)
-    setRouteTargetStep(null)
-    setShowMobileSidebar(false)      // close the mobile drawer so the builder shows
-    loadRouteStops(id)
-  }
-
-  // Open any route by id (e.g. a community's published route from the panel):
-  // your own → editable builder; someone else's public route → read-only viewer.
-  const handleOpenRouteById = async (id: string) => {
-    if (routes.some((r) => r.id === id)) { handleSelectRoute(id); return }
-    const { data } = await supabase
-      .from('routes')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle()
-    if (!data) return
-    setExternalRoute(data as Route)
-    setSelectedCommunity(null)
-    setActiveRouteId(id)
-    setBuilderCommunityId(null)
-    setRouteTargetStep(null)
-    loadRouteStops(id)
-  }
-
-  const handleCloseRoute = () => {
-    setActiveRouteId(null)
-    setRouteStops([])
-    setBuilderCommunityId(null)
-    setRouteTargetStep(null)
-    setExternalRoute(null)
-    setRouteGeometry(null)
-    setBranchGeometry(null)
-  }
-
-  const handleSetRouteMode = useCallback(async (id: string, mode: TravelMode) => {
-    setRoutes((prev) => prev.map((r) => (r.id === id ? { ...r, travel_mode: mode } : r))) // optimistic; recompute effect refires
-    await supabase.from('routes').update({ travel_mode: mode }).eq('id', id)
-  }, [])
-
-  const handleCreateRoute = useCallback(async (name: string): Promise<Route | null> => {
-    if (!user) return null
-    const { data, error } = await supabase
-      .from('routes')
-      .insert({ user_id: user.id, name: name.trim() })
-      .select()
-      .single()
-    if (error || !data) return null
-    setRoutes((prev) => [...prev, data as Route])
-    return data as Route
-  }, [user])
-
-  const handleRenameRoute = useCallback(async (id: string, name: string) => {
-    await supabase.from('routes').update({ name: name.trim() }).eq('id', id)
-    setRoutes((prev) => prev.map((r) => (r.id === id ? { ...r, name: name.trim() } : r)))
-  }, [])
-
-  // Set a route's visibility. Owner-only via RLS. Three states:
-  //   private (isPublic=false), public link (isPublic=true, communityId=null),
-  //   community route (isPublic=true, communityId set — all stops in that community).
-  const handlePublishRoute = useCallback(async (id: string, isPublic: boolean, communityId: string | null) => {
-    const patch = { is_public: isPublic, community_id: isPublic ? communityId : null }
-    setRoutes((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r))) // optimistic
-    await supabase.from('routes').update(patch).eq('id', id)
-  }, [])
-
-  const handleUpdateRouteColor = useCallback(async (id: string, color: string) => {
-    setRoutes((prev) => prev.map((r) => (r.id === id ? { ...r, color } : r))) // optimistic
-    await supabase.from('routes').update({ color }).eq('id', id)
-  }, [])
-
-  const handleDeleteRoute = useCallback(async (id: string) => {
-    await supabase.from('routes').delete().eq('id', id)
-    setRoutes((prev) => prev.filter((r) => r.id !== id))
-    setActiveRouteId((cur) => {
-      if (cur === id) { setRouteStops([]); setBuilderCommunityId(null); return null }
-      return cur
-    })
-  }, [])
-
-  // ── Route folders ──────────────────────────────────────────────────────────
-  const handleCreateRouteFolder = useCallback(async (name: string) => {
-    if (!user || !name.trim()) return
-    const { data } = await supabase
-      .from('route_folders')
-      .insert({ user_id: user.id, name: name.trim(), position: 0 })
-      .select()
-      .single()
-    if (data) setRouteFolders((prev) => [...prev, data as RouteFolder])
-  }, [user])
-
-  const handleRenameRouteFolder = useCallback(async (id: string, name: string) => {
-    if (!name.trim()) return
-    setRouteFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name: name.trim() } : f)))
-    await supabase.from('route_folders').update({ name: name.trim() }).eq('id', id)
-  }, [])
-
-  const handleDeleteRouteFolder = useCallback(async (id: string) => {
-    // FK is ON DELETE SET NULL, so routes inside fall back to ungrouped.
-    setRouteFolders((prev) => prev.filter((f) => f.id !== id))
-    setRoutes((prev) => prev.map((r) => (r.folder_id === id ? { ...r, folder_id: null } : r)))
-    await supabase.from('route_folders').delete().eq('id', id)
-  }, [])
-
-  const handleAssignRouteFolder = useCallback(async (routeId: string, folderId: string | null) => {
-    setRoutes((prev) => prev.map((r) => (r.id === routeId ? { ...r, folder_id: folderId } : r)))
-    await supabase.from('routes').update({ folder_id: folderId }).eq('id', routeId)
-  }, [])
-
-  const handleAddPinToRoute = async (pin: Pin) => {
-    if (!activeRouteId) return
-    if (routeStops.some((s) => s.pin.id === pin.id)) return // a pin appears at most once
-    let step: number, position: number, equalOptions: boolean
-    if (routeTargetStep != null) {
-      // Adding an alternative ("or") to an existing step — inherit its equal flag.
-      step = routeTargetStep
-      const inStep = routeStops.filter((s) => s.step === step)
-      position = inStep.length ? Math.max(...inStep.map((s) => s.position)) + 1 : 0
-      equalOptions = inStep.some((s) => s.equalOptions)
-    } else {
-      // New step appended after the last one.
-      step = routeStops.length ? Math.max(...routeStops.map((s) => s.step)) + 1 : 0
-      position = 0
-      equalOptions = false
-    }
-    setRouteStops((prev) => [...prev, { pin, step, position, equalOptions }])
-    await supabase.from('route_pins').insert({ route_id: activeRouteId, pin_id: pin.id, step, position, equal_options: equalOptions })
-  }
-
-  const handleRemoveRouteStop = async (pinId: string) => {
-    if (!activeRouteId) return
-    setRouteStops((prev) => prev.filter((s) => s.pin.id !== pinId))
-    await supabase.from('route_pins').delete().eq('route_id', activeRouteId).eq('pin_id', pinId)
-  }
-
-  // Move a whole STEP (with all its alternatives) up or down by swapping step
-  // numbers with the adjacent step.
-  const handleMoveRouteStep = async (step: number, dir: -1 | 1) => {
-    if (!activeRouteId) return
-    const orderedSteps = [...new Set(routeStops.map((s) => s.step))].sort((a, b) => a - b)
-    const idx = orderedSteps.indexOf(step)
-    const j = idx + dir
-    if (idx < 0 || j < 0 || j >= orderedSteps.length) return
-    const other = orderedSteps[j]
-    setRouteStops((prev) =>
-      prev.map((s) => (s.step === step ? { ...s, step: other } : s.step === other ? { ...s, step } : s)))
-    await Promise.all([
-      supabase.from('route_pins').update({ step: other }).eq('route_id', activeRouteId).in('pin_id', routeStops.filter((s) => s.step === step).map((s) => s.pin.id)),
-      supabase.from('route_pins').update({ step }).eq('route_id', activeRouteId).in('pin_id', routeStops.filter((s) => s.step === other).map((s) => s.pin.id)),
-    ])
-  }
-
-  // Toggle a step's "equal options" flag (all its options drawn as equal dashed
-  // branches off the previous stop, vs. one solid default + dashed fallbacks).
-  // Persisted on every row of the step so grouping stays consistent.
-  const handleToggleEqualOptions = async (step: number) => {
-    if (!activeRouteId) return
-    const next = !routeStops.some((s) => s.step === step && s.equalOptions)
-    setRouteStops((prev) => prev.map((s) => (s.step === step ? { ...s, equalOptions: next } : s)))
-    await supabase
-      .from('route_pins')
-      .update({ equal_options: next })
-      .eq('route_id', activeRouteId)
-      .in('pin_id', routeStops.filter((s) => s.step === step).map((s) => s.pin.id))
-  }
+  // Route CRUD + stop editing (select/open/close, mode, create/rename/publish/
+  // color/delete, folder CRUD, add/remove/move/toggle-equal stops) all live in
+  // hooks/useRouteBuilder and are destructured above with their handle* names.
 
   const toggleTagFilter = (tagId: string) => {
     setSelectedTagIds((prev) => {
