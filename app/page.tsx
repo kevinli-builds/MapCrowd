@@ -7,8 +7,8 @@ import { useAuthUser } from '@/hooks/useAuthUser'
 import { useCommunities } from '@/hooks/useCommunities'
 import { usePins } from '@/hooks/usePins'
 import { useRouteBuilder, groupRouteSteps } from '@/hooks/useRouteBuilder'
+import { useMapFilters } from '@/hooks/useMapFilters'
 import { Pin } from '@/lib/types'
-import { selectVisiblePins } from '@/lib/pin-filters'
 import { buildRouteLegs, stepsToLegSteps, normalizeSolidSegments } from '@/lib/route-legs'
 import type { FlyToTarget } from '@/components/MapInner'
 import Sidebar from '@/components/Sidebar'
@@ -41,14 +41,7 @@ export default function Home() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   const [flyToTarget, setFlyToTarget] = useState<FlyToTarget | null>(null)
   const flyToCounter = useRef(0)
-  // Tracks whether user has manually chosen a filter; prevents auto-default from overriding choices
-  const userChoseFilter = useRef(false)
 
-  const [selectedCommunity, setSelectedCommunity] = useState<string | null>(null)
-  const [showSubscribedOnly, setShowSubscribedOnly] = useState(false)
-  const [showSavedOnly, setShowSavedOnly] = useState(false)
-  // Per-community map visibility (device preference; independent of subscribe)
-  const [hiddenCommunityIds, setHiddenCommunityIds] = useState<Set<string>>(new Set())
   const [pendingLatLng, setPendingLatLng] = useState<[number, number] | null>(null)
   const [pendingCommunityOverride, setPendingCommunityOverride] = useState<string | null>(null)
   const [pendingPinTitle, setPendingPinTitle] = useState<string | null>(null)
@@ -91,8 +84,20 @@ export default function Home() {
     applyPinPatch,
   } = usePins(user)
 
-  // The custom community folder currently filtering the map (null = none)
-  const [activeFolderId, setActiveFolderId] = useState<string | null>(null)
+  // Map filter dimensions + the visible-pin derivation — see hooks/useMapFilters.
+  const {
+    userChoseFilter,
+    selectedCommunity, setSelectedCommunity,
+    showSubscribedOnly, setShowSubscribedOnly,
+    showSavedOnly, setShowSavedOnly,
+    hiddenCommunityIds, toggleCommunityVisibility: handleToggleCommunityVisibility,
+    activeFolderId, setActiveFolderId,
+    selectedTagIds, toggleTagFilter,
+    resetFilters,
+    activeFolderCommunityIds,
+    filteredPins,
+  } = useMapFilters({ user, pins, subscribedIds, savedPinIds, communityGroupMap })
+
   // Routes / trails — the whole builder lives in hooks/useRouteBuilder. Opening a
   // route hands the map to the builder (clear the community filter, close the drawer).
   const {
@@ -131,26 +136,6 @@ export default function Home() {
   const [sidebarTab, setSidebarTab] = useState<'communities' | 'feed'>('communities')
   // Map tile style (light/dark/satellite), persisted — see hooks/useMapStyle.
   const { mapStyle, changeMapStyle } = useMapStyle()
-  // Tag filter (community-scoped) — empty = show all
-  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set())
-
-  // Load persisted hidden-community set on mount
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('hiddenCommunityIds') ?? '[]')
-      if (Array.isArray(saved)) setHiddenCommunityIds(new Set(saved))
-    } catch { /* ignore */ }
-  }, [])
-
-  const handleToggleCommunityVisibility = (id: string) => {
-    setHiddenCommunityIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      localStorage.setItem('hiddenCommunityIds', JSON.stringify([...next]))
-      return next
-    })
-  }
 
   // Auth (user / authReady / myUsername / isAdmin) lives in hooks/useAuthUser.
   // Close the auth modal once a session is established.
@@ -169,36 +154,10 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  // Filter state + persistence, the auto-default/leave-saved effects, and the
+  // filteredPins derivation all live in hooks/useMapFilters.
   // Pin/saved/follow data lives in hooks/usePins; routes + folders in
-  // hooks/useRouteBuilder. Both clear themselves on sign-out.
-
-  // Reset manual-filter flag when auth changes, and clear map-filter views on
-  // sign-out (route/community-owned state clears in their own hooks).
-  useEffect(() => {
-    userChoseFilter.current = false
-    if (!user) {
-      setShowSubscribedOnly(false)
-      setShowSavedOnly(false)
-      setActiveFolderId(null)
-      setSelectedCommunity(null)
-    }
-  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-default logged-in users with subscriptions to the subscribed-only view
-  useEffect(() => {
-    if (userChoseFilter.current) return
-    if (user && subscribedIds.size > 0) {
-      setShowSubscribedOnly(true)
-      setSelectedCommunity(null)
-    }
-  }, [user, subscribedIds]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Leaving the Saved view automatically once the last save is removed
-  useEffect(() => {
-    if (showSavedOnly && savedPinIds.size === 0) setShowSavedOnly(false)
-  }, [showSavedOnly, savedPinIds])
-
-  // Pin fetching + realtime live in hooks/usePins (fetchPins == refetchPins).
+  // hooks/useRouteBuilder. All three clear themselves on sign-out.
 
   // First visit: one-time welcome (localStorage), unless the visitor arrived on
   // a ?pin=/?route= deep link — never cover what someone was sent to see.
@@ -253,17 +212,13 @@ export default function Home() {
 
   // ── Interaction handlers ──────────────────────────────────────────────────
 
-  // Clear every map-filter dimension. Each filter handler calls this, then sets
-  // its own — so the views stay mutually exclusive and adding a new filter only
-  // needs one line here (not a line in every handler).
+  // Clear every map-filter dimension AND close any open route. Each view handler
+  // calls this, then sets its own dimension — so the views stay mutually exclusive.
+  // resetFilters (the pure filter reset) lives in useMapFilters; closing the route
+  // is coordination, so it's composed here.
   const resetMapFilters = () => {
-    userChoseFilter.current = true
-    setSelectedCommunity(null)
-    setShowSubscribedOnly(false)
-    setShowSavedOnly(false)
-    setActiveFolderId(null)
+    resetFilters()
     handleCloseRoute()
-    setSelectedTagIds(new Set())
   }
 
   const handleSelectCommunity = (id: string | null) => {
@@ -292,42 +247,11 @@ export default function Home() {
     setShowMobileSidebar(false)
   }
 
-  // Community ids belonging to the active folder (via the community→group map).
-  const activeFolderCommunityIds = useMemo(() => {
-    if (!activeFolderId) return null
-    const ids = new Set<string>()
-    for (const [cid, gid] of communityGroupMap) if (gid === activeFolderId) ids.add(cid)
-    return ids
-  }, [activeFolderId, communityGroupMap])
-
-  const filteredPins = useMemo(
-    () => selectVisiblePins({
-      pins,
-      selectedCommunity,
-      activeFolderId,
-      activeFolderCommunityIds,
-      showSubscribedOnly,
-      subscribedIds,
-      showSavedOnly,
-      savedPinIds,
-      hiddenCommunityIds,
-      selectedTagIds,
-    }),
-    [pins, selectedCommunity, activeFolderId, activeFolderCommunityIds, showSubscribedOnly, subscribedIds, showSavedOnly, savedPinIds, hiddenCommunityIds, selectedTagIds]
-  )
+  // activeFolderCommunityIds + filteredPins (selectVisiblePins) live in useMapFilters.
 
   // Route CRUD + stop editing (select/open/close, mode, create/rename/publish/
   // color/delete, folder CRUD, add/remove/move/toggle-equal stops) all live in
   // hooks/useRouteBuilder and are destructured above with their handle* names.
-
-  const toggleTagFilter = (tagId: string) => {
-    setSelectedTagIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(tagId)) next.delete(tagId)
-      else next.add(tagId)
-      return next
-    })
-  }
 
   const handleMapClick = (lat: number, lng: number) => {
     if (activeRouteId) return // a route is open — empty-map taps shouldn't drop a pin
