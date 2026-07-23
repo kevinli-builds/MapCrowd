@@ -5,6 +5,7 @@ import { Menu, Zap, LocateFixed, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthUser } from '@/hooks/useAuthUser'
 import { useCommunities } from '@/hooks/useCommunities'
+import { usePins } from '@/hooks/usePins'
 import { Pin, Route, RouteFolder, TravelMode } from '@/lib/types'
 import { selectVisiblePins } from '@/lib/pin-filters'
 import { fetchRouteGeometry } from '@/lib/routing'
@@ -64,7 +65,6 @@ export default function Home() {
   // Tracks whether user has manually chosen a filter; prevents auto-default from overriding choices
   const userChoseFilter = useRef(false)
 
-  const [pins, setPins] = useState<Pin[]>([])
   const [selectedCommunity, setSelectedCommunity] = useState<string | null>(null)
   const [showSubscribedOnly, setShowSubscribedOnly] = useState(false)
   const [showSavedOnly, setShowSavedOnly] = useState(false)
@@ -99,10 +99,19 @@ export default function Home() {
     applyCommunityPatch,
     removeCommunity,
   } = useCommunities(user)
-  // User IDs the current user follows
-  const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set())
-  // Pin IDs the current user has saved (private bookmarks)
-  const [savedPinIds, setSavedPinIds] = useState<Set<string>>(new Set())
+
+  // Pins + the user's saved bookmarks and follow graph — see hooks/usePins.
+  const {
+    pins,
+    refetchPins: fetchPins,
+    savedPinIds,
+    toggleSave,
+    followedUserIds,
+    toggleFollow,
+    removePin,
+    applyPinPatch,
+  } = usePins(user)
+
   // The custom community folder currently filtering the map (null = none)
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null)
   // Routes/trails — the open route, its ordered stops, and build mode
@@ -166,27 +175,8 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  // Community data + fetchers (subscriptions, mod roles, invites, groups) live in
-  // hooks/useCommunities. Below are the still-in-page follow/save/route fetchers.
-  const fetchFollowing = useCallback(async () => {
-    if (!user) { setFollowedUserIds(new Set()); return }
-    const { data } = await supabase
-      .from('follows')
-      .select('followee_id')
-      .eq('follower_id', user.id)
-    if (data) setFollowedUserIds(new Set(data.map((f) => f.followee_id)))
-  }, [user])
-
-  const fetchSaved = useCallback(async () => {
-    if (!user) { setSavedPinIds(new Set()); return }
-    const { data } = await supabase
-      .from('saved_pins')
-      .select('pin_id')
-      .eq('user_id', user.id)
-    if (data) setSavedPinIds(new Set(data.map((s) => s.pin_id)))
-  }, [user])
-
-
+  // Pin / saved / follow data + fetchers live in hooks/usePins. Below are the
+  // still-in-page route fetchers (step 5 will move these into useRouteBuilder).
   const fetchRoutes = useCallback(async () => {
     if (!user) { setRoutes([]); return }
     const { data } = await supabase
@@ -208,8 +198,6 @@ export default function Home() {
     if (data) setRouteFolders(data as RouteFolder[])
   }, [user])
 
-  useEffect(() => { fetchFollowing() }, [fetchFollowing])
-  useEffect(() => { fetchSaved() }, [fetchSaved])
   useEffect(() => { fetchRoutes() }, [fetchRoutes])
   useEffect(() => { fetchRouteFolders() }, [fetchRouteFolders])
 
@@ -243,35 +231,7 @@ export default function Home() {
     if (showSavedOnly && savedPinIds.size === 0) setShowSavedOnly(false)
   }, [showSavedOnly, savedPinIds])
 
-  // ── Data ──────────────────────────────────────────────────────────────────
-  const fetchPins = useCallback(async () => {
-    const now = new Date().toISOString()
-    const { data } = await supabase
-      .from('pins')
-      .select('*, community:communities(*), profile:profiles(username, avatar_url), pin_tags(tag_id)')
-      .eq('status', 'approved')
-      .or(`expires_at.is.null,expires_at.gt.${now}`)
-      .order('created_at', { ascending: false })
-    if (data) {
-      // Flatten the pin_tags join into a string[] of tag ids for filtering
-      setPins(
-        data.map((p) => {
-          const { pin_tags, ...pin } = p as Pin & { pin_tags?: { tag_id: string }[] }
-          return { ...pin, tag_ids: (pin_tags ?? []).map((t) => t.tag_id) }
-        })
-      )
-    }
-  }, [])
-
-  useEffect(() => { fetchPins() }, [fetchPins])
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('pins-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pins' }, () => fetchPins())
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [fetchPins])
+  // Pin fetching + realtime live in hooks/usePins (fetchPins == refetchPins).
 
   // First visit: one-time welcome (localStorage), unless the visitor arrived on
   // a ?pin=/?route= deep link — never cover what someone was sent to see.
@@ -663,35 +623,15 @@ export default function Home() {
     }
   }
 
+  // Save/follow toggles: gate the sign-in prompt here, then defer to usePins.
   const handleToggleFollow = async (targetUserId: string) => {
     if (!user) { setShowAuthModal(true); return }
-    if (targetUserId === user.id) return // can't follow yourself
-
-    if (followedUserIds.has(targetUserId)) {
-      // Optimistic remove
-      setFollowedUserIds((prev) => { const n = new Set(prev); n.delete(targetUserId); return n })
-      await supabase
-        .from('follows')
-        .delete()
-        .eq('follower_id', user.id)
-        .eq('followee_id', targetUserId)
-    } else {
-      setFollowedUserIds((prev) => new Set([...prev, targetUserId]))
-      await supabase
-        .from('follows')
-        .insert({ follower_id: user.id, followee_id: targetUserId })
-    }
+    await toggleFollow(targetUserId)
   }
 
   const handleToggleSave = async (pinId: string) => {
     if (!user) { setShowAuthModal(true); return }
-    if (savedPinIds.has(pinId)) {
-      setSavedPinIds((prev) => { const n = new Set(prev); n.delete(pinId); return n })
-      await supabase.from('saved_pins').delete().eq('user_id', user.id).eq('pin_id', pinId)
-    } else {
-      setSavedPinIds((prev) => new Set([...prev, pinId]))
-      await supabase.from('saved_pins').insert({ user_id: user.id, pin_id: pinId })
-    }
+    await toggleSave(pinId)
   }
 
   // Following feed → fly to the pin and open its detail
@@ -712,14 +652,14 @@ export default function Home() {
   }
 
   const handleDeletePin = async (pinId: string) => {
-    await supabase.from('pins').delete().eq('id', pinId)
-    setPins((prev) => prev.filter((p) => p.id !== pinId))
+    await removePin(pinId)
     setSelectedPin(null)
   }
 
-  // Reflect an edited pin (title/description/url) in both the list and the open modal
+  // Reflect an edited pin (title/description/url) in both the list (via usePins)
+  // and the open modal (selectedPin stays in the page as coordination state).
   const handleUpdatePin = (updated: Partial<Pin> & { id: string }) => {
-    setPins((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)))
+    applyPinPatch(updated)
     setSelectedPin((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev))
   }
 
@@ -1084,7 +1024,7 @@ export default function Home() {
             isModerator={!!user && canModerate(selectedPin.community_id)}
             onClose={() => setSelectedPin(null)}
             onVoteUpdate={(updated) => {
-              setPins((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)))
+              applyPinPatch(updated)
               setSelectedPin((prev) => (prev ? { ...prev, ...updated } : null))
             }}
             onDeletePin={handleDeletePin}
