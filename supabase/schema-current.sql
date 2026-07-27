@@ -1117,6 +1117,105 @@ CREATE POLICY "storage_photos_delete" ON storage.objects FOR DELETE
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- In-app notifications (migration 39). Rows are written ONLY by the triggers
+-- below (SECURITY DEFINER) — no INSERT policy, so a client can't forge one.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  type         TEXT        NOT NULL CHECK (type IN ('comment','rsvp','follow','pin_approved','pin_rejected')),
+  actor_id     UUID                 REFERENCES profiles(id) ON DELETE SET NULL,
+  pin_id       UUID                 REFERENCES pins(id)     ON DELETE CASCADE,
+  community_id UUID                 REFERENCES communities(id) ON DELETE CASCADE,
+  read_at      TIMESTAMPTZ,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS notifications_user_created_idx
+  ON notifications (user_id, created_at DESC);
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications REPLICA IDENTITY FULL;
+
+CREATE POLICY "notifications_select_own" ON notifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "notifications_update_own" ON notifications FOR UPDATE
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "notifications_delete_own" ON notifications FOR DELETE USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.notify_pin_comment()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_author UUID; v_community UUID;
+BEGIN
+  SELECT user_id, community_id INTO v_author, v_community FROM pins WHERE id = NEW.pin_id;
+  IF v_author IS NOT NULL AND v_author <> NEW.user_id THEN
+    INSERT INTO notifications (user_id, type, actor_id, pin_id, community_id)
+    VALUES (v_author, 'comment', NEW.user_id, NEW.pin_id, v_community);
+  END IF;
+  RETURN NEW;
+END; $$;
+DROP TRIGGER IF EXISTS comments_notify ON comments;
+CREATE TRIGGER comments_notify AFTER INSERT ON comments
+  FOR EACH ROW EXECUTE FUNCTION public.notify_pin_comment();
+
+CREATE OR REPLACE FUNCTION public.notify_event_rsvp()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_author UUID; v_community UUID;
+BEGIN
+  SELECT user_id, community_id INTO v_author, v_community FROM pins WHERE id = NEW.pin_id;
+  IF v_author IS NOT NULL AND v_author <> NEW.user_id THEN
+    INSERT INTO notifications (user_id, type, actor_id, pin_id, community_id)
+    VALUES (v_author, 'rsvp', NEW.user_id, NEW.pin_id, v_community);
+  END IF;
+  RETURN NEW;
+END; $$;
+DROP TRIGGER IF EXISTS event_rsvps_notify ON event_rsvps;
+CREATE TRIGGER event_rsvps_notify AFTER INSERT ON event_rsvps
+  FOR EACH ROW EXECUTE FUNCTION public.notify_event_rsvp();
+
+CREATE OR REPLACE FUNCTION public.notify_follow()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  INSERT INTO notifications (user_id, type, actor_id)
+  VALUES (NEW.followee_id, 'follow', NEW.follower_id);
+  RETURN NEW;
+END; $$;
+DROP TRIGGER IF EXISTS follows_notify ON follows;
+CREATE TRIGGER follows_notify AFTER INSERT ON follows
+  FOR EACH ROW EXECUTE FUNCTION public.notify_follow();
+
+CREATE OR REPLACE FUNCTION public.notify_pin_moderated()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF OLD.status = 'pending' AND NEW.status IN ('approved','rejected')
+     AND NEW.user_id IS NOT NULL THEN
+    INSERT INTO notifications (user_id, type, actor_id, pin_id, community_id)
+    VALUES (
+      NEW.user_id,
+      CASE NEW.status WHEN 'approved' THEN 'pin_approved' ELSE 'pin_rejected' END,
+      auth.uid(), NEW.id, NEW.community_id
+    );
+  END IF;
+  RETURN NEW;
+END; $$;
+DROP TRIGGER IF EXISTS pins_moderated_notify ON pins;
+CREATE TRIGGER pins_moderated_notify AFTER UPDATE OF status ON pins
+  FOR EACH ROW EXECUTE FUNCTION public.notify_pin_moderated();
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime')
+     AND NOT EXISTS (
+       SELECT 1 FROM pg_publication_tables
+       WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'notifications'
+     )
+  THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  END IF;
+END $$;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- SECTION 8 — SEED DATA  (starter communities)
 -- ─────────────────────────────────────────────────────────────────────────────
 

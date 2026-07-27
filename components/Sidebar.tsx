@@ -5,7 +5,7 @@ import {
   Bookmark, BookmarkCheck, Check, ChevronDown, ChevronRight,
   Compass, Folder, FolderPlus, LogOut, Lock, MapPin, Pencil, Plus,
   Search, Settings, Shield, Trash2, User2, ArrowUpRight, X, Newspaper, Route as RouteIcon,
-  Eye, EyeOff, Globe, HelpCircle, Upload,
+  Eye, EyeOff, Globe, HelpCircle, Upload, Bell,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
@@ -78,6 +78,8 @@ interface SidebarProps {
   onSignOut: () => void
   onCreateCommunity: () => void
   onImportPlaces: () => void
+  onOpenNotifications: () => void
+  unreadCount: number
   onOpenSearch: () => void
   mobileOpen: boolean
   onMobileClose: () => void
@@ -134,6 +136,8 @@ export default function Sidebar({
   onSignOut,
   onCreateCommunity,
   onImportPlaces,
+  onOpenNotifications,
+  unreadCount,
   onOpenSearch,
   mobileOpen,
   onMobileClose,
@@ -650,6 +654,21 @@ export default function Sidebar({
               <h1 className="text-base font-bold leading-none text-gray-900">MapCrowd</h1>
               <p className="mt-0.5 text-xs text-gray-500">crowd-sourced maps</p>
             </div>
+            {user && (
+              <button
+                onClick={onOpenNotifications}
+                title="Notifications"
+                aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}
+                className="relative rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-semibold leading-none text-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            )}
             <button
               onClick={onMobileClose}
               className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 md:hidden"

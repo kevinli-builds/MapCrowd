@@ -165,6 +165,24 @@ export interface CommunityModerator {
   profile: Pick<Profile, 'username' | 'avatar_url'> | null
 }
 
+/** In-app notification kinds (written server-side by triggers; never client-forged). */
+export type NotificationType =
+  | 'comment'        // someone commented on your pin
+  | 'rsvp'           // someone RSVP'd to your event
+  | 'follow'         // someone started following you
+  | 'pin_approved'   // a mod approved your pending pin
+  | 'pin_rejected'   // a mod rejected your pending pin
+
+/** A notification row joined with its actor + target pin, as the bell renders it. */
+export interface AppNotification {
+  id: string
+  type: NotificationType
+  actor: Pick<Profile, 'username' | 'avatar_url'> | null // who triggered it (null if deleted)
+  pin: { id: string; title: string } | null              // the target pin (null for follows)
+  read_at: string | null
+  created_at: string
+}
+
 /** A user-defined folder for organising subscribed communities in the sidebar */
 export interface CommunityGroup {
   id: string

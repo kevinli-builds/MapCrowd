@@ -8,6 +8,7 @@ import { useCommunities } from '@/hooks/useCommunities'
 import { usePins } from '@/hooks/usePins'
 import { useRouteBuilder, groupRouteSteps } from '@/hooks/useRouteBuilder'
 import { useMapFilters } from '@/hooks/useMapFilters'
+import { useNotifications } from '@/hooks/useNotifications'
 import { Pin } from '@/lib/types'
 import { buildRouteLegs, stepsToLegSteps, normalizeSolidSegments } from '@/lib/route-legs'
 import type { FlyToTarget } from '@/components/MapInner'
@@ -19,6 +20,7 @@ import PinDetailModal from '@/components/PinDetailModal'
 import AuthModal from '@/components/AuthModal'
 import CreateCommunityModal from '@/components/CreateCommunityModal'
 import ImportPlacesModal from '@/components/ImportPlacesModal'
+import NotificationsPanel from '@/components/NotificationsPanel'
 import CommunitySettingsModal from '@/components/CommunitySettingsModal'
 import CommunityPinsPanel from '@/components/CommunityPinsPanel'
 import RouteBuilder from '@/components/RouteBuilder'
@@ -34,6 +36,7 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
   const [communitySettingsId, setCommunitySettingsId] = useState<string | null>(null)
   const [showSearch, setShowSearch] = useState(false)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
@@ -136,6 +139,8 @@ export default function Home() {
   const [sidebarTab, setSidebarTab] = useState<'communities' | 'feed'>('communities')
   // Map tile style (light/dark/satellite), persisted — see hooks/useMapStyle.
   const { mapStyle, changeMapStyle } = useMapStyle()
+  // In-app notifications for the bell — see hooks/useNotifications.
+  const { notifications, unreadCount, markAllRead } = useNotifications(user)
 
   // Auth (user / authReady / myUsername / isAdmin) lives in hooks/useAuthUser.
   // Close the auth modal once a session is established.
@@ -320,6 +325,20 @@ export default function Home() {
     setFlyToTarget({ lat, lng, zoom, id: flyToCounter.current })
   }
 
+  // Open a pin by id (e.g. tapping a notification): fetch it, then show + fly to it.
+  const handleOpenPinById = async (pinId: string) => {
+    const { data } = await supabase
+      .from('pins')
+      .select('*, community:communities(*), profile:profiles(username, avatar_url), pin_tags(tag_id)')
+      .eq('id', pinId)
+      .maybeSingle()
+    if (!data) return
+    const { pin_tags, ...rest } = data as Pin & { pin_tags?: { tag_id: string }[] }
+    const pin = { ...rest, tag_ids: (pin_tags ?? []).map((t) => t.tag_id) } as Pin
+    setSelectedPin(pin)
+    handleFlyTo(pin.lat, pin.lng, 16)
+  }
+
   const handleDeletePin = async (pinId: string) => {
     await removePin(pinId)
     setSelectedPin(null)
@@ -393,7 +412,7 @@ export default function Home() {
   const panelOpen = !!selectedCommunityObj
   const modalOpen =
     !!pendingLatLng || !!selectedPin || showAuthModal || showSearch ||
-    showCreateModal || showImportModal || !!communitySettingsId || showQuickAdd || routeBuilderOpen ||
+    showCreateModal || showImportModal || showNotifications || !!communitySettingsId || showQuickAdd || routeBuilderOpen ||
     showWelcome
   const overlayOpen = panelOpen || modalOpen
 
@@ -487,6 +506,8 @@ export default function Home() {
         onSignOut={handleSignOut}
         onCreateCommunity={() => setShowCreateModal(true)}
         onImportPlaces={() => setShowImportModal(true)}
+        unreadCount={unreadCount}
+        onOpenNotifications={() => { setShowNotifications(true); markAllRead() }}
         isAdmin={isAdmin}
       />
 
@@ -495,9 +516,13 @@ export default function Home() {
         <button
           onClick={() => setShowMobileSidebar(true)}
           className={`fixed left-4 top-4 z-[1100] flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-lg border border-gray-200 text-gray-700 hover:text-gray-900 transition-colors ${overlayOpen ? 'hidden' : 'md:hidden'}`}
-          aria-label="Open menu"
+          aria-label={unreadCount > 0 ? `Open menu (${unreadCount} unread notifications)` : 'Open menu'}
         >
           <Menu className="h-5 w-5" />
+          {/* Unread notifications dot — the bell lives inside the drawer this opens. */}
+          {unreadCount > 0 && (
+            <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-indigo-600 ring-2 ring-white" />
+          )}
         </button>
 
         {/* Mobile quick-add FAB — extended pill so it reads as "Quick add", not a
@@ -633,6 +658,14 @@ export default function Home() {
               fetchPins()
               handleSelectCommunity(newId)
             }}
+          />
+        )}
+
+        {showNotifications && user && (
+          <NotificationsPanel
+            notifications={notifications}
+            onClose={() => setShowNotifications(false)}
+            onOpenPin={handleOpenPinById}
           />
         )}
 
