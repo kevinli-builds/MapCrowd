@@ -134,12 +134,18 @@ Issues, in priority order:
   `components/pin/PinPhotoGallery.tsx` (the read-only carousel; parent still batch-
   fetches photos and passes them in). Still ~940 lines (voting/edit/tags/RSVP/event
   sections remain inline — extract those next if it keeps growing).
-- **`Sidebar.tsx` (~1,180) — STILL TO SPLIT.** Its sections (community list + folders,
-  the filter rows, the Library: Saved/Collections/Routes, the user footer) are
-  interleaved with lots of local state (`creatingGroup`, inline-edit ids, resize) +
-  ~40 props, so extraction needs care — lift shared state into a hook first, or pass
-  grouped prop objects. Suggested cuts: `sidebar/CommunityList.tsx`,
-  `sidebar/LibrarySection.tsx`. (`ActivityFeed` is already its own component.)
+- **`Sidebar.tsx` — IN PROGRESS (§3, 2026-07-28).** 1180→957 lines: the **Routes**
+  section (routes + folders, inline create/rename, All-Routes auto-folder,
+  move/delete) is now `components/sidebar/RoutesSection.tsx` — it was the cleanest
+  slice (fully self-contained state + its `renderRouteRow`/`renderAutoFolder`
+  helpers, only route props). Established `components/sidebar/`.
+  **Still inline (the tangled part):** the **community list** — `renderRow` (~160 lines)
+  is interwoven with the group-picker state (`groupPicker`/`pickerCreating`/…), the
+  filter rows (All/Subscribed/Saved), the community-groups render, and the inline
+  rename/create-group flows. Extracting `sidebar/CommunityList.tsx` needs that shared
+  group/picker state lifted into a `useCommunityGroups` hook first (or passed as a
+  grouped prop object) — do that before carving the JSX. The user footer (invites +
+  sign-in/out) is a smaller easy next cut. (`ActivityFeed` is already its own component.)
 - **Lint debt**: `react-hooks/set-state-in-effect` warnings block adding
   `npm run lint` to CI (noted in CLAUDE.md). Clean these up, then add lint to
   `.github/workflows/ci.yml`.
