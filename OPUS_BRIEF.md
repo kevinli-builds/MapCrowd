@@ -124,14 +124,22 @@ Issues, in priority order:
 ## 3. Engineering audit
 
 ### Refactor targets
-- **`app/page.tsx` (1,173 lines) is the god component** — all map/filter/route/
-  modal state. Extract hooks: `usePins`, `useCommunities`, `useRouteBuilder`,
-  `useMapFilters`, plus a `MapPageContext` so `Sidebar`/`BottomNav` stop taking
-  a dozen props each. Do this before adding notifications (which will add more
-  state).
-- **`Sidebar.tsx` (1,042) and `PinDetailModal.tsx` (1,019)**: split by section
-  (e.g. `sidebar/CommunityList.tsx`, `sidebar/LibrarySection.tsx`,
-  `pin/Comments.tsx`, `pin/PhotoStrip.tsx`).
+- **`app/page.tsx` god component — DONE (§7, 2026-07-23).** 1240→749 lines, six
+  hooks in `hooks/`. See §7 for the preserve-these calls.
+- **`PinDetailModal.tsx` — DONE (§3, 2026-07-28).** 1178→941 lines via three cuts:
+  `components/pin/ReportControl.tsx` (was already a self-contained inner comp),
+  `hooks/usePinComments.ts` (list + realtime + optimistic post/delete — a HOOK, not
+  a comp, because the comment UI spans two layout regions: in-body list + sticky-
+  footer input; destructured with the same names so the JSX was untouched), and
+  `components/pin/PinPhotoGallery.tsx` (the read-only carousel; parent still batch-
+  fetches photos and passes them in). Still ~940 lines (voting/edit/tags/RSVP/event
+  sections remain inline — extract those next if it keeps growing).
+- **`Sidebar.tsx` (~1,180) — STILL TO SPLIT.** Its sections (community list + folders,
+  the filter rows, the Library: Saved/Collections/Routes, the user footer) are
+  interleaved with lots of local state (`creatingGroup`, inline-edit ids, resize) +
+  ~40 props, so extraction needs care — lift shared state into a hook first, or pass
+  grouped prop objects. Suggested cuts: `sidebar/CommunityList.tsx`,
+  `sidebar/LibrarySection.tsx`. (`ActivityFeed` is already its own component.)
 - **Lint debt**: `react-hooks/set-state-in-effect` warnings block adding
   `npm run lint` to CI (noted in CLAUDE.md). Clean these up, then add lint to
   `.github/workflows/ci.yml`.
