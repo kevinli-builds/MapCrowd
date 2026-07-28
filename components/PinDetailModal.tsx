@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   X, ThumbsUp, ThumbsDown, Clock, MapPin, Navigation, ExternalLink, Trash2,
   Timer, MessageSquare, Send, ChevronLeft, ChevronRight,
@@ -10,13 +10,14 @@ import {
 import type { User } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Pin, Comment, PinPhoto, CommunityTag } from '@/lib/types'
+import { Pin, PinPhoto, CommunityTag } from '@/lib/types'
 import { getSessionId } from '@/lib/session'
 import { timeAgo, timeUntil, formatEventDate, voteColorClass, formatVoteCount } from '@/lib/utils'
 import { reverseGeocode, formatAddress } from '@/lib/geo'
 import { safeHttpUrl } from '@/lib/sanitize'
 import Avatar from '@/components/Avatar'
 import ReportControl from '@/components/pin/ReportControl'
+import { usePinComments } from '@/hooks/usePinComments'
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -309,107 +310,19 @@ export default function PinDetailModal({
     setTogglingTagId(null)
   }
 
-  // ── Comments ──────────────────────────────────────────────────────────────
-  const [comments, setComments] = useState<Comment[]>([])
-  const [loadingComments, setLoadingComments] = useState(true)
-  const [commentBody, setCommentBody] = useState('')
-  const [posting, setPosting] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const commentsEndRef = useRef<HTMLDivElement>(null)
-
-  const fetchComments = useCallback(async () => {
-    const { data } = await supabase
-      .from('comments')
-      .select('*, profile:profiles(username, avatar_url)')
-      .eq('pin_id', pin.id)
-      .order('created_at', { ascending: true })
-    if (data) setComments(data as unknown as Comment[])
-    setLoadingComments(false)
-  }, [pin.id])
-
-  useEffect(() => {
-    setComments([])
-    setLoadingComments(true)
-    fetchComments()
-
-    const channel = supabase
-      .channel(`comments:${pin.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'comments', filter: `pin_id=eq.${pin.id}` },
-        async (payload) => {
-          // Fetch with profile join — the raw payload doesn't include it
-          const { data } = await supabase
-            .from('comments')
-            .select('*, profile:profiles(username, avatar_url)')
-            .eq('id', (payload.new as { id: string }).id)
-            .single()
-          if (data) {
-            setComments((prev) => {
-              // Avoid duplicates (optimistic insert + realtime)
-              if (prev.some((c) => c.id === data.id)) return prev
-              return [...prev, data as unknown as Comment]
-            })
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'comments', filter: `pin_id=eq.${pin.id}` },
-        (payload) => {
-          setComments((prev) =>
-            prev.filter((c) => c.id !== (payload.old as { id: string }).id)
-          )
-        }
-      )
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [pin.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Scroll to bottom when new comments arrive
-  useEffect(() => {
-    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [comments.length])
-
-  const handlePostComment = async () => {
-    if (!commentBody.trim() || !user || posting) return
-    setPosting(true)
-    // Optimistic insert (realtime will deduplicate)
-    const tempId = `temp-${Date.now()}`
-    const optimistic: Comment = {
-      id: tempId,
-      pin_id: pin.id,
-      user_id: user.id,
-      body: commentBody.trim(),
-      created_at: new Date().toISOString(),
-      profile: { username: user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'You', avatar_url: user.user_metadata?.avatar_url ?? null },
-    }
-    setComments((prev) => [...prev, optimistic])
-    setCommentBody('')
-    const { error, data } = await supabase
-      .from('comments')
-      .insert({ pin_id: pin.id, user_id: user.id, body: optimistic.body })
-      .select('id')
-      .single()
-    if (error) {
-      setComments((prev) => prev.filter((c) => c.id !== tempId))
-      setCommentBody(optimistic.body)
-    } else if (data) {
-      // Replace temp id with real id
-      setComments((prev) =>
-        prev.map((c) => (c.id === tempId ? { ...c, id: data.id } : c))
-      )
-    }
-    setPosting(false)
-  }
-
-  const handleDeleteComment = async (commentId: string) => {
-    setDeletingId(commentId)
-    await supabase.from('comments').delete().eq('id', commentId)
-    setComments((prev) => prev.filter((c) => c.id !== commentId))
-    setDeletingId(null)
-  }
+  // Comments (list, realtime, optimistic post, delete) — see hooks/usePinComments.
+  // Destructured with the same names the JSX below already uses.
+  const {
+    comments,
+    loadingComments,
+    commentBody,
+    setCommentBody,
+    posting,
+    deletingId,
+    commentsEndRef,
+    handlePostComment,
+    handleDeleteComment,
+  } = usePinComments(pin.id, user)
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const community = pin.community
