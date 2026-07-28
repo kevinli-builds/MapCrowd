@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   X, ThumbsUp, ThumbsDown, Clock, MapPin, Navigation, ExternalLink, Trash2,
-  Timer, MessageSquare, Send, ChevronLeft, ChevronRight,
-  ImageOff, Calendar, Users, Loader2, Pencil, Check, UserPlus, UserCheck,
+  Timer, MessageSquare, Send,
+  Calendar, Users, Loader2, Pencil, Check, UserPlus, UserCheck,
   Link2, Share2, Bookmark, BookmarkCheck,
 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
@@ -17,6 +17,7 @@ import { reverseGeocode, formatAddress } from '@/lib/geo'
 import { safeHttpUrl } from '@/lib/sanitize'
 import Avatar from '@/components/Avatar'
 import ReportControl from '@/components/pin/ReportControl'
+import PinPhotoGallery from '@/components/pin/PinPhotoGallery'
 import { usePinComments } from '@/hooks/usePinComments'
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -145,8 +146,6 @@ export default function PinDetailModal({
     setUserVote(0)
     setConfirmDelete(false)
     setPhotos([])
-    setPhotoIndex(0)
-    setPhotoError(false)
     setPinTags([])
     setEditingTags(false)
     setCommunityTags([])
@@ -265,9 +264,8 @@ export default function PinDetailModal({
   }, [pin.id, pin.lat, pin.lng, pin.address])
 
   // ── Photos ────────────────────────────────────────────────────────────────
+  // Fetched in the batched effect above; the carousel UI lives in PinPhotoGallery.
   const [photos, setPhotos] = useState<PinPhoto[]>([])
-  const [photoIndex, setPhotoIndex] = useState(0)
-  const [photoError, setPhotoError] = useState(false)
 
   // ── Tags (inline editing) ────────────────────────────────────────────────
   // pinTags / photos / vote are fetched in the batched effect above.
@@ -327,7 +325,6 @@ export default function PinDetailModal({
   // ── Derived ───────────────────────────────────────────────────────────────
   const community = pin.community
   const voteColor = voteColorClass(pin.vote_count)
-  const currentPhoto = photos[photoIndex]
 
   return (
     /* Full-screen backdrop — bottom sheet on mobile, centred modal on sm+ */
@@ -429,55 +426,7 @@ export default function PinDetailModal({
         </div>
 
         {/* ── Photo gallery ─────────────────────────────────────────────── */}
-        {photos.length > 0 && (
-          <div className="relative shrink-0 bg-black" style={{ height: 220 }}>
-            {!photoError ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={currentPhoto?.url}
-                src={currentPhoto?.url}
-                alt={currentPhoto?.caption ?? pin.title}
-                className="h-full w-full object-cover"
-                onError={() => setPhotoError(true)}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center gap-2 text-gray-400">
-                <ImageOff className="h-6 w-6" />
-                <span className="text-sm">Photo unavailable</span>
-              </div>
-            )}
-
-            {photos.length > 1 && (
-              <>
-                <button
-                  onClick={() => { setPhotoIndex((i) => Math.max(0, i - 1)); setPhotoError(false) }}
-                  disabled={photoIndex === 0}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-gray-900 backdrop-blur-sm transition-colors hover:bg-black/30 disabled:opacity-30"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => { setPhotoIndex((i) => Math.min(photos.length - 1, i + 1)); setPhotoError(false) }}
-                  disabled={photoIndex === photos.length - 1}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-gray-900 backdrop-blur-sm transition-colors hover:bg-black/30 disabled:opacity-30"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
-                  {photos.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { setPhotoIndex(i); setPhotoError(false) }}
-                      className={`h-1.5 rounded-full transition-all ${
-                        i === photoIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/40'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
+        <PinPhotoGallery photos={photos} fallbackAlt={pin.title} />
 
         {/* ── Scrollable body ───────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto">
