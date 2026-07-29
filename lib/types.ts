@@ -176,6 +176,16 @@ export interface CommunityInsights {
   oldest_pending_hours: number | null           // how long the oldest pending pin has waited (null = none)
 }
 
+/** Personal "your year on MapCrowd" aggregate (from the get_my_yearbook RPC). */
+export interface ProfileYearbook {
+  monthly: { month: string; count: number }[]   // pins created per month, last 12 (oldest→newest)
+  pins_12mo: number
+  votes_received: number
+  community_count: number
+  photo_count: number
+  route_count: number
+}
+
 /** In-app notification kinds (written server-side by triggers; never client-forged). */
 export type NotificationType =
   | 'comment'        // someone commented on your pin

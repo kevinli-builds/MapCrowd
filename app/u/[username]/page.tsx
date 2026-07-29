@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { Profile, Pin } from '@/lib/types'
 import { timeAgo, avatarColor, voteColorClass, formatVoteCount } from '@/lib/utils'
 import Avatar from '@/components/Avatar'
+import ProfileYearbook from '@/components/profile/ProfileYearbook'
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -278,6 +279,13 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* ── Your year (own profile only) ─────────────────────────────────── */}
+      {isOwnProfile && (
+        <div className="mx-auto max-w-2xl px-4 pt-6">
+          <ProfileYearbook />
+        </div>
+      )}
 
       {/* ── Pin feed ─────────────────────────────────────────────────────── */}
       <main className="mx-auto max-w-2xl px-4 py-8">
