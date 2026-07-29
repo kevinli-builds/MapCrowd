@@ -165,6 +165,17 @@ export interface CommunityModerator {
   profile: Pick<Profile, 'username' | 'avatar_url'> | null
 }
 
+/** Aggregate community insights for mods (from the get_community_insights RPC). */
+export interface CommunityInsights {
+  weekly: { week: string; count: number }[]   // pins created per week, last 8 weeks (oldest→newest)
+  contributors_30d: number                      // distinct signed-in authors in the last 30 days
+  subscriber_count: number
+  subscribers_30d: number                       // new subscriptions in the last 30 days
+  top_pins: { id: string; title: string; vote_count: number }[]
+  pending_count: number                         // pins awaiting moderation
+  oldest_pending_hours: number | null           // how long the oldest pending pin has waited (null = none)
+}
+
 /** In-app notification kinds (written server-side by triggers; never client-forged). */
 export type NotificationType =
   | 'comment'        // someone commented on your pin

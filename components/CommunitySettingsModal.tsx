@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import {
   X, Shield, UserPlus, UserMinus, Search, Loader2,
-  CheckCircle2, XCircle, Clock, Settings, Pencil, Users, Inbox, Lock, Mail, Trash2, AlertTriangle, AlertCircle, Globe, MapPin, Tag, Plus, Flag,
+  CheckCircle2, XCircle, Clock, Settings, Pencil, Users, Inbox, Lock, Mail, Trash2, AlertTriangle, AlertCircle, Globe, MapPin, Tag, Plus, Flag, BarChart3,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useDebounce } from '@/lib/hooks'
@@ -14,6 +14,7 @@ import {
 } from '@/lib/types'
 import { timeAgo } from '@/lib/utils'
 import Avatar from '@/components/Avatar'
+import CommunityInsightsPanel from '@/components/community/CommunityInsights'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ interface CommunitySettingsModalProps {
   onDelete?: () => void
 }
 
-type Tab = 'general' | 'queue' | 'rules' | 'members' | 'mods' | 'tags'
+type Tab = 'general' | 'queue' | 'insights' | 'rules' | 'members' | 'mods' | 'tags'
 type EmailInviteStatus = 'idle' | 'sending' | 'sent_existing' | 'sent_new' | 'error'
 
 // ── Tab button ────────────────────────────────────────────────────────────────
@@ -757,6 +758,12 @@ export default function CommunitySettingsModal({
             label="Queue"
             badge={pendingPins.length + reports.length}
           />
+          <TabBtn
+            active={activeTab === 'insights'}
+            onClick={() => setActiveTab('insights')}
+            icon={<BarChart3 className="h-3.5 w-3.5" />}
+            label="Insights"
+          />
           {(isOwner || isAdmin) && (
             <>
               <TabBtn
@@ -1206,6 +1213,10 @@ export default function CommunitySettingsModal({
           )}
 
           {/* ── RULES tab ──────────────────────────────────────────────────── */}
+          {activeTab === 'insights' && (
+            <CommunityInsightsPanel communityId={community.id} />
+          )}
+
           {activeTab === 'rules' && (
             <div className="p-5 space-y-6">
 
