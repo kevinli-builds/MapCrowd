@@ -9,6 +9,8 @@ import {
 import { Pin, Route, Community, TravelMode } from '@/lib/types'
 import { COMMUNITY_COLORS } from '@/lib/constants'
 import { TRAVEL_MODES } from '@/lib/routing'
+import { routeMeters, estimateDurationMin, formatDuration } from '@/lib/routeStats'
+import { formatDistance } from '@/lib/geo'
 
 type Tab = 'stops' | 'community' | 'map'
 
@@ -41,6 +43,18 @@ export default function RouteBuilder({
   onRename, onUpdateColor, onUpdateMode, onPublish, onDelete, onClose,
 }: RouteBuilderProps) {
   const totalStops = steps.reduce((n, g) => n + g.pins.length, 0)
+
+  // §9 C3 — total distance + rough travel time from the snapped path (fallback:
+  // straight lines through the main spine, i.e. the first pin of each step).
+  const routeStats = useMemo(() => {
+    const spine = steps
+      .map((s) => s.pins[0])
+      .filter(Boolean)
+      .map((p) => [p.lat, p.lng] as [number, number])
+    if (spine.length < 2) return null
+    const meters = routeMeters(route.geometry, spine)
+    return { meters, min: estimateDurationMin(meters, route.travel_mode) }
+  }, [steps, route.geometry, route.travel_mode])
   const [tab, setTab] = useState<Tab>(!canEdit || totalStops > 0 ? 'stops' : 'community')
   // Default the picker to: the community this route is published to → the first
   // stop's community → the first available community.
@@ -344,6 +358,7 @@ export default function RouteBuilder({
         )}
         <p className="truncate text-xs text-gray-500">
           {activeMode.emoji} {activeMode.label} · {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
+          {routeStats && <> · {formatDistance(routeStats.meters)} · ~{formatDuration(routeStats.min)}</>}
           {!canEdit && authorName && <> · by {authorName}</>}
           {!canEdit && publishedCommunity && <> · {publishedCommunity.icon} {publishedCommunity.name}</>}
           {canEdit && route.is_public && publishedCommunity && <> · <span className="text-green-500">public</span></>}
