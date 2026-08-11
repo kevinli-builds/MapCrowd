@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Users, TrendingUp, Inbox, ThumbsUp, Loader2, AlertTriangle } from 'lucide-react'
+import { Users, TrendingUp, Inbox, ThumbsUp, Loader2, AlertTriangle, Trash2, Leaf, Share2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import type { CommunityInsights } from '@/lib/types'
+import type { CommunityInsights, StalePin } from '@/lib/types'
 import { weeklyBars, formatPendingLatency, growthBadge } from '@/lib/insights'
+import { timeAgo } from '@/lib/utils'
+import CommunityWrappedCard from '@/components/community/CommunityWrapped'
 
 interface CommunityInsightsPanelProps {
   communityId: string
@@ -20,6 +22,9 @@ const BAR_MAX_PX = 44
  */
 export default function CommunityInsightsPanel({ communityId }: CommunityInsightsPanelProps) {
   const [data, setData] = useState<CommunityInsights | null>(null)
+  const [stalePins, setStalePins] = useState<StalePin[]>([])
+  const [removingId, setRemovingId] = useState<string | null>(null)
+  const [showWrapped, setShowWrapped] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,16 +32,26 @@ export default function CommunityInsightsPanel({ communityId }: CommunityInsight
     let cancelled = false
     setLoading(true)
     setError(null)
-    supabase
-      .rpc('get_community_insights', { p_community_id: communityId })
-      .then(({ data, error }) => {
-        if (cancelled) return
-        if (error) setError(error.message.replace(/^.*?:\s*/, '') || 'Could not load insights')
-        else setData(data as CommunityInsights)
-        setLoading(false)
-      })
+    Promise.all([
+      supabase.rpc('get_community_insights', { p_community_id: communityId }),
+      supabase.rpc('get_stale_pins', { p_community_id: communityId }),
+    ]).then(([ins, stale]) => {
+      if (cancelled) return
+      if (ins.error) setError(ins.error.message.replace(/^.*?:\s*/, '') || 'Could not load insights')
+      else setData(ins.data as CommunityInsights)
+      if (!stale.error && stale.data) setStalePins(stale.data as StalePin[])
+      setLoading(false)
+    })
     return () => { cancelled = true }
   }, [communityId])
+
+  // Remove a stale pin (mod delete via the is_pin_owner_or_mod policy); optimistic.
+  const removeStalePin = async (id: string) => {
+    setRemovingId(id)
+    const { error } = await supabase.from('pins').delete().eq('id', id)
+    if (!error) setStalePins((prev) => prev.filter((p) => p.id !== id))
+    setRemovingId(null)
+  }
 
   if (loading) {
     return (
@@ -62,6 +77,14 @@ export default function CommunityInsightsPanel({ communityId }: CommunityInsight
 
   return (
     <div className="space-y-6 p-5">
+      {/* ── Share Wrapped (§4 D6) ── */}
+      <button
+        onClick={() => setShowWrapped(true)}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 py-2.5 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100"
+      >
+        <Share2 className="h-4 w-4" /> Share this community's Wrapped
+      </button>
+
       {/* ── Stat tiles ── */}
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
@@ -147,6 +170,51 @@ export default function CommunityInsightsPanel({ communityId }: CommunityInsight
           </ul>
         )}
       </div>
+
+      {/* ── Spring cleaning (§9 C4) — stale pins a mod may want to prune ── */}
+      <div>
+        <div className="mb-2 flex items-baseline justify-between">
+          <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <Leaf className="h-3.5 w-3.5 text-green-600" /> Spring cleaning
+          </h4>
+          {stalePins.length > 0 && <span className="text-xs text-gray-400">{stalePins.length} stale</span>}
+        </div>
+        {stalePins.length === 0 ? (
+          <p className="rounded-lg bg-gray-50 py-6 text-center text-sm text-gray-400">
+            Nothing stale — every pin here still gets love. 🌱
+          </p>
+        ) : (
+          <>
+            <p className="mb-2 text-xs text-gray-400">
+              Old pins (90d+) with no upvotes and no recent comments. Remove any that no longer belong.
+            </p>
+            <ul className="space-y-1">
+              {stalePins.map((p) => (
+                <li key={p.id} className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-gray-50">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-gray-700">{p.title}</span>
+                    <span className="text-xs text-gray-400">
+                      {timeAgo(p.created_at)} · {p.vote_count} votes · {p.comment_count} comment{p.comment_count === 1 ? '' : 's'}
+                    </span>
+                  </span>
+                  <button
+                    onClick={() => removeStalePin(p.id)}
+                    disabled={removingId === p.id}
+                    title="Remove this pin"
+                    className="shrink-0 rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
+                  >
+                    {removingId === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+
+      {showWrapped && (
+        <CommunityWrappedCard communityId={communityId} onClose={() => setShowWrapped(false)} />
+      )}
     </div>
   )
 }

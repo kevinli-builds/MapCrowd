@@ -944,6 +944,69 @@ BEGIN
 END; $$;
 GRANT EXECUTE ON FUNCTION public.get_my_yearbook TO authenticated;
 
+-- Stale pins for mods (§9 C4, migration 42): approved live pins >90d old, no net
+-- upvotes, no comment in 90d — the "spring cleaning" set. Mod-gated.
+CREATE OR REPLACE FUNCTION public.get_stale_pins(p_community_id UUID)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE result JSONB;
+BEGIN
+  IF NOT public.is_community_mod(p_community_id) THEN
+    RAISE EXCEPTION 'Not authorized to view this community''s pins';
+  END IF;
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object('id', id, 'title', title, 'created_at', created_at,
+                       'vote_count', vote_count, 'comment_count', comment_count) ORDER BY created_at ASC
+  ), '[]'::jsonb)
+  INTO result
+  FROM (
+    SELECT s.id, s.title, s.created_at, s.vote_count, s.comment_count
+    FROM (
+      SELECT p.id, p.title, p.created_at, p.vote_count,
+             (SELECT COUNT(*) FROM comments c WHERE c.pin_id = p.id) AS comment_count,
+             (SELECT MAX(c.created_at) FROM comments c WHERE c.pin_id = p.id) AS last_comment
+      FROM pins p
+      WHERE p.community_id = p_community_id AND p.status = 'approved'
+        AND (p.expires_at IS NULL OR p.expires_at > NOW())
+        AND p.created_at < NOW() - INTERVAL '90 days' AND p.vote_count <= 0
+    ) s
+    WHERE s.last_comment IS NULL OR s.last_comment < NOW() - INTERVAL '90 days'
+    ORDER BY s.created_at ASC LIMIT 50
+  ) capped;
+  RETURN result;
+END; $$;
+GRANT EXECUTE ON FUNCTION public.get_stale_pins TO authenticated;
+
+-- Community "Wrapped" (§4 D6, migration 43): headline numbers for a shareable
+-- per-community story card. Mod-gated.
+CREATE OR REPLACE FUNCTION public.get_community_wrapped(p_community_id UUID)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE result JSONB; v_name TEXT; v_icon TEXT; v_color TEXT;
+BEGIN
+  IF NOT public.is_community_mod(p_community_id) THEN
+    RAISE EXCEPTION 'Not authorized to view this community''s wrapped';
+  END IF;
+  SELECT name, icon, color INTO v_name, v_icon, v_color FROM communities WHERE id = p_community_id;
+  IF v_name IS NULL THEN RAISE EXCEPTION 'Community not found'; END IF;
+  result := jsonb_build_object(
+    'name', v_name, 'icon', v_icon, 'color', v_color,
+    'total_pins', (SELECT COUNT(*) FROM pins WHERE community_id = p_community_id AND status = 'approved' AND (expires_at IS NULL OR expires_at > NOW())),
+    'pins_this_year', (SELECT COUNT(*) FROM pins WHERE community_id = p_community_id AND created_at > NOW() - INTERVAL '1 year'),
+    'contributors', (SELECT COUNT(DISTINCT user_id) FROM pins WHERE community_id = p_community_id AND user_id IS NOT NULL),
+    'subscriber_count', (SELECT COUNT(*) FROM community_subscriptions WHERE community_id = p_community_id),
+    'new_subscribers_year', (SELECT COUNT(*) FROM community_subscriptions WHERE community_id = p_community_id AND created_at > NOW() - INTERVAL '1 year'),
+    'route_count', (SELECT COUNT(*) FROM routes WHERE community_id = p_community_id AND is_public),
+    'top_pin', (SELECT jsonb_build_object('title', title, 'vote_count', vote_count) FROM pins WHERE community_id = p_community_id AND status = 'approved' AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY vote_count DESC LIMIT 1),
+    'top_event', (
+      SELECT jsonb_build_object('title', p.title, 'going', r.cnt)
+      FROM pins p JOIN (SELECT pin_id, COUNT(*) AS cnt FROM event_rsvps GROUP BY pin_id) r ON r.pin_id = p.id
+      WHERE p.community_id = p_community_id AND p.event_date IS NOT NULL
+      ORDER BY r.cnt DESC LIMIT 1
+    )
+  );
+  RETURN result;
+END; $$;
+GRANT EXECUTE ON FUNCTION public.get_community_wrapped TO authenticated;
+
 -- Find a profile by email (SECURITY DEFINER to read auth.users; server-side only)
 CREATE OR REPLACE FUNCTION public.find_profile_by_email(p_email TEXT)
 RETURNS TABLE (user_id UUID, username TEXT, avatar_url TEXT)

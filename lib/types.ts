@@ -176,6 +176,30 @@ export interface CommunityInsights {
   oldest_pending_hours: number | null           // how long the oldest pending pin has waited (null = none)
 }
 
+/** A stale pin surfaced to mods for "spring cleaning" (from get_stale_pins). */
+export interface StalePin {
+  id: string
+  title: string
+  created_at: string
+  vote_count: number
+  comment_count: number
+}
+
+/** Headline numbers for a community's shareable "Wrapped" card (from get_community_wrapped). */
+export interface CommunityWrapped {
+  name: string
+  icon: string
+  color: string
+  total_pins: number
+  pins_this_year: number
+  contributors: number
+  subscriber_count: number
+  new_subscribers_year: number
+  route_count: number
+  top_pin: { title: string; vote_count: number } | null
+  top_event: { title: string; going: number } | null
+}
+
 /** Personal "your year on MapCrowd" aggregate (from the get_my_yearbook RPC). */
 export interface ProfileYearbook {
   monthly: { month: string; count: number }[]   // pins created per month, last 12 (oldest→newest)
