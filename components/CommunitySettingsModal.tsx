@@ -15,6 +15,7 @@ import {
 import { timeAgo } from '@/lib/utils'
 import Avatar from '@/components/Avatar'
 import CommunityInsightsPanel from '@/components/community/CommunityInsights'
+import InviteLinks from '@/components/community/InviteLinks'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1440,6 +1441,11 @@ export default function CommunitySettingsModal({
           {/* ── MEMBERS tab (private communities only) ─────────────────────── */}
           {activeTab === 'members' && (
             <div className="p-5 space-y-5">
+
+              {/* Invite links (§2) */}
+              <section className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+                <InviteLinks communityId={community.id} currentUserId={currentUserId} />
+              </section>
 
               {/* Accepted members */}
               <section>
