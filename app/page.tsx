@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { Menu, Zap, LocateFixed, Loader2 } from 'lucide-react'
+import { Menu, Zap, LocateFixed, Loader2, Dices } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthUser } from '@/hooks/useAuthUser'
 import { useCommunities } from '@/hooks/useCommunities'
@@ -11,6 +11,7 @@ import { useMapFilters } from '@/hooks/useMapFilters'
 import { useNotifications } from '@/hooks/useNotifications'
 import { Pin } from '@/lib/types'
 import { buildRouteLegs, stepsToLegSteps, normalizeSolidSegments } from '@/lib/route-legs'
+import { pickSurprisePin } from '@/lib/surprise'
 import type { FlyToTarget } from '@/components/MapInner'
 import Sidebar from '@/components/Sidebar'
 import MapWrapper from '@/components/MapWrapper'
@@ -315,6 +316,12 @@ export default function Home() {
     setShowMobileSidebar(false)
   }
 
+  // §4 D1 "Surprise me" — fly to + open a random (preferably upvoted) loaded pin.
+  const handleSurpriseMe = () => {
+    const pin = pickSurprisePin(pins)
+    if (pin) handleSelectPin(pin)
+  }
+
   const handleCenterChange = useCallback((lat: number, lng: number) => {
     setMapCenter([lat, lng])
   }, [])
@@ -558,6 +565,16 @@ export default function Home() {
               <div className="rounded-lg border border-red-500/30 bg-white px-3 py-1.5 text-xs text-red-500 shadow-lg">
                 {locationError}
               </div>
+            )}
+            {/* Surprise me — fly to a random good pin (hidden until pins load) */}
+            {pins.length > 0 && (
+              <button
+                onClick={handleSurpriseMe}
+                title="Surprise me — jump to a random pin"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-lg transition-colors hover:border-indigo-500 hover:text-indigo-600"
+              >
+                <Dices className="h-4 w-4" />
+              </button>
             )}
             <button
               onClick={handleNearMe}
