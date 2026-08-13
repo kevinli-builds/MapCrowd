@@ -11,6 +11,7 @@ import { COMMUNITY_COLORS } from '@/lib/constants'
 import { TRAVEL_MODES } from '@/lib/routing'
 import { routeMeters, estimateDurationMin, formatDuration } from '@/lib/routeStats'
 import { formatDistance } from '@/lib/geo'
+import RouteHunt from '@/components/route/RouteHunt'
 
 type Tab = 'stops' | 'community' | 'map'
 
@@ -20,6 +21,7 @@ interface RouteBuilderProps {
   communities: Community[]
   pins: Pin[]                                   // all in-memory approved pins
   canEdit: boolean                              // false = read-only public viewer
+  currentUserId?: string                        // enables the scavenger-hunt check-in panel
   authorName?: string                           // shown in the read-only viewer
   targetStep: number | null                     // when adding an alternative to a step
   onSetTargetStep: (step: number | null) => void
@@ -38,7 +40,7 @@ interface RouteBuilderProps {
 }
 
 export default function RouteBuilder({
-  route, steps, communities, pins, canEdit, authorName, targetStep, onSetTargetStep,
+  route, steps, communities, pins, canEdit, currentUserId, authorName, targetStep, onSetTargetStep,
   onSelectBuilderCommunity, onAddPin, onRemoveStop, onMoveStep, onToggleEqualOptions, onFlyToPin,
   onRename, onUpdateColor, onUpdateMode, onPublish, onDelete, onClose,
 }: RouteBuilderProps) {
@@ -152,6 +154,18 @@ export default function RouteBuilder({
       </div>
     ) : (
       <ul className="divide-y divide-gray-200/60">
+        {currentUserId && (
+          <li className="px-3 py-3">
+            <RouteHunt
+              routeId={route.id}
+              currentUserId={currentUserId}
+              stops={steps
+                .map((g) => g.pins[0])
+                .filter(Boolean)
+                .map((p) => ({ id: p.id, lat: p.lat, lng: p.lng, title: p.title }))}
+            />
+          </li>
+        )}
         {steps.map((g, i) => (
           <li key={g.step} className="px-3 py-2.5">
             <div className="flex gap-2">

@@ -619,6 +619,7 @@ export default function Home() {
             communities={communities}
             pins={pins}
             canEdit={routeCanEdit}
+            currentUserId={user?.id}
             authorName={activeRoute.profile?.username ?? undefined}
             targetStep={routeTargetStep}
             onSetTargetStep={setRouteTargetStep}
