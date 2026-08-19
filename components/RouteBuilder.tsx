@@ -9,7 +9,7 @@ import {
 import { Pin, Route, Community, TravelMode } from '@/lib/types'
 import { COMMUNITY_COLORS } from '@/lib/constants'
 import { TRAVEL_MODES } from '@/lib/routing'
-import { routeMeters, estimateDurationMin, formatDuration } from '@/lib/routeStats'
+import { routeMeters, estimateDurationMin, formatDuration, estimateSteps, formatSteps } from '@/lib/routeStats'
 import { formatDistance } from '@/lib/geo'
 import RouteHunt from '@/components/route/RouteHunt'
 
@@ -54,9 +54,8 @@ export default function RouteBuilder({
       .filter(Boolean)
       .map((p) => [p.lat, p.lng] as [number, number])
     if (spine.length < 2) return null
-    const meters = routeMeters(route.geometry, spine)
-    return { meters, min: estimateDurationMin(meters, route.travel_mode) }
-  }, [steps, route.geometry, route.travel_mode])
+    return { meters: routeMeters(route.geometry, spine) }
+  }, [steps, route.geometry])
   const [tab, setTab] = useState<Tab>(!canEdit || totalStops > 0 ? 'stops' : 'community')
   // Default the picker to: the community this route is published to → the first
   // stop's community → the first available community.
@@ -372,7 +371,6 @@ export default function RouteBuilder({
         )}
         <p className="truncate text-xs text-gray-500">
           {activeMode.emoji} {activeMode.label} · {totalStops} {totalStops === 1 ? 'stop' : 'stops'}
-          {routeStats && <> · {formatDistance(routeStats.meters)} · ~{formatDuration(routeStats.min)}</>}
           {!canEdit && authorName && <> · by {authorName}</>}
           {!canEdit && publishedCommunity && <> · {publishedCommunity.icon} {publishedCommunity.name}</>}
           {canEdit && route.is_public && publishedCommunity && <> · <span className="text-green-500">public</span></>}
@@ -476,9 +474,37 @@ export default function RouteBuilder({
     </div>
   )
 
+  // §9 C3+ — trail card: distance, a per-mode time estimate, and a walking step
+  // count. Times all derive from the same route length, so they read as ballpark
+  // ("~"); the route's own travel mode is highlighted since the snapped geometry
+  // follows it.
+  const trailCard = routeStats && (
+    <div className="pointer-events-auto shrink-0 border-b border-gray-200 bg-white/95 px-3 py-2 backdrop-blur-sm md:w-96">
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
+        <span className="font-semibold text-gray-900">{formatDistance(routeStats.meters)}</span>
+        {TRAVEL_MODES.map((m) => {
+          const isActive = m.id === route.travel_mode
+          return (
+            <span
+              key={m.id}
+              title={`${m.label} · ~${formatDuration(estimateDurationMin(routeStats.meters, m.id))}`}
+              className={isActive ? 'font-medium text-indigo-700' : 'text-gray-500'}
+            >
+              {m.emoji} ~{formatDuration(estimateDurationMin(routeStats.meters, m.id))}
+            </span>
+          )
+        })}
+        <span className="text-gray-500" title="Approximate steps if you walked it">
+          👣 ~{formatSteps(estimateSteps(routeStats.meters))}
+        </span>
+      </div>
+    </div>
+  )
+
   return (
     <div className="pointer-events-none absolute inset-0 z-[1200] flex flex-col">
       {topBar}
+      {trailCard}
 
       {/* Body — desktop control column on the left, map shows through on the right */}
       <div className="flex min-h-0 flex-1">

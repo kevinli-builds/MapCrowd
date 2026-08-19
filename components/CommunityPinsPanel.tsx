@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Community, CommunityTag, Pin, Route } from '@/lib/types'
 import { timeAgo, voteColorClass, formatVoteCount } from '@/lib/utils'
+import { computeSpread, formatCoverage, formatArea, formatSpan } from '@/lib/communityStats'
 
 interface CommunityPinsPanelProps {
   community: Community
@@ -80,6 +81,9 @@ export default function CommunityPinsPanel({
   // Show the search box once a community has a non-trivial number of pins
   const showSearch = sorted.length > 5
 
+  // Breadth of the pins currently loaded for this community (null = <2 distinct spots)
+  const spread = useMemo(() => computeSpread(pins), [pins])
+
   return (
     <div className="absolute bottom-0 left-0 right-0 z-[1150] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur-sm sm:bottom-auto sm:left-auto sm:top-0 sm:h-full sm:max-h-none sm:w-80 sm:rounded-none sm:border-b-0 sm:border-l sm:border-r-0 sm:border-t-0">
 
@@ -108,6 +112,9 @@ export default function CommunityPinsPanel({
             </div>
             <p className="text-xs text-gray-500">
               {sorted.length} {sorted.length === 1 ? 'pin' : 'pins'}
+              {spread && (
+                <span title={`Pins span ${formatSpan(spread)} · ~${formatArea(spread.areaKm2)} area`}> · spans {formatCoverage(spread)}</span>
+              )}
             </p>
             {community.geo_restriction && (
               <div className="mt-0.5 flex items-center gap-1 text-[10px] text-gray-500">

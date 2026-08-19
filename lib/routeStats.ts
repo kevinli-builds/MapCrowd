@@ -63,3 +63,17 @@ export function formatDuration(min: number): string {
   const m = min % 60
   return m === 0 ? `${h} h` : `${h} h ${m} min`
 }
+
+// Average walking step length (m). Adult stride is roughly 0.75 m; keeps the
+// count a ballpark ("~"), same spirit as the duration estimates.
+const STEP_LENGTH_M = 0.75
+
+/** Roughly how many steps it'd take to walk `meters` on foot. */
+export function estimateSteps(meters: number): number {
+  return Math.max(0, Math.round(meters / STEP_LENGTH_M))
+}
+
+/** "3,200 steps" / "1 step" (thousands-separated). */
+export function formatSteps(n: number): string {
+  return `${n.toLocaleString('en-US')} ${n === 1 ? 'step' : 'steps'}`
+}

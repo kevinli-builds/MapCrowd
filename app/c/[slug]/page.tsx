@@ -7,11 +7,12 @@ import type { User } from '@supabase/supabase-js'
 import {
   ArrowLeft, MapPin, Users, Bookmark, BookmarkCheck,
   Shield, Clock, Lock, Loader2, ThumbsUp, MessageSquare,
-  AlertCircle, Route as RouteIcon,
+  AlertCircle, Route as RouteIcon, Maximize,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Community, Pin, Route, PIN_DURATION_LABELS, WHO_CAN_PIN_LABELS } from '@/lib/types'
 import { timeAgo, formatCount, voteColorClass, formatVoteCount } from '@/lib/utils'
+import { computeSpread, formatCoverage, formatArea, formatSpan, type CommunitySpread } from '@/lib/communityStats'
 
 // ── Pin card ──────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ export default function CommunityPage() {
   const [routes, setRoutes] = useState<(Route & { route_pins?: { count: number }[] })[]>([])
   const [pinCount, setPinCount] = useState(0)
   const [subscriberCount, setSubscriberCount] = useState(0)
+  const [spread, setSpread] = useState<CommunitySpread | null>(null)
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [togglingSubscription, setTogglingSubscription] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -134,6 +136,18 @@ export default function CommunityPage() {
       .eq('is_public', true)
       .order('created_at', { ascending: false })
     if (routeData) setRoutes(routeData as (Route & { route_pins?: { count: number }[] })[])
+
+    // 5. Coverage — a coords-only sweep of ALL approved live pins (not just the
+    // 50 shown above) so the breadth stat reflects the whole community. Light
+    // payload (two floats/row); capped defensively.
+    const { data: coordData } = await supabase
+      .from('pins')
+      .select('lat, lng')
+      .eq('community_id', comm.id)
+      .eq('status', 'approved')
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .limit(2000)
+    setSpread(computeSpread((coordData ?? []) as { lat: number; lng: number }[]))
 
     setLoading(false)
   }, [slug])
@@ -246,6 +260,14 @@ export default function CommunityPage() {
                 <Users className="h-3 w-3" /> Subscribers
               </p>
             </div>
+            {spread && (
+              <div className="text-center" title={`Pins span ${formatSpan(spread)} · ~${formatArea(spread.areaKm2)} area`}>
+                <p className="text-2xl font-bold text-gray-900">{formatCoverage(spread)}</p>
+                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                  <Maximize className="h-3 w-3" /> Span
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Subscribe button */}

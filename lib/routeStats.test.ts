@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   polylineMeters, segmentsMeters, routeMeters, estimateDurationMin, formatDuration,
+  estimateSteps, formatSteps,
   type LatLng,
 } from './routeStats'
 
@@ -62,5 +63,21 @@ describe('formatDuration', () => {
     expect(formatDuration(45)).toBe('45 min')
     expect(formatDuration(75)).toBe('1 h 15 min')
     expect(formatDuration(120)).toBe('2 h')
+  })
+})
+
+describe('estimateSteps', () => {
+  it('converts metres to walking steps (~0.75 m each)', () => {
+    expect(estimateSteps(750)).toBe(1000)
+    expect(estimateSteps(0)).toBe(0)
+    expect(estimateSteps(-5)).toBe(0) // never negative
+  })
+})
+
+describe('formatSteps', () => {
+  it('thousands-separates and pluralises', () => {
+    expect(formatSteps(1)).toBe('1 step')
+    expect(formatSteps(3200)).toBe('3,200 steps')
+    expect(formatSteps(0)).toBe('0 steps')
   })
 })
