@@ -1,8 +1,22 @@
 import { describe, it, expect } from 'vitest'
 import {
-  computeBounds, computeSpread, formatArea, formatSpan, formatCoverage,
+  computeBounds, computeSpread, trimOutliers, formatArea, formatSpan, formatCoverage,
   type LatLngPoint,
 } from './communityStats'
+
+// A tight ~few-km cluster (downtown Chicago-ish), enough points to trigger trimming.
+const CLUSTER: LatLngPoint[] = [
+  { lat: 41.880, lng: -87.630 }, { lat: 41.885, lng: -87.640 },
+  { lat: 41.890, lng: -87.635 }, { lat: 41.878, lng: -87.625 },
+  { lat: 41.892, lng: -87.645 }, { lat: 41.883, lng: -87.628 },
+]
+// A second real cluster (Manhattan-ish) — a bi-city community, not noise.
+const NYC_CLUSTER: LatLngPoint[] = [
+  { lat: 40.740, lng: -73.990 }, { lat: 40.750, lng: -73.985 },
+  { lat: 40.730, lng: -74.000 }, { lat: 40.760, lng: -73.980 },
+  { lat: 40.745, lng: -73.995 }, { lat: 40.755, lng: -73.975 },
+]
+const LA = { lat: 34.05, lng: -118.24 } // a far-flung stray
 
 // 1° of latitude ≈ 111.19 km — handy known distance for the haversine.
 const ONE_DEG_M = 111_195
@@ -41,6 +55,47 @@ describe('computeSpread', () => {
     expect(computeSpread([{ lat: 3, lng: 3 }, { lat: 3, lng: 3 }])).toBeNull()
     expect(computeSpread([{ lat: 3, lng: 3 }])).toBeNull()
     expect(computeSpread([])).toBeNull()
+  })
+})
+
+describe('trimOutliers', () => {
+  it('drops a far-flung stray but keeps the cluster', () => {
+    const kept = trimOutliers([...CLUSTER, LA])
+    expect(kept.length).toBe(CLUSTER.length) // LA removed
+    expect(kept).not.toContainEqual(LA)
+  })
+
+  it('leaves an even spread untouched (no false positives)', () => {
+    expect(trimOutliers(CLUSTER).length).toBe(CLUSTER.length)
+  })
+
+  it('does not trim below the minimum sample size', () => {
+    const few = [CLUSTER[0], CLUSTER[1], LA] // n=3 < MIN_TO_TRIM
+    expect(trimOutliers(few)).toEqual(few)
+  })
+
+  it('keeps BOTH real clusters of a bi-city community, dropping only the lone stray', () => {
+    // This is the case a radial-from-centre rule gets wrong: two legit clusters
+    // inflate the spread so the stray hides inside it. kNN judges each pin locally.
+    const kept = trimOutliers([...CLUSTER, ...NYC_CLUSTER, LA])
+    expect(kept).not.toContainEqual(LA)
+    expect(kept.length).toBe(CLUSTER.length + NYC_CLUSTER.length) // both cities survive
+  })
+})
+
+describe('computeSpread trimming', () => {
+  it('reports the cluster span and counts the trimmed stray', () => {
+    const s = computeSpread([...CLUSTER, LA])!
+    expect(s.total).toBe(CLUSTER.length + 1)
+    expect(s.count).toBe(CLUSTER.length)
+    expect(s.trimmed).toBe(1)
+    expect(s.diagM).toBeLessThan(5_000) // a few km, not coast-to-coast
+  })
+
+  it('trim:false keeps the stray and balloons the box', () => {
+    const raw = computeSpread([...CLUSTER, LA], { trim: false })!
+    expect(raw.trimmed).toBe(0)
+    expect(raw.diagM).toBeGreaterThan(2_000_000) // ~Chicago→LA
   })
 })
 

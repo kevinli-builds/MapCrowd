@@ -113,7 +113,14 @@ export default function CommunityPinsPanel({
             <p className="text-xs text-gray-500">
               {sorted.length} {sorted.length === 1 ? 'pin' : 'pins'}
               {spread && (
-                <span title={`Pins span ${formatSpan(spread)} · ~${formatArea(spread.areaKm2)} area`}> · spans {formatCoverage(spread)}</span>
+                <span
+                  title={
+                    `Pins span ${formatSpan(spread)} · ~${formatArea(spread.areaKm2)} area` +
+                    (spread.trimmed > 0
+                      ? ` · excludes ${spread.trimmed} far-flung ${spread.trimmed === 1 ? 'pin' : 'pins'}`
+                      : '')
+                  }
+                > · spans {formatCoverage(spread)}</span>
               )}
             </p>
             {community.geo_restriction && (

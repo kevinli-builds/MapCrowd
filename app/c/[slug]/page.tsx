@@ -261,7 +261,15 @@ export default function CommunityPage() {
               </p>
             </div>
             {spread && (
-              <div className="text-center" title={`Pins span ${formatSpan(spread)} · ~${formatArea(spread.areaKm2)} area`}>
+              <div
+                className="text-center"
+                title={
+                  `Pins span ${formatSpan(spread)} · ~${formatArea(spread.areaKm2)} area` +
+                  (spread.trimmed > 0
+                    ? ` · excludes ${spread.trimmed} far-flung ${spread.trimmed === 1 ? 'pin' : 'pins'}`
+                    : '')
+                }
+              >
                 <p className="text-2xl font-bold text-gray-900">{formatCoverage(spread)}</p>
                 <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                   <Maximize className="h-3 w-3" /> Span
